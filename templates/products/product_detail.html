@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}{% if product.seo_title %}{{ product.seo_title }}{% else %}{{ product.name }} | MediMart{% endif %}{% endblock %}
+{% block meta_description %}{% if product.seo_description %}{{ product.seo_description }}{% else %}{{ product.short_description|default:product.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="product-detail-image">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" decoding="async" fetchpriority="high" width="720" height="540">
+                {% else %}
+                    <span><i class="bi bi-capsule-pill"></i></span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="product-detail-copy">
+                <p class="eyebrow mb-2">{{ product.category.name }}</p>
+                <h1 class="h2 fw-bold mb-2">{{ product.name }}</h1>
+                <p class="text-secondary mb-3">
+                    {% if product.brand %}{{ product.brand.name }}{% else %}MediMart verified product{% endif %}
+                    {% if product.sku %} · SKU: {{ product.sku }}{% endif %}
+                </p>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="badge text-bg-light">{{ product.get_product_type_display }}</span>
+                    {% if product.requires_prescription %}
+                        <span class="badge text-bg-warning">Prescription required</span>
+                    {% endif %}
+                    <span class="badge text-bg-success">{{ product.stock_status }}</span>
+                    {% if review_summary.total_reviews %}
+                        <span class="badge text-bg-primary">
+                            {{ review_summary.average_rating|floatformat:1 }} ★ · {{ review_summary.total_reviews }} review{{ review_summary.total_reviews|pluralize }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="price-block mb-4">
+                    <strong>₹{{ product.selling_price }}</strong>
+                    {% if product.discount_percentage %}
+                        <span class="text-secondary text-decoration-line-through">₹{{ product.mrp }}</span>
+                        <span class="discount-label">{{ product.discount_percentage }}% off</span>
+                    {% endif %}
+                </div>
+
+                {% if product.short_description %}
+                    <p class="lead text-secondary">{{ product.short_description }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
+                    {% if lowest_offer %}
+                        <form method="post" action="{% url 'cart:add_to_cart' lowest_offer.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                            <button class="btn btn-success btn-lg w-100" type="submit">
+                                <i class="bi bi-cart-plus me-2"></i>Add Lowest Seller
+                            </button>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-success btn-lg" type="button" disabled>
+                            <i class="bi bi-cart-plus me-2"></i>No Seller Available
+                        </button>
+                    {% endif %}
+                    <a class="btn btn-outline-success btn-lg" href="{% url 'products:price_comparison' product.slug %}">
+                        <i class="bi bi-bar-chart me-2"></i>Compare Sellers
+                    </a>
+                    <form method="post" action="{% url 'products:compare_add' product.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button class="btn btn-outline-secondary btn-lg w-100" type="submit">
+                            <i class="bi bi-columns-gap me-2"></i>Compare Product
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button class="btn btn-outline-primary btn-lg w-100" type="submit">
+                            <i class="bi bi-bookmark-heart me-2"></i>Save for Later
+                        </button>
+                    </form>
+                </div>
+
+                <p class="small text-secondary mb-0">
+                    Cart uses the selected seller offer so price and stock stay tied to the vendor.
+                    {% if product.requires_prescription %}
+                        This product requires an approved prescription.
+                        <a href="{% url 'prescriptions:prescription_upload' %}">Upload prescription</a>.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container pb-5">
+    <div class="content-panel">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+            <div>
+                <h2 class="h4 fw-bold mb-1">Seller Offers</h2>
+                <p class="text-secondary mb-0">Approved vendor prices for this product.</p>
+            </div>
+            {% if lowest_offer %}
+                <div class="seller-summary">
+                    <span>Lowest ₹{{ lowest_offer.price }}</span>
+                    <span>Highest ₹{{ highest_offer.price }}</span>
+                    <span>Save up to ₹{{ maximum_saving }}</span>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if seller_offers %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Seller</th>
+                            <th>Price</th>
+                            <th>Delivery</th>
+                            <th>Rating</th>
+                            <th>Warranty</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for offer in seller_offers %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'vendors:vendor_detail' offer.vendor.pk %}">{{ offer.vendor.business_name }}</a>
+                                    {% if offer.offer_text %}
+                                        <div class="small text-secondary">{{ offer.offer_text }}</div>
+                                    {% endif %}
+                                </td>
+                                <td><strong>₹{{ offer.price }}</strong></td>
+                                <td>{{ offer.delivery_time }}</td>
+                                <td>{{ offer.seller_rating }}</td>
+                                <td>{{ offer.warranty|default:"-" }}</td>
+                                <td>{{ offer.stock_status }}</td>
+                                <td>
+                                    {% if offer.stock_quantity %}
+                                        <form method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                                            <button class="btn btn-sm btn-outline-success" type="submit">Add</button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" disabled>Out</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-shop"></i>
+                <p class="mb-0">No approved sellers yet. Vendor offers will appear here after admin approval.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="container pb-5">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="content-panel">
+                <h2 class="h4 fw-bold mb-3">Description</h2>
+                <p class="mb-0">{{ product.description|linebreaksbr }}</p>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="content-panel">
+                <h2 class="h4 fw-bold mb-3">Product Details</h2>
+                <dl class="product-meta mb-0">
+                    {% if product.manufacturer %}
+                        <dt>Manufacturer</dt>
+                        <dd>{{ product.manufacturer }}</dd>
+                    {% endif %}
+                    {% if product.composition %}
+                        <dt>Composition</dt>
+                        <dd>{{ product.composition }}</dd>
+                    {% endif %}
+                    {% if product.pack_size %}
+                        <dt>Pack size</dt>
+                        <dd>{{ product.pack_size }}</dd>
+                    {% endif %}
+                    {% if product.weight %}
+                        <dt>Weight</dt>
+                        <dd>{{ product.weight }}</dd>
+                    {% endif %}
+                    {% if product.dimensions %}
+                        <dt>Dimensions</dt>
+                        <dd>{{ product.dimensions }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if product.specifications.exists %}
+    <section class="container pb-5">
+        <div class="content-panel">
+            <h2 class="h4 fw-bold mb-3">Specifications</h2>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <tbody>
+                        {% for spec in product.specifications.all %}
+                            <tr>
+                                <th scope="row">{{ spec.name }}</th>
+                                <td>{{ spec.value }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endif %}
+
+<section class="container pb-5">
+    <div class="content-panel">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+            <div>
+                <h2 class="h4 fw-bold mb-1">Ratings & Reviews</h2>
+                <p class="text-secondary mb-0">Reviews from customers who purchased this product.</p>
+            </div>
+            {% if can_review %}
+                <a class="btn btn-success align-self-md-start" href="{% url 'reviews:review_create' product.slug %}">
+                    <i class="bi bi-star me-2"></i>Write Review
+                </a>
+            {% elif existing_review %}
+                <span class="badge text-bg-light align-self-md-start">Your review is {{ existing_review.is_approved|yesno:"approved,pending approval" }}</span>
+            {% endif %}
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="review-summary-card">
+                    <strong>{% if review_summary.average_rating %}{{ review_summary.average_rating|floatformat:1 }}{% else %}0.0{% endif %}</strong>
+                    <span>Average Rating</span>
+                    <p class="text-secondary mb-0">{{ review_summary.total_reviews|default:0 }} approved review{{ review_summary.total_reviews|default:0|pluralize }}</p>
+                </div>
+                <div class="mt-3">
+                    {% for row in rating_distribution %}
+                        <div class="rating-row">
+                            <span>{{ row.rating }} ★</span>
+                            <div class="rating-bar">
+                                <span style="width: {% if review_summary.total_reviews %}{% widthratio row.count review_summary.total_reviews 100 %}{% else %}0{% endif %}%"></span>
+                            </div>
+                            <span>{{ row.count }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-lg-8">
+                {% if approved_reviews %}
+                    <div class="review-list">
+                        {% for review in approved_reviews %}
+                            <article class="review-card">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div>
+                                        <strong>{{ review.title }}</strong>
+                                        <div class="small text-warning">{{ review.rating }} ★</div>
+                                    </div>
+                                    <span class="small text-secondary">{{ review.created_at|date:"M d, Y" }}</span>
+                                </div>
+                                <p class="text-secondary mt-2 mb-2">{{ review.comment }}</p>
+                                <span class="small text-secondary">By {{ review.user.first_name|default:review.user.username }}</span>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-star"></i>
+                        <h3 class="h5 fw-semibold">No approved reviews yet</h3>
+                        <p>Purchased customers can submit reviews for admin approval.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if related_products %}
+    <section class="container pb-5">
+        <h2 class="h4 fw-bold mb-3">Related Products</h2>
+        <div class="row g-3">
+            {% for product in related_products %}
+                <div class="col-sm-6 col-lg-3">
+                    {% include "products/product_card.html" with product=product %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

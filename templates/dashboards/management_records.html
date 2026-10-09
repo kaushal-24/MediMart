@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} Management | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div><a class="management-back" href="{% url 'dashboards:admin_dashboard' %}"><i class="bi bi-arrow-left"></i> Operations Center</a><p class="eyebrow mb-2 mt-3">Custom management</p><h1 class="h2 fw-bold mb-2">{{ title }}</h1><p class="text-secondary mb-0">{{ description }}</p></div>
+        {% if create_url %}<a class="btn btn-success" href="{{ create_url }}"><i class="bi bi-plus-lg me-2"></i>Add {{ create_label }}</a>{% endif %}
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="management-toolbar mb-4">
+        <form method="get" class="management-search" role="search"><i class="bi bi-search"></i><input name="q" value="{{ query }}" type="search" placeholder="Search {{ title|lower }}" aria-label="Search {{ title|lower }}"><button class="btn btn-outline-success" type="submit">Search</button></form>
+        <span>{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+    </div>
+
+    <div class="content-panel management-table-panel">
+        {% if rows %}
+        <div class="table-responsive">
+            <table class="table align-middle operations-table management-table mb-0">
+                <thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}<th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% for value in row.values %}<td>{% if forloop.first %}<strong>{{ value }}</strong>{% else %}{{ value }}{% endif %}</td>{% endfor %}
+                        <td><span class="status-pill status-{{ row.status }}">{{ row.status_label }}</span></td>
+                        <td><div class="management-actions">
+                            {% if row.view_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ row.view_url }}" target="_blank" rel="noopener" title="View document"><i class="bi bi-eye"></i><span class="visually-hidden">View document</span></a>{% endif %}
+                            {% if row.edit_url %}<a class="btn btn-sm btn-outline-success" href="{{ row.edit_url }}" title="Edit"><i class="bi bi-pencil"></i><span class="visually-hidden">Edit</span></a>{% endif %}
+                            {% for value, label, style in row.actions %}<form method="post" action="{% url 'dashboards:management_record_action' section row.pk %}">{% csrf_token %}<button class="btn btn-sm btn-{{ style }}" name="action" value="{{ value }}" type="submit">{{ label }}</button></form>{% endfor %}
+                        </div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<div class="empty-state"><i class="bi bi-inbox"></i><h2 class="h5 fw-semibold">No records found</h2><p>Try another search or create the first record.</p></div>{% endif %}
+    </div>
+    {% include "partials/pagination.html" with page_obj=page_obj %}
+</section>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}My Reviews | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Review history</p>
+        <h1 class="h2 fw-bold mb-2">My Reviews</h1>
+        <p class="text-secondary mb-0">Track product reviews you submitted.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if reviews %}
+        <div class="row g-3">
+            {% for review in reviews %}
+                <div class="col-md-6">
+                    <article class="review-card h-100">
+                        <div class="d-flex justify-content-between gap-3 mb-2">
+                            <div>
+                                <h2 class="h5 fw-bold mb-1">{{ review.product.name }}</h2>
+                                <span class="small text-warning">{{ review.rating }} ★</span>
+                            </div>
+                            <span class="badge {% if review.is_approved %}text-bg-success{% else %}text-bg-warning{% endif %}">
+                                {% if review.is_approved %}Approved{% else %}Pending{% endif %}
+                            </span>
+                        </div>
+                        <strong>{{ review.title }}</strong>
+                        <p class="text-secondary mt-2 mb-3">{{ review.comment }}</p>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ review.product.get_absolute_url }}">View Product</a>
+                    </article>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-star"></i>
+            <h2 class="h5 fw-semibold">No reviews yet</h2>
+            <p>After purchasing a product, you can write a review from the product page.</p>
+            <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

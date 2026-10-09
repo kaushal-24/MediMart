@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Support Ticket | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="content-panel mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                    <div>
+                        <p class="eyebrow mb-2">Ticket #{{ ticket.pk }}</p>
+                        <h1 class="h3 fw-bold mb-2">{{ ticket.subject }}</h1>
+                        <p class="text-secondary mb-0">{{ ticket.get_category_display }} · {{ ticket.get_status_display }} · {{ ticket.created_at|date:"M d, Y" }}</p>
+                    </div>
+                    <a class="btn btn-outline-secondary align-self-md-start" href="{% url 'extras:support_ticket_list' %}">Back</a>
+                </div>
+                <hr>
+                <p class="mb-2">{{ ticket.message|linebreaksbr }}</p>
+                {% if ticket.order_number %}
+                    <span class="small text-secondary">Order: {{ ticket.order_number }}</span>
+                {% endif %}
+                {% if ticket.attachment %}
+                    <div class="mt-3"><a href="{% url 'core:support_ticket_attachment' ticket.pk %}">Download attachment</a></div>
+                {% endif %}
+            </div>
+
+            {% if ticket.messages.exists %}
+                <div class="review-list mb-4">
+                    {% for reply in ticket.messages.all %}
+                        <article class="review-card">
+                            <div class="d-flex justify-content-between gap-3 mb-2">
+                                <strong>{% if reply.is_staff_reply %}MediMart Support{% else %}{{ reply.sender.username }}{% endif %}</strong>
+                                <span class="small text-secondary">{{ reply.created_at|date:"M d, Y h:i A" }}</span>
+                            </div>
+                            <p class="text-secondary mb-0">{{ reply.message|linebreaksbr }}</p>
+                            {% if reply.attachment %}<a class="small" href="{% url 'core:support_message_attachment' reply.pk %}">Download attachment</a>{% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="content-panel">
+                <h2 class="h5 fw-bold mb-3">Add Reply</h2>
+                {% include "accounts/form_errors.html" with form=reply_form %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ reply_form.message.id_for_label }}">Message</label>
+                        {{ reply_form.message }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ reply_form.attachment.id_for_label }}">Attachment</label>
+                        {{ reply_form.attachment }}
+                    </div>
+                    <button class="btn btn-success" type="submit">Send Reply</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

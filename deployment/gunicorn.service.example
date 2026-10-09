@@ -1,0 +1,15 @@
+[Unit]
+Description=MediMart Gunicorn service
+After=network.target mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/MediMart
+EnvironmentFile=/var/www/MediMart/.env
+ExecStart=/var/www/MediMart/.venv/bin/gunicorn --workers 3 --bind unix:/run/medimart.sock MediMart.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

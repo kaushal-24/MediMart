@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Business Verification | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container"><p class="eyebrow mb-2">Seller onboarding</p><h1 class="h2 fw-bold mb-2">Business and licence verification</h1><p class="text-secondary mb-0">Complete the legal-business profile used for seller review. Regulated products remain unavailable until licence approval.</p></div>
+</section>
+<section class="container py-5">
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% include "accounts/form_errors.html" with form=form %}
+        <div class="onboarding-layout">
+            <div>
+                <div class="content-panel mb-4">
+                    <div class="panel-heading"><div><p class="eyebrow mb-1">Step 1</p><h2>Legal business details</h2></div><i class="bi bi-building-check"></i></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="{{ form.business_name.id_for_label }}">Registered business name</label>{{ form.business_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.owner_name.id_for_label }}">Owner / authorized signatory</label>{{ form.owner_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.email.id_for_label }}">Business email</label>{{ form.email }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.phone.id_for_label }}">Business phone</label>{{ form.phone }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.business_type.id_for_label }}">Business type</label>{{ form.business_type }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.gst_number.id_for_label }}">GSTIN</label>{{ form.gst_number }}</div>
+                        <div class="col-12"><label class="form-label" for="{{ form.address.id_for_label }}">Registered premises address</label>{{ form.address }}</div>
+                    </div>
+                </div>
+                <div class="content-panel mb-4">
+                    <div class="panel-heading"><div><p class="eyebrow mb-1">Step 2</p><h2>Regulatory licence</h2></div><i class="bi bi-patch-check"></i></div>
+                    <div class="alert alert-light border small"><i class="bi bi-info-circle me-2"></i>MediMart stores the submitted licence, checks an authorized registry when configured, and always requires manual compliance approval.</div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="{{ form.license_type.id_for_label }}">Licence type</label>{{ form.license_type }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.license_number.id_for_label }}">Licence number</label>{{ form.license_number }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.license_form_number.id_for_label }}">Form number</label>{{ form.license_form_number }}</div>
+                        <div class="col-md-8"><label class="form-label" for="{{ form.license_legal_name.id_for_label }}">Name on licence</label>{{ form.license_legal_name }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.license_state.id_for_label }}">Issuing state</label>{{ form.license_state }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.license_issued_on.id_for_label }}">Issue date</label>{{ form.license_issued_on }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.license_valid_until.id_for_label }}">Valid until</label>{{ form.license_valid_until }}</div>
+                        <div class="col-12"><label class="form-label" for="{{ form.license_document.id_for_label }}">Licence document</label>{{ form.license_document }}<div class="form-text">Upload a clear PDF or image. Private storage is recommended in production.</div></div>
+                    </div>
+                </div>
+                <div class="content-panel">
+                    <div class="panel-heading"><div><p class="eyebrow mb-1">Step 3</p><h2>Settlement details</h2></div><i class="bi bi-bank"></i></div>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label" for="{{ form.bank_name.id_for_label }}">Bank name</label>{{ form.bank_name }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.bank_account_number.id_for_label }}">Account number</label>{{ form.bank_account_number }}</div>
+                        <div class="col-md-4"><label class="form-label" for="{{ form.ifsc_code.id_for_label }}">IFSC code</label>{{ form.ifsc_code }}</div>
+                        <div class="col-12"><label class="form-label" for="{{ form.documents.id_for_label }}">Additional business documents</label>{{ form.documents }}</div>
+                    </div>
+                </div>
+            </div>
+            <aside class="onboarding-summary">
+                <div class="content-panel sticky-summary"><h2 class="h5 fw-bold">Review process</h2><ol class="review-steps"><li><span>1</span>Business details submitted</li><li><span>2</span>Registry match attempted</li><li><span>3</span>Compliance officer reviews evidence</li><li><span>4</span>Seller and regulated catalogue access enabled</li></ol><button class="btn btn-success btn-lg w-100" type="submit">Submit for verification</button><p class="small text-secondary mt-3 mb-0">Submitting false or altered documents may lead to permanent suspension.</p></div>
+            </aside>
+        </div>
+    </form>
+</section>
+{% endblock %}

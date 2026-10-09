@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Product | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Catalog submission</p>
+                <h1 class="h3 fw-bold mb-2">Add New Product</h1>
+                <p class="text-secondary mb-4">Submit a catalog item with image, pricing, stock, and equipment details. Admin approval publishes it to shoppers.</p>
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% include "accounts/form_errors.html" with form=form %}
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.name.id_for_label }}">Product name</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.sku.id_for_label }}">SKU</label>
+                            {{ form.sku }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.brand.id_for_label }}">Brand</label>
+                            {{ form.brand }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.product_type.id_for_label }}">Product type</label>
+                            {{ form.product_type }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.mrp.id_for_label }}">MRP</label>
+                            {{ form.mrp }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.selling_price.id_for_label }}">Selling price</label>
+                            {{ form.selling_price }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Stock quantity</label>
+                            {{ form.stock_quantity }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.image.id_for_label }}">Product image</label>
+                            {{ form.image }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.manufacturer.id_for_label }}">Manufacturer</label>
+                            {{ form.manufacturer }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.short_description.id_for_label }}">Short description</label>
+                            {{ form.short_description }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.description.id_for_label }}">Full description</label>
+                            {{ form.description }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.composition.id_for_label }}">Composition</label>
+                            {{ form.composition }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.pack_size.id_for_label }}">Pack size</label>
+                            {{ form.pack_size }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.unit.id_for_label }}">Unit</label>
+                            {{ form.unit }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.weight.id_for_label }}">Weight</label>
+                            {{ form.weight }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.dimensions.id_for_label }}">Dimensions</label>
+                            {{ form.dimensions }}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ form.requires_prescription }}
+                                <label class="form-check-label" for="{{ form.requires_prescription.id_for_label }}">Requires prescription</label>
+                            </div>
+                        </div>
+                        <div class="col-12"><hr><h2 class="h5 fw-bold">Regulatory controls</h2><p class="small text-secondary">Choose the requirement from the product's actual regulatory classification. MediMart will block publication until the seller has a compatible verified licence.</p></div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">{{ form.requires_business_license }}<label class="form-check-label" for="{{ form.requires_business_license.id_for_label }}">Seller must hold a verified business licence</label></div>
+                        </div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.required_license_type.id_for_label }}">Required licence category</label>{{ form.required_license_type }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.regulatory_classification.id_for_label }}">Regulatory classification</label>{{ form.regulatory_classification }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.regulatory_notes.id_for_label }}">Regulatory review notes</label>{{ form.regulatory_notes }}</div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-success" type="submit">Submit Product</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

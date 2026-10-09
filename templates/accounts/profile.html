@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Profile</p>
+                <h1 class="h3 fw-bold mb-4">Edit Profile</h1>
+
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% include "accounts/form_errors.html" with form=form %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.first_name.id_for_label }}">First name</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name</label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.phone_number.id_for_label }}">Phone number</label>
+                            {{ form.phone_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
+                            {{ form.date_of_birth }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.gender.id_for_label }}">Gender</label>
+                            {{ form.gender }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.profile_picture.id_for_label }}">Profile picture</label>
+                            {{ form.profile_picture }}
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success mt-4" type="submit">Save Profile</button>
+                </form>
+                <hr class="my-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div><strong>Two-factor authentication</strong><p class="text-secondary mb-0">Require an authenticator code when signing in.</p></div>
+                    <a class="btn btn-outline-success" href="{% url 'accounts:mfa_settings' %}">{% if user.profile.mfa_enabled %}Manage{% else %}Set up{% endif %}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

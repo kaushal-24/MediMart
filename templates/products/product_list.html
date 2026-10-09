@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title|default:"Products" }} | MediMart{% endblock %}
+{% block meta_description %}Browse MediMart medicines, healthcare products, surgical equipment, diagnostic equipment, and medical equipment.{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">MediMart catalog</p>
+        <h1 class="h2 fw-bold mb-2">{{ page_title|default:"Products" }}</h1>
+        <p class="text-secondary mb-0">{{ page_description|default:"Search and filter medicines, healthcare essentials, and medical equipment." }}</p>
+    </div>
+</section>
+
+<section class="container-fluid catalog-container py-5">
+    <div class="catalog-layout">
+        <aside class="catalog-filter-column">
+            <button class="btn btn-outline-success w-100 d-lg-none mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#catalogFilters" aria-expanded="false" aria-controls="catalogFilters"><i class="bi bi-funnel me-2"></i>Filters</button>
+            <form class="filter-panel collapse d-lg-block" id="catalogFilters" method="get">
+                <h2 class="h5 fw-bold mb-3">Filters</h2>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.q.id_for_label }}">Search</label>
+                    {{ form.q }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                    {{ form.category }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.brand.id_for_label }}">Brand</label>
+                    {{ form.brand }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.product_type.id_for_label }}">Product type</label>
+                    {{ form.product_type }}
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label" for="{{ form.min_price.id_for_label }}">Min price</label>
+                        {{ form.min_price }}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="{{ form.max_price.id_for_label }}">Max price</label>
+                        {{ form.max_price }}
+                    </div>
+                </div>
+                <div class="my-3">
+                    <label class="form-label" for="{{ form.prescription.id_for_label }}">Prescription</label>
+                    {{ form.prescription }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.sort.id_for_label }}">Sort</label>
+                    {{ form.sort }}
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" type="submit">Apply Filters</button>
+                    {% if selected_product_type == "medical_equipment" %}
+                        <a class="btn btn-outline-secondary" href="{% url 'products:medical_equipment' %}">Clear</a>
+                    {% elif selected_product_type == "surgical_equipment" %}
+                        <a class="btn btn-outline-secondary" href="{% url 'products:surgical_equipment' %}">Clear</a>
+                    {% elif selected_product_type == "diagnostic_equipment" %}
+                        <a class="btn btn-outline-secondary" href="{% url 'products:diagnostic_equipment' %}">Clear</a>
+                    {% else %}
+                        <a class="btn btn-outline-secondary" href="{% url 'products:product_list' %}">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </aside>
+
+        <div class="catalog-results">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <p class="text-secondary mb-0">{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} found</p>
+            </div>
+
+            {% if products %}
+                <div class="catalog-product-grid">
+                    {% for product in products %}
+                        <div>
+                            {% include "products/product_card.html" with product=product %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% include "partials/pagination.html" with page_obj=page_obj filter_query=filter_query %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-search"></i>
+                    <h2 class="h5 fw-semibold">No products found</h2>
+                    <p>Try a different search term or remove a filter.</p>
+                    <a class="btn btn-success" href="{% url 'products:product_list' %}">View All Products</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

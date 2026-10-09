@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Vendor Offer | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Vendor inventory</p>
+                <h1 class="h3 fw-bold mb-3">Delete Offer?</h1>
+                <p class="text-secondary">This will remove your offer for {{ offer.product.name }}.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-danger" type="submit">Delete Offer</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

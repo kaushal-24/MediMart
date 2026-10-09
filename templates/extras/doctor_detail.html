@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doctor.full_name }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Verified doctor</p>
+                <h1 class="h3 fw-bold mb-2">{{ doctor.full_name }}</h1>
+                <p class="text-secondary mb-3">{{ doctor.specialization }}</p>
+                <div class="metric-card shadow-none mb-3">
+                    <span>Consultation Fee</span>
+                    <strong>₹{{ doctor.consultation_fee }}</strong>
+                </div>
+                <p class="mb-1"><strong>Experience:</strong> {{ doctor.experience_years }} year{{ doctor.experience_years|pluralize }}</p>
+                {% if doctor.phone %}<p class="mb-0"><strong>Phone:</strong> {{ doctor.phone }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="content-panel mb-4">
+                <h2 class="h5 fw-bold mb-3">Clinic Information</h2>
+                <dl class="product-meta mb-0">
+                    {% if doctor.clinic_name %}
+                        <dt>Clinic</dt>
+                        <dd>{{ doctor.clinic_name }}</dd>
+                    {% endif %}
+                    {% if doctor.clinic_address %}
+                        <dt>Address</dt>
+                        <dd>{{ doctor.clinic_address|linebreaksbr }}</dd>
+                    {% endif %}
+                    {% if doctor.availability %}
+                        <dt>Availability</dt>
+                        <dd>{{ doctor.availability }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+            <div class="alert alert-info mb-0">
+                MediMart doctor profiles are informational. Always confirm availability directly with the clinic before visiting.
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

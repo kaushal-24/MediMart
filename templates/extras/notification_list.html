@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <p class="eyebrow mb-2">My account</p>
+                    <h1 class="h3 fw-bold mb-0">Notifications</h1>
+                </div>
+            </div>
+
+            {% if notifications %}
+                <div class="review-list">
+                    {% for notification in notifications %}
+                        <article class="review-card">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <strong>{{ notification.title }}</strong>
+                                        {% if not notification.is_read %}
+                                            <span class="badge text-bg-success">New</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-secondary mb-2">{{ notification.message }}</p>
+                                    <span class="small text-secondary">{{ notification.get_notification_type_display }} · {{ notification.created_at|date:"M d, Y h:i A" }}</span>
+                                </div>
+                                {% if not notification.is_read %}
+                                    <form method="post" action="{% url 'extras:mark_notification_read' notification.pk %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-sm btn-outline-success" type="submit">Mark Read</button>
+                                    </form>
+                                {% elif notification.link %}
+                                    <a class="btn btn-sm btn-outline-primary align-self-md-start" href="{{ notification.link }}">Open</a>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-bell"></i>
+                    <h2 class="h5 fw-semibold">No notifications yet</h2>
+                    <p>Order, prescription, coupon, and support updates will appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

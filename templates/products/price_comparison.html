@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Prices for {{ product.name }} | MediMart{% endblock %}
+{% block meta_description %}Compare approved MediMart seller prices, delivery times, ratings, warranty, and stock for {{ product.name }}.{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Price comparison</p>
+        <h1 class="h2 fw-bold mb-2">{{ product.name }}</h1>
+        <p class="text-secondary mb-0">
+            Compare approved sellers for price, delivery time, rating, warranty, offers, and stock.
+        </p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="comparison-product-panel">
+                <div class="comparison-product-image">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" decoding="async" width="640" height="480">
+                    {% else %}
+                        <span><i class="bi bi-capsule-pill"></i></span>
+                    {% endif %}
+                </div>
+                <div class="p-3">
+                    <h2 class="h5 fw-bold">{{ product.name }}</h2>
+                    <p class="text-secondary mb-2">
+                        {% if product.brand %}{{ product.brand.name }}{% else %}MediMart verified product{% endif %}
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge text-bg-light">{{ product.get_product_type_display }}</span>
+                        {% if product.requires_prescription %}
+                            <span class="badge text-bg-warning">Prescription required</span>
+                        {% endif %}
+                    </div>
+                    <a class="btn btn-outline-primary w-100 mt-3" href="{{ product.get_absolute_url }}">View Product Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            {% if seller_offers %}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <span>Lowest Price</span>
+                            <strong>₹{{ lowest_offer.price }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <span>Highest Price</span>
+                            <strong>₹{{ highest_offer.price }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <span>Maximum Saving</span>
+                            <strong>₹{{ maximum_saving }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-panel">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                        <div>
+                            <h2 class="h4 fw-bold mb-1">Seller Comparison</h2>
+                            <p class="text-secondary mb-0">Lowest approved price is shown first.</p>
+                        </div>
+                        <span class="badge text-bg-success align-self-md-start">{{ seller_offers|length }} seller{{ seller_offers|length|pluralize }}</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle comparison-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Seller</th>
+                                    <th>Price</th>
+                                    <th>Delivery</th>
+                                    <th>Rating</th>
+                                    <th>Warranty</th>
+                                    <th>Offer</th>
+                                    <th>Stock</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for offer in seller_offers %}
+                                    <tr class="{% if offer.pk == lowest_offer.pk %}table-success{% endif %}">
+                                        <td>
+                                            <a href="{% url 'vendors:vendor_detail' offer.vendor.pk %}">{{ offer.vendor.business_name }}</a>
+                                            {% if offer.pk == lowest_offer.pk %}
+                                                <div class="small fw-semibold text-success">Lowest price</div>
+                                            {% endif %}
+                                        </td>
+                                        <td><strong>₹{{ offer.price }}</strong></td>
+                                        <td>{{ offer.delivery_time }}</td>
+                                        <td>{{ offer.seller_rating }}</td>
+                                        <td>{{ offer.warranty|default:"-" }}</td>
+                                        <td>{{ offer.offer_text|default:"-" }}</td>
+                                        <td>{{ offer.stock_status }}</td>
+                                        <td>
+                                            {% if offer.stock_quantity %}
+                                                <form method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                                                    <button class="btn btn-sm btn-success" type="submit">
+                                                        Select Seller
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" disabled>Out of Stock</button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="small text-secondary mt-3 mb-0">Selecting a seller adds that exact vendor offer to your cart.</p>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-shop"></i>
+                    <h2 class="h5 fw-semibold">No approved seller prices yet</h2>
+                    <p>Admin-approved seller offers will appear here for comparison.</p>
+                    <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Permission Denied | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="empty-state">
+        <i class="bi bi-shield-lock"></i>
+        <h1 class="h4 fw-bold">Permission denied</h1>
+        <p>You do not have access to this MediMart page.</p>
+        <a class="btn btn-success" href="{% url 'accounts:dashboard' %}">Back to Dashboard</a>
+    </div>
+</section>
+{% endblock %}

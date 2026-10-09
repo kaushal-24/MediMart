@@ -1,0 +1,9 @@
+Django==6.1.1
+mysqlclient==2.3.0
+Pillow==12.3.0
+python-dotenv==1.2.4
+razorpay==2.0.1
+reportlab==5.0.1
+cryptography==50.0.2
+django-storages[s3]==1.14.6
+PyOTP==2.10.0

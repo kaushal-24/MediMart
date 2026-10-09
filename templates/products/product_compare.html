@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Products | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Product comparison</p>
+        <h1 class="h2 fw-bold mb-2">Compare Products</h1>
+        <p class="text-secondary mb-0">Compare up to {{ max_compare_products }} medicines or medical products by price, stock, brand, and specifications.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if products %}
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+            <p class="text-secondary mb-0">{{ products|length }} product{{ products|length|pluralize }} selected.</p>
+            <form method="post" action="{% url 'products:compare_clear' %}">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger btn-sm" type="submit">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </button>
+            </form>
+        </div>
+
+        <div class="row g-3 mb-4">
+            {% for product in products %}
+                <div class="col-md-4">
+                    <article class="comparison-product-panel h-100">
+                        <a class="comparison-product-image" href="{{ product.get_absolute_url }}">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async" width="320" height="240">
+                            {% else %}
+                                <span><i class="bi bi-capsule-pill"></i></span>
+                            {% endif %}
+                        </a>
+                        <div class="p-3">
+                            <h2 class="h6 fw-semibold mb-2">
+                                <a class="text-decoration-none text-dark" href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+                            </h2>
+                            <p class="small text-secondary mb-3">{{ product.brand.name|default:"MediMart verified" }}</p>
+                            <form method="post" action="{% url 'products:compare_remove' product.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Remove</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="content-panel">
+            <div class="table-responsive">
+                <table class="table comparison-table align-middle mb-0">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Product</th>
+                            {% for product in products %}<td>{{ product.name }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Type</th>
+                            {% for product in products %}<td>{{ product.get_product_type_display }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Category</th>
+                            {% for product in products %}<td>{{ product.category.name }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Brand</th>
+                            {% for product in products %}<td>{{ product.brand.name|default:"-" }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Selling Price</th>
+                            {% for product in products %}<td>₹{{ product.selling_price }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">MRP</th>
+                            {% for product in products %}<td>₹{{ product.mrp }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Discount</th>
+                            {% for product in products %}<td>{{ product.discount_percentage }}%</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Stock</th>
+                            {% for product in products %}<td>{{ product.stock_status }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Prescription</th>
+                            {% for product in products %}<td>{{ product.requires_prescription|yesno:"Required,Not required" }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Manufacturer</th>
+                            {% for product in products %}<td>{{ product.manufacturer|default:"-" }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Pack Size</th>
+                            {% for product in products %}<td>{{ product.pack_size|default:"-" }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Weight</th>
+                            {% for product in products %}<td>{{ product.weight|default:"-" }}</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Dimensions</th>
+                            {% for product in products %}<td>{{ product.dimensions|default:"-" }}</td>{% endfor %}
+                        </tr>
+                        {% for row in spec_rows %}
+                            <tr>
+                                <th scope="row">{{ row.name }}</th>
+                                {% for value in row.values %}<td>{{ value }}</td>{% endfor %}
+                            </tr>
+                        {% endfor %}
+                        <tr>
+                            <th scope="row">Action</th>
+                            {% for product in products %}
+                                <td>
+                                    <a class="btn btn-sm btn-success" href="{{ product.get_absolute_url }}">View Product</a>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-columns-gap"></i>
+            <h2 class="h5 fw-semibold">No products selected</h2>
+            <p>Add products from the listing or product detail pages to compare them here.</p>
+            <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

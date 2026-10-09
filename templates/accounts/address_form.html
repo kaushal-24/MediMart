@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Addresses</p>
+                <h1 class="h3 fw-bold mb-4">{{ page_title }}</h1>
+
+                <div class="location-autofill mb-4">
+                    <div>
+                        <strong>Use current location</strong>
+                        <small>Allow location once and MediMart will fill the delivery area for you.</small>
+                    </div>
+                    <button class="btn btn-outline-success" id="addressLocationButton" type="button" data-endpoint="{% url 'core:detect_location' %}"><i class="bi bi-crosshair me-2"></i>Detect location</button>
+                </div>
+                <div class="small mb-3" id="addressLocationStatus" role="status" aria-live="polite"></div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include "accounts/form_errors.html" with form=form %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.full_name.id_for_label }}">Full name</label>
+                            {{ form.full_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.house_number.id_for_label }}">House / flat number</label>
+                            {{ form.house_number }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.address_line_1.id_for_label }}">Building, street and area</label>
+                            {{ form.address_line_1 }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.address_line_2.id_for_label }}">Additional address details <span class="text-secondary fw-normal">(optional)</span></label>
+                            {{ form.address_line_2 }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.district.id_for_label }}">District</label>
+                            {{ form.district }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.city.id_for_label }}">City</label>
+                            {{ form.city }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.state.id_for_label }}">State</label>
+                            {{ form.state }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.pincode.id_for_label }}">Pincode</label>
+                            {{ form.pincode }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.landmark.id_for_label }}">Landmark</label>
+                            {{ form.landmark }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.address_type.id_for_label }}">Address type</label>
+                            {{ form.address_type }}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ form.is_default }}
+                                <label class="form-check-label" for="{{ form.is_default.id_for_label }}">
+                                    Make this my default address
+                                </label>
+                            </div>
+                        </div>
+                        {{ form.latitude }}
+                        {{ form.longitude }}
+                        {{ form.road }}
+                        {{ form.neighbourhood }}
+                        {{ form.suburb }}
+                        {{ form.locality }}
+                        {{ form.subdistrict }}
+                        {{ form.country }}
+                        {{ form.country_code }}
+                        {{ form.geocoding_place_id }}
+                        {{ form.geocoding_osm_type }}
+                        {{ form.geocoding_osm_id }}
+                        {{ form.geocoding_display_name }}
+                        {{ form.geocoding_payload }}
+                        {{ form.location_source }}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-success" type="submit">Save Address</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'accounts:address_list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

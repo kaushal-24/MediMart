@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Saved for Later | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Saved products</p>
+        <h1 class="h2 fw-bold mb-2">Saved for Later</h1>
+        <p class="text-secondary mb-0">Keep track of products you may want to buy later.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if items %}
+        <div class="row g-3">
+            {% for item in items %}
+                <div class="col-md-6 col-xl-4">
+                    <article class="wishlist-card h-100">
+                        <div class="d-flex gap-3">
+                            <div class="wishlist-image">
+                                {% if item.product.image %}
+                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" loading="lazy" decoding="async" width="160" height="120">
+                                {% else %}
+                                    <i class="bi bi-capsule-pill"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h2 class="h6 fw-bold mb-1">
+                                    <a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a>
+                                </h2>
+                                <p class="small text-secondary mb-2">
+                                    {% if item.product.brand %}{{ item.product.brand.name }}{% else %}MediMart verified{% endif %}
+                                </p>
+                                <strong>₹{{ item.product.selling_price }}</strong>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <form method="post" action="{% url 'cart:move_wishlist_item_to_cart' item.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-success" type="submit">Move to Cart</button>
+                            </form>
+                            <form method="post" action="{% url 'cart:remove_wishlist_item' item.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-heart"></i>
+            <h2 class="h5 fw-semibold">Nothing saved for later yet</h2>
+            <p>Save products from the catalog and compare them later.</p>
+            <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Order history</p>
+        <h1 class="h2 fw-bold mb-2">My Orders</h1>
+        <p class="text-secondary mb-0">Track orders and view invoices.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if orders %}
+        <div class="content-panel">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                <td>₹{{ order.total_amount }}</td>
+                                <td>{{ order.get_payment_status_display }}</td>
+                                <td>{{ order.get_order_status_display }}</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">View</a>
+                                    <a class="btn btn-sm btn-outline-success" href="{% url 'orders:invoice_detail' order.pk %}">Invoice</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-bag"></i>
+            <h2 class="h5 fw-semibold">You haven't placed any orders</h2>
+            <p>Your MediMart order history will appear here.</p>
+            <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

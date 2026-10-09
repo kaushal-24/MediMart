@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}MediMart | Medicines, Equipment & Healthcare Essentials{% endblock %}
+{% block meta_description %}Order medicines, upload prescriptions, compare medical equipment sellers, and manage healthcare purchases with MediMart.{% endblock %}
+
+{% block content %}
+<section class="commerce-hero" style="--hero-image: url('{% static 'images/medimart-healthcare-hero.webp' %}')">
+    <div class="container commerce-hero-inner">
+        <div class="commerce-hero-copy">
+            <p class="eyebrow mb-3">Medicines, equipment, and everyday care</p>
+            <h1>MediMart</h1>
+            <p class="commerce-hero-lead">Healthcare shopping with verified sellers, prescription safeguards, transparent prices, and dependable order tracking.</p>
+            <form class="hero-search" action="{% url 'products:search' %}" method="get" role="search">
+                <i class="bi bi-search"></i>
+                <input name="q" type="search" placeholder="Search medicines, devices, wellness products" aria-label="Search MediMart">
+                <button type="submit">Search</button>
+            </form>
+            <div class="hero-actions">
+                <a href="{% url 'products:product_list' %}" class="btn btn-success btn-lg"><i class="bi bi-bag-check me-2"></i>Shop healthcare</a>
+                <a href="{% url 'prescriptions:prescription_upload' %}" class="btn btn-light btn-lg"><i class="bi bi-file-earmark-medical me-2"></i>Upload prescription</a>
+            </div>
+            <button class="hero-location" type="button" data-bs-toggle="modal" data-bs-target="#locationModal">
+                <i class="bi bi-geo-alt-fill"></i>
+                <span><small>Delivery location</small><strong data-site-location-label>{{ site_location_label }}</strong></span>
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="trust-strip border-bottom">
+    <div class="container">
+        <div class="trust-strip-grid">
+            <div><i class="bi bi-patch-check-fill"></i><span><strong>{{ marketplace_stats.sellers }} verified sellers</strong><small>Approved before listing</small></span></div>
+            <div><i class="bi bi-box-seam-fill"></i><span><strong>{{ marketplace_stats.products }} active products</strong><small>Medicines to medical devices</small></span></div>
+            <div><i class="bi bi-shield-check"></i><span><strong>Secure checkout</strong><small>Protected payment verification</small></span></div>
+            <div><i class="bi bi-file-medical-fill"></i><span><strong>Prescription checks</strong><small>Required medicines reviewed</small></span></div>
+        </div>
+    </div>
+</section>
+
+<section class="container section-space">
+    <div class="section-heading">
+        <div><p class="eyebrow mb-2">Shop by category</p><h2>Everything for better everyday care</h2></div>
+        <a href="{% url 'products:product_list' %}">View all products <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="category-rail">
+        {% for category in featured_categories %}
+            <a class="category-card" href="{{ category.get_absolute_url }}">
+                <span class="category-image">
+                    {% if category.image %}<img src="{{ category.image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async" width="160" height="160">{% else %}<i class="bi bi-grid"></i>{% endif %}
+                </span>
+                <strong>{{ category.name }}</strong>
+                <small>Explore category</small>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section-band">
+    <div class="container section-space">
+        <div class="section-heading">
+            <div><p class="eyebrow mb-2">Recommended on MediMart</p><h2>Popular healthcare essentials</h2></div>
+            <a href="{% url 'products:product_list' %}">Browse catalog <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row g-4">
+            {% for product in featured_products %}<div class="col-sm-6 col-lg-4 col-xl-3">{% include "products/product_card.html" with product=product %}</div>{% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="container section-space">
+    <div class="equipment-showcase">
+        <div class="equipment-showcase-copy">
+            <p class="eyebrow mb-2">Medical equipment marketplace</p>
+            <h2>Compare specifications, seller prices, stock, and warranty.</h2>
+            <p>Buy from approved equipment sellers and manufacturers. Each offer shows practical fulfillment details before checkout.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-success" href="{% url 'products:medical_equipment' %}"><i class="bi bi-heart-pulse me-2"></i>Shop equipment</a>
+                <a class="btn btn-outline-success" href="{% url 'products:product_compare' %}">Compare products</a>
+            </div>
+        </div>
+        <div class="equipment-showcase-list">
+            {% for product in equipment_products %}
+                <a class="equipment-row" href="{{ product.get_absolute_url }}">
+                    <span class="equipment-tile-image">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async" width="240" height="180">{% else %}<i class="bi bi-heart-pulse"></i>{% endif %}</span>
+                    <span><strong>{{ product.name }}</strong><small>{{ product.get_product_type_display }}</small></span>
+                    <span class="equipment-price">₹{{ product.selling_price }}</span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            {% empty %}<p class="text-secondary mb-0">Equipment listings will appear here after approval.</p>{% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="care-band border-top">
+    <div class="container section-space">
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="section-heading compact"><div><p class="eyebrow mb-2">Care network</p><h2>Verified doctors</h2></div><a href="{% url 'extras:doctor_list' %}">View all</a></div>
+                <div class="care-list">
+                    {% for doctor in verified_doctors %}<div class="care-list-item"><span class="care-icon"><i class="bi bi-person-vcard"></i></span><span><strong>{{ doctor.full_name }}</strong><small>{{ doctor.specialization }}</small></span><i class="bi bi-patch-check-fill text-success ms-auto"></i></div>{% empty %}<p class="text-secondary">Verified doctors will appear here after approval.</p>{% endfor %}
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="section-heading compact"><div><p class="eyebrow mb-2">Health guides</p><h2>Practical reads from MediMart</h2></div><a href="{% url 'extras:blog_list' %}">Read all</a></div>
+                <div class="article-list">
+                    {% for post in latest_posts %}<a href="{{ post.get_absolute_url }}"><span><small>{{ post.published_at|date:"M d, Y" }}</small><strong>{{ post.title }}</strong><p>{{ post.excerpt|truncatechars:120 }}</p></span><i class="bi bi-arrow-up-right"></i></a>{% empty %}<p class="text-secondary">Published health guides will appear here.</p>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

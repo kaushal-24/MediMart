@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Center | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div><p class="eyebrow mb-2">MediMart operations</p><h1 class="h2 fw-bold mb-2">Operations Center</h1><p class="text-secondary mb-0">Approvals, fulfillment, inventory, revenue, prescriptions, and customer support in one place.</p></div>
+        <a class="btn btn-outline-success" href="#management-directory"><i class="bi bi-grid-1x2 me-2"></i>Management directory</a>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="operations-metrics mb-4">
+        {% if can_view_financials %}
+        <div class="metric-card metric-primary"><span>Monthly revenue</span><strong>₹{{ stats.monthly_revenue }}</strong><small>{{ stats.monthly_orders }} orders this month</small></div>
+        <div class="metric-card"><span>Orders today</span><strong>{{ stats.todays_orders }}</strong><small>₹{{ stats.todays_revenue }} collected</small></div>
+        {% endif %}
+        {% if can_review_licenses %}
+        <div class="metric-card metric-attention"><span>Seller approvals</span><strong>{{ stats.pending_vendor_approvals }}</strong><small>Waiting for business review</small></div>
+        <div class="metric-card metric-attention"><span>Licence reviews</span><strong>{{ stats.pending_license_reviews }}</strong><small>Registry and evidence checks</small></div>
+        {% endif %}
+        {% if can_manage_catalog %}
+        <div class="metric-card metric-attention"><span>Catalog approvals</span><strong>{{ stats.pending_offer_approvals }}</strong><small>Products and offers pending</small></div>
+        {% endif %}
+        {% if can_manage_clinical %}
+        <div class="metric-card"><span>Prescription queue</span><strong>{{ stats.pending_prescriptions }}</strong><small>Awaiting verification</small></div>
+        {% endif %}
+        {% if can_manage_support %}
+        <div class="metric-card"><span>Support queue</span><strong>{{ stats.open_support_tickets }}</strong><small>Open or in progress</small></div>
+        {% endif %}
+    </div>
+
+    {% if can_review_licenses %}
+    <div class="content-panel mb-4" id="management-directory">
+        <div class="panel-heading"><div><p class="eyebrow mb-1">Regulatory compliance</p><h2>Business licence review</h2></div><span class="badge text-bg-warning">{{ stats.pending_license_reviews }} pending</span></div>
+        {% if pending_licenses %}
+        <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Business</th><th>Licence</th><th>Registry status</th><th>Evidence</th><th>Decision</th></tr></thead><tbody>
+        {% for license in pending_licenses %}<tr><td><strong>{{ license.vendor.business_name }}</strong><small>{{ license.get_license_type_display }}</small></td><td>{{ license.license_number }}<small>{{ license.form_number|default:"Form not supplied" }}</small></td><td><span class="status-pill status-{{ license.status }}">{{ license.get_status_display }}</span>{% if license.registry_checked_at %}<small>Checked {{ license.registry_checked_at|date:"d M, H:i" }}</small>{% endif %}</td><td>{% if license.document %}<a href="{% url 'core:license_document' license.pk %}" target="_blank" rel="noopener">View document</a>{% else %}<span class="text-secondary">Missing</span>{% endif %}</td><td><form method="post" action="{% url 'dashboards:review_business_license' license.pk %}">{% csrf_token %}<input class="form-control form-control-sm mb-2" name="notes" placeholder="Reviewer note" aria-label="Reviewer note"><div class="d-flex gap-1"><button class="btn btn-sm btn-success" name="decision" value="approve" type="submit">Verify</button><button class="btn btn-sm btn-outline-danger" name="decision" value="reject" type="submit">Reject</button></div></form></td></tr>{% endfor %}
+        </tbody></table></div>
+        {% else %}<div class="empty-compact"><i class="bi bi-patch-check"></i><span>Licence review queue is clear.</span></div>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if admin_links %}
+    <div class="content-panel mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+            <div><h2 class="h5 fw-bold mb-1">Management shortcuts</h2><p class="text-secondary mb-0">Open the complete record list for each operational area.</p></div>
+            <div class="operations-summary"><span>{{ stats.total_customers }} customers</span><span>{{ stats.total_vendors }} sellers</span><span>{{ stats.total_products }} products</span></div>
+        </div>
+        <div class="admin-link-grid">
+            {% for label, href, icon in admin_links %}<a class="admin-link" href="{{ href }}"><i class="bi bi-{{ icon }}"></i><span>{{ label }}</span></a>{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4 mb-4">
+        {% if can_review_licenses %}<div class="col-xl-6">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Compliance</p><h2>Seller approval queue</h2></div><span class="badge text-bg-warning">{{ stats.pending_vendor_approvals }} pending</span></div>
+                {% if pending_vendors %}
+                    <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Business</th><th>Type</th><th>License</th><th class="text-end">Action</th></tr></thead><tbody>
+                    {% for vendor in pending_vendors %}<tr><td><strong>{{ vendor.business_name }}</strong><small>{{ vendor.owner_name }} · {{ vendor.phone }}</small></td><td>{{ vendor.get_business_type_display }}</td><td>{{ vendor.license_number }}</td><td class="text-end"><form method="post" action="{% url 'dashboards:review_vendor' vendor.pk %}">{% csrf_token %}<button class="btn btn-sm btn-success" name="decision" value="approve" type="submit">Approve</button></form></td></tr>{% endfor %}
+                    </tbody></table></div>
+                {% else %}<div class="empty-compact"><i class="bi bi-patch-check"></i><span>Seller queue is clear.</span></div>{% endif %}
+            </div>
+        </div>{% endif %}
+        {% if can_manage_catalog %}<div class="col-xl-6">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Catalog governance</p><h2>Product and offer approval</h2></div><span class="badge text-bg-warning">{{ stats.pending_offer_approvals }} pending</span></div>
+                {% if pending_offers %}
+                    <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Product</th><th>Seller</th><th>Price / stock</th><th class="text-end">Review</th></tr></thead><tbody>
+                    {% for offer in pending_offers %}<tr><td><strong>{{ offer.product.name }}</strong><small>{{ offer.product.sku }}</small></td><td>{{ offer.vendor.business_name }}</td><td>₹{{ offer.price }}<small>{{ offer.stock_quantity }} units</small></td><td><form class="d-flex justify-content-end gap-1" method="post" action="{% url 'dashboards:review_offer' offer.pk %}">{% csrf_token %}<button class="btn btn-sm btn-success" name="decision" value="approve" type="submit">Publish</button><button class="btn btn-sm btn-outline-danger" name="decision" value="reject" type="submit">Reject</button></form></td></tr>{% endfor %}
+                    </tbody></table></div>
+                {% else %}<div class="empty-compact"><i class="bi bi-box-seam"></i><span>Catalog queue is clear.</span></div>{% endif %}
+            </div>
+        </div>{% endif %}
+    </div>
+
+    {% if can_manage_fulfillment %}<div class="content-panel mb-4">
+        <div class="panel-heading"><div><p class="eyebrow mb-1">Fulfillment</p><h2>Recent orders and delivery assignment</h2></div><span class="badge text-bg-light">{{ stats.pending_orders }} pending</span></div>
+        {% if recent_orders %}
+            <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Payment</th><th>Status</th><th>Delivery owner</th></tr></thead><tbody>
+            {% for order in recent_orders %}<tr><td><strong>{{ order.order_number }}</strong><small>{{ order.created_at|date:"M d, H:i" }}</small></td><td>{{ order.customer.get_full_name|default:order.customer.username }}</td><td>₹{{ order.total_amount }}</td><td><span class="status-pill status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span></td><td>{{ order.get_order_status_display }}</td><td><form class="delivery-assign-form" method="post" action="{% url 'dashboards:assign_delivery_staff' order.pk %}">{% csrf_token %}<select class="form-select form-select-sm" name="delivery_staff" aria-label="Delivery staff"><option value="">Unassigned</option>{% for staff in delivery_staff %}<option value="{{ staff.pk }}" {% if order.delivery_staff_id == staff.pk %}selected{% endif %}>{{ staff.get_full_name|default:staff.username }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-success" type="submit">Save</button></form></td></tr>{% endfor %}
+            </tbody></table></div>
+        {% else %}<div class="empty-compact"><i class="bi bi-bag"></i><span>No orders yet.</span></div>{% endif %}
+    </div>{% endif %}
+
+    {% if can_manage_support %}<div class="content-panel mb-4">
+        <div class="panel-heading"><div><p class="eyebrow mb-1">Customer care</p><h2>Active support tickets</h2></div><a class="btn btn-sm btn-outline-success" href="{% url 'extras:support_ticket_list' %}">Open support workspace</a></div>
+        {% if recent_support_tickets %}
+            <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Ticket</th><th>Customer</th><th>Category</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody>
+            {% for ticket in recent_support_tickets %}<tr><td><strong>#{{ ticket.pk }} · {{ ticket.subject }}</strong><small>{{ ticket.updated_at|date:"M d, H:i" }}</small></td><td>{{ ticket.user.get_full_name|default:ticket.user.username }}</td><td>{{ ticket.get_category_display }}</td><td><span class="status-pill status-{{ ticket.status }}">{{ ticket.get_status_display }}</span></td><td class="text-end"><a class="btn btn-sm btn-outline-success" href="{% url 'extras:support_ticket_detail' ticket.pk %}">Open</a></td></tr>{% endfor %}
+            </tbody></table></div>
+        {% else %}<div class="empty-compact"><i class="bi bi-check2-circle"></i><span>Support queue is clear.</span></div>{% endif %}
+    </div>{% endif %}
+
+    <div class="row g-4">
+        {% if can_manage_clinical %}<div class="col-xl-6"><div class="content-panel h-100"><div class="panel-heading"><div><p class="eyebrow mb-1">Clinical review</p><h2>Pending prescriptions</h2></div></div>{% if pending_prescriptions %}<div class="table-responsive"><table class="table operations-table mb-0"><thead><tr><th>ID</th><th>Customer</th><th>Doctor</th><th>Uploaded</th></tr></thead><tbody>{% for prescription in pending_prescriptions %}<tr><td>#{{ prescription.pk }}</td><td>{{ prescription.user.username }}</td><td>{{ prescription.doctor_name|default:"Not provided" }}</td><td>{{ prescription.created_at|date:"M d" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-compact"><i class="bi bi-file-earmark-check"></i><span>Prescription queue is clear.</span></div>{% endif %}</div></div>{% endif %}
+        {% if can_manage_inventory %}<div class="col-xl-6"><div class="content-panel h-100"><div class="panel-heading"><div><p class="eyebrow mb-1">Inventory risk</p><h2>Low seller stock</h2></div><span class="badge text-bg-danger">{{ stats.low_stock_products }} alerts</span></div>{% if low_stock_products %}<div class="table-responsive"><table class="table operations-table mb-0"><thead><tr><th>Product</th><th>Seller</th><th>SKU</th><th>Stock</th></tr></thead><tbody>{% for offer in low_stock_products %}<tr><td>{{ offer.product.name }}</td><td>{{ offer.vendor.business_name }}</td><td>{{ offer.product.sku }}</td><td><strong class="text-danger">{{ offer.stock_quantity }}</strong></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-compact"><i class="bi bi-box-seam"></i><span>No low-stock seller offers.</span></div>{% endif %}</div></div>{% endif %}
+    </div>
+</section>
+{% endblock %}

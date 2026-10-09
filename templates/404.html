@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="empty-state">
+        <i class="bi bi-search"></i>
+        <h1 class="h4 fw-bold">Page not found</h1>
+        <p>The page may have moved, or the link may be incorrect.</p>
+        <a class="btn btn-success" href="{% url 'core:home' %}">Go Home</a>
+    </div>
+</section>
+{% endblock %}

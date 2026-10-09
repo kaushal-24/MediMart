@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                <div>
+                    <p class="eyebrow mb-2">My account</p>
+                    <h1 class="h3 fw-bold mb-0">Welcome, {{ user.first_name|default:user.username }}</h1>
+                </div>
+                <a class="btn btn-outline-success align-self-md-start" href="{% url 'accounts:profile' %}">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                </a>
+            </div>
+
+            <div class="content-panel mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                    <div>
+                        <h2 class="h5 fw-bold mb-1">Your Role Tools</h2>
+                        <p class="text-secondary mb-0">Use the right panel for the work you manage in MediMart.</p>
+                    </div>
+                    <span class="badge text-bg-light align-self-md-start">{{ profile.get_role_display }}</span>
+                </div>
+                <div class="admin-link-grid">
+                    <a class="admin-link" href="{% url 'accounts:profile' %}">
+                        <i class="bi bi-person"></i><span>Profile</span>
+                    </a>
+                    <a class="admin-link" href="{% url 'orders:order_list' %}">
+                        <i class="bi bi-bag"></i><span>Orders</span>
+                    </a>
+                    <a class="admin-link" href="{% url 'cart:wishlist_detail' %}">
+                        <i class="bi bi-bookmark-heart"></i><span>Saved Items</span>
+                    </a>
+                    {% if profile.role == "vendor" or profile.role == "manufacturer" or profile.role == "pharmacy" or vendor_profile %}
+                        <a class="admin-link" href="{% url 'vendors:vendor_dashboard' %}">
+                            <i class="bi bi-shop"></i><span>Seller Panel</span>
+                        </a>
+                    {% endif %}
+                    {% if can_view_doctor_dashboard %}
+                        <a class="admin-link" href="{% url 'extras:doctor_dashboard' %}">
+                            <i class="bi bi-person-vcard"></i><span>Doctor Panel</span>
+                        </a>
+                    {% endif %}
+                    {% if can_view_delivery_dashboard %}
+                        <a class="admin-link" href="{% url 'dashboards:delivery_dashboard' %}">
+                            <i class="bi bi-truck"></i><span>Delivery Panel</span>
+                        </a>
+                    {% endif %}
+                    {% if can_view_admin_dashboard %}
+                        <a class="admin-link" href="{% url 'dashboards:admin_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i><span>Admin Control</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Account Type</span>
+                        <strong>{{ profile.get_role_display }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Saved Addresses</span>
+                        <strong>{{ address_count }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Orders</span>
+                        <strong>{{ order_count }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Prescriptions</span>
+                        <strong>{{ prescription_count }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Saved for Later</span>
+                        <strong>{{ wishlist_count }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <div class="metric-card">
+                        <span>Reviews</span>
+                        <strong>{{ review_count }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-panel mb-4">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <h2 class="h5 fw-bold mb-0">Recent Orders</h2>
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_list' %}">View All</a>
+                </div>
+
+                {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                    <tr>
+                                        <td>{{ order.order_number }}</td>
+                                        <td>₹{{ order.total_amount }}</td>
+                                        <td>{{ order.get_order_status_display }}</td>
+                                        <td><a class="btn btn-sm btn-outline-success" href="{% url 'orders:order_detail' order.pk %}">Track</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-bag"></i>
+                        <p class="mb-2">You haven't placed any orders.</p>
+                        <a href="{% url 'products:product_list' %}">Browse products</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="content-panel">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <h2 class="h5 fw-bold mb-0">Recent Addresses</h2>
+                    <a class="btn btn-sm btn-success" href="{% url 'accounts:address_create' %}">
+                        <i class="bi bi-plus-lg me-1"></i>Add
+                    </a>
+                </div>
+
+                {% if recent_addresses %}
+                    <div class="row g-3">
+                        {% for address in recent_addresses %}
+                            <div class="col-md-6">
+                                <div class="address-card h-100">
+                                    <div class="d-flex justify-content-between gap-3">
+                                        <strong>{{ address.full_name }}</strong>
+                                        {% if address.is_default %}
+                                            <span class="badge text-bg-success">Default</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-secondary mb-2">
+                                        {{ address.address_line_1 }}{% if address.address_line_2 %}, {{ address.address_line_2 }}{% endif %},
+                                        {{ address.city }}, {{ address.state }} - {{ address.pincode }}
+                                    </p>
+                                    <span class="small text-secondary">{{ address.phone }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-geo-alt"></i>
+                        <p class="mb-2">No addresses saved yet.</p>
+                        <a href="{% url 'accounts:address_create' %}">Add your first address</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

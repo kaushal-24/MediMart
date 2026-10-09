@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Vendor Products | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">Inventory</p>
+            <h1 class="h3 fw-bold mb-0">Product Offers</h1>
+        </div>
+        <div class="d-flex flex-column flex-sm-row gap-2 align-self-md-start">
+            <a class="btn btn-success" href="{% url 'vendors:vendor_catalog_product_create' %}">
+                <i class="bi bi-box-seam me-2"></i>Add New Product
+            </a>
+            <a class="btn btn-outline-success" href="{% url 'vendors:vendor_product_create' %}">
+                <i class="bi bi-plus-lg me-2"></i>Add Offer
+            </a>
+        </div>
+    </div>
+
+    <div class="content-panel">
+        {% if offers %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Delivery</th>
+                            <th>Approval</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for offer in offers %}
+                            <tr>
+                                <td>{{ offer.product.name }}</td>
+                                <td>₹{{ offer.price }}</td>
+                                <td>{{ offer.stock_quantity }}</td>
+                                <td>{{ offer.delivery_time }}</td>
+                                <td>
+                                    {% if not offer.product.is_active %}
+                                        Catalog pending
+                                    {% elif offer.is_approved %}
+                                        Approved
+                                    {% else %}
+                                        Offer pending
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'vendors:vendor_product_update' offer.pk %}">Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="{% url 'vendors:vendor_product_delete' offer.pk %}">Delete</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-box-seam"></i>
+                <p class="mb-2">You have not added any product offers yet.</p>
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                    <a class="btn btn-success" href="{% url 'vendors:vendor_catalog_product_create' %}">Add New Product</a>
+                    <a class="btn btn-outline-success" href="{% url 'vendors:vendor_product_create' %}">Add Product Offer</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

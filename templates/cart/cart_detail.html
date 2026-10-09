@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}My Cart | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Shopping cart</p>
+        <h1 class="h2 fw-bold mb-2">My Cart</h1>
+        <p class="text-secondary mb-0">Review selected vendor offers before checkout.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if items %}
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="content-panel">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 cart-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Seller</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ item.vendor_product.product.get_absolute_url }}">{{ item.vendor_product.product.name }}</a>
+                                            <div class="small text-secondary">{{ item.vendor_product.delivery_time }} · {{ item.vendor_product.warranty|default:"No warranty listed" }}</div>
+                                        </td>
+                                        <td>{{ item.vendor_product.vendor.business_name }}</td>
+                                        <td>₹{{ item.vendor_product.price }}</td>
+                                        <td>
+                                            <form class="quantity-form" method="post" action="{% url 'cart:update_cart_item' item.pk %}">
+                                                {% csrf_token %}
+                                                <input class="form-control form-control-sm" type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.vendor_product.stock_quantity }}">
+                                                <button class="btn btn-sm btn-outline-primary" type="submit">Update</button>
+                                            </form>
+                                            <div class="small text-secondary">Stock: {{ item.vendor_product.stock_quantity }}</div>
+                                        </td>
+                                        <td><strong>₹{{ item.total_price }}</strong></td>
+                                        <td>
+                                            <form method="post" action="{% url 'cart:remove_cart_item' item.pk %}">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="content-panel order-summary">
+                    <h2 class="h5 fw-bold mb-3">Order Summary</h2>
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <strong>₹{{ subtotal }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Discount</span>
+                        <strong>₹{{ discount }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Delivery Fee</span>
+                        <strong>₹{{ delivery_fee }}</strong>
+                    </div>
+                    <hr>
+                    <div class="summary-row summary-total">
+                        <span>Total</span>
+                        <strong>₹{{ final_total }}</strong>
+                    </div>
+                    <a class="btn btn-success w-100 mt-3" href="{% url 'orders:checkout' %}">Proceed to Checkout</a>
+                    <p class="small text-secondary mt-3 mb-0">You can select an address, apply a coupon, and choose a payment method on the next page.</p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-cart3"></i>
+            <h2 class="h5 fw-semibold">Your cart is empty</h2>
+            <p>Add products from approved sellers to start an order.</p>
+            <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

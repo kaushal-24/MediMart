@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Business Licences | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header"><div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3"><div><p class="eyebrow mb-2">Seller compliance</p><h1 class="h2 fw-bold mb-2">Business licences</h1><p class="text-secondary mb-0">Manage regulatory evidence for {{ vendor.business_name }}.</p></div><a class="btn btn-success" href="{% url 'vendors:business_license_create' %}"><i class="bi bi-plus-lg me-2"></i>Add licence</a></div></section>
+<section class="container py-5">
+    <div class="registry-notice mb-4"><i class="bi bi-shield-check"></i><div><strong>Independent verification is mandatory</strong><p>MediMart may prefill details from an authorized integration, but a compliance officer makes the final decision. You can also verify records directly on the official portals.</p><div class="d-flex flex-wrap gap-2"><a class="btn btn-sm btn-outline-success" href="{{ drug_registry_url }}" target="_blank" rel="noopener">Open ONDLS <i class="bi bi-box-arrow-up-right ms-1"></i></a><a class="btn btn-sm btn-outline-success" href="{{ device_registry_url }}" target="_blank" rel="noopener">Open CDSCO Medical Devices <i class="bi bi-box-arrow-up-right ms-1"></i></a></div></div></div>
+    {% if licenses %}
+        <div class="license-grid">
+            {% for license in licenses %}
+            <article class="license-card">
+                <div class="d-flex justify-content-between align-items-start gap-3"><div><span class="license-type">{{ license.get_license_type_display }}</span><h2>{{ license.license_number }}</h2></div><span class="status-pill status-{{ license.status }}">{{ license.get_status_display }}</span></div>
+                <dl class="license-details"><div><dt>Legal name</dt><dd>{{ license.legal_name|default:vendor.business_name }}</dd></div><div><dt>Form</dt><dd>{{ license.form_number|default:"Not supplied" }}</dd></div><div><dt>Authority</dt><dd>{{ license.licensing_authority|default:"Pending registry check" }}</dd></div><div><dt>Validity</dt><dd>{% if license.valid_until %}Until {{ license.valid_until|date:"d M Y" }}{% else %}Not supplied{% endif %}</dd></div></dl>
+                {% if license.review_notes %}<p class="small text-secondary border-top pt-3">Reviewer note: {{ license.review_notes }}</p>{% endif %}
+                <form method="post" action="{% url 'vendors:business_license_lookup' license.pk %}" data-license-lookup>{% csrf_token %}<button class="btn btn-sm btn-outline-success" type="submit"><i class="bi bi-arrow-repeat me-1"></i>Check authorized registry</button><span class="small ms-2" data-license-result></span></form>
+            </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state"><i class="bi bi-file-earmark-lock"></i><h2 class="h5">No licences submitted</h2><p>Add the licence that authorizes your business to sell or manufacture regulated products.</p><a class="btn btn-success" href="{% url 'vendors:business_license_create' %}">Add licence</a></div>
+    {% endif %}
+</section>
+{% endblock %}

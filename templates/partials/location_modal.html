@@ -1,0 +1,35 @@
+<div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content location-modal-content">
+            <div class="modal-header">
+                <div>
+                    <p class="eyebrow mb-1">Delivery location</p>
+                    <h2 class="modal-title fs-5" id="locationModalLabel">Choose where you want delivery</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="current-location-summary mb-3">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <div><small>Currently selected</small><strong data-site-location-label>{{ site_location_label }}</strong></div>
+                </div>
+                <button class="btn btn-success w-100" id="detectLocationButton" type="button" data-endpoint="{% url 'core:detect_location' %}">
+                    <i class="bi bi-crosshair me-2"></i>Use my current location
+                </button>
+                <p class="small text-secondary mt-2 mb-3">Your browser will ask permission. Coordinates are used to identify your delivery area and are sent to the configured geocoding service.</p>
+                <div class="location-divider"><span>or enter manually</span></div>
+                <form id="manualLocationForm" action="{% url 'core:set_manual_location' %}" method="post">
+                    {% csrf_token %}
+                    <div class="row g-2">
+                        <div class="col-sm-6"><label class="form-label" for="locationCity">City or town</label><input class="form-control" id="locationCity" name="city" maxlength="100" required></div>
+                        <div class="col-sm-6"><label class="form-label" for="locationState">State</label><input class="form-control" id="locationState" name="state" maxlength="100"></div>
+                        <div class="col-12"><label class="form-label" for="locationPincode">Pincode</label><input class="form-control" id="locationPincode" name="pincode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></div>
+                    </div>
+                    <button class="btn btn-outline-success w-100 mt-3" type="submit">Set delivery location</button>
+                </form>
+                <div class="location-status small mt-3" id="locationStatus" role="status" aria-live="polite"></div>
+                <p class="location-attribution small text-secondary mb-0 mt-2 d-none" id="locationAttribution"></p>
+            </div>
+        </div>
+    </div>
+</div>

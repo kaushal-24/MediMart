@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}My Addresses | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                <div>
+                    <p class="eyebrow mb-2">Addresses</p>
+                    <h1 class="h3 fw-bold mb-0">My Addresses</h1>
+                </div>
+                <a class="btn btn-success align-self-md-start" href="{% url 'accounts:address_create' %}">
+                    <i class="bi bi-plus-lg me-2"></i>Add Address
+                </a>
+            </div>
+
+            {% if addresses %}
+                <div class="row g-3">
+                    {% for address in addresses %}
+                        <div class="col-md-6">
+                            <article class="address-card h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                    <div>
+                                        <h2 class="h5 fw-semibold mb-1">{{ address.full_name }}</h2>
+                                        <span class="badge text-bg-light">{{ address.get_address_type_display }}</span>
+                                    </div>
+                                    {% if address.is_default %}
+                                        <span class="badge text-bg-success">Default</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-secondary mb-2">
+                                    {{ address.address_line_1 }}{% if address.address_line_2 %}, {{ address.address_line_2 }}{% endif %}<br>
+                                    {{ address.city }}, {{ address.state }} - {{ address.pincode }}
+                                    {% if address.landmark %}<br>Landmark: {{ address.landmark }}{% endif %}
+                                </p>
+                                <p class="small text-secondary mb-3">{{ address.phone }}</p>
+                                <div class="d-flex gap-2">
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:address_update' address.pk %}">Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="{% url 'accounts:address_delete' address.pk %}">Delete</a>
+                                </div>
+                            </article>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-geo-alt"></i>
+                    <h2 class="h5 fw-semibold">No addresses saved</h2>
+                    <p>Add an address now so checkout will be easier in the orders phase.</p>
+                    <a class="btn btn-success" href="{% url 'accounts:address_create' %}">Add Address</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | MediMart{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-shell">
+        <aside class="auth-intro">
+            <a class="auth-brand" href="{% url 'core:home' %}"><i class="bi bi-heart-pulse-fill"></i>MediMart</a>
+            <p class="eyebrow">Personal account</p>
+            <h1>Your everyday healthcare, in one account.</h1>
+            <p>Order essentials, upload prescriptions, save products, manage delivery addresses, and keep every invoice together.</p>
+            <ul class="auth-assurance-list">
+                <li><i class="bi bi-bag-check"></i><span><strong>Simple ordering</strong><small>Cart, payments, invoices, and delivery tracking</small></span></li>
+                <li><i class="bi bi-file-earmark-medical"></i><span><strong>Prescription controls</strong><small>Private uploads with review status</small></span></li>
+                <li><i class="bi bi-shield-check"></i><span><strong>Protected account</strong><small>Role-aware access and secure sessions</small></span></li>
+            </ul>
+        </aside>
+        <div class="auth-form-wrap">
+            <div class="auth-card">
+                <p class="eyebrow mb-2">Customer registration</p>
+                <h2 class="h3 fw-bold mb-1">Create your account</h2>
+                <p class="text-secondary mb-4">A few details now, everything else can be added later.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include "accounts/form_errors.html" with form=form %}
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="{{ form.first_name.id_for_label }}">First name</label>{{ form.first_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.last_name.id_for_label }}">Last name</label>{{ form.last_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.email.id_for_label }}">Email address</label>{{ form.email }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.phone_number.id_for_label }}">Mobile number</label>{{ form.phone_number }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.username.id_for_label }}">Username</label>{{ form.username }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>{{ form.password1 }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.password2.id_for_label }}">Confirm password</label>{{ form.password2 }}</div>
+                    </div>
+                    <p class="small text-secondary mt-3 mb-0">By creating an account, you agree to use MediMart only for lawful healthcare transactions and provide genuine verification details when required.</p>
+                    <button class="btn btn-success btn-lg w-100 mt-4" type="submit">Create account</button>
+                </form>
+                <div class="auth-switch mt-4"><span>Joining as a pharmacy, seller, manufacturer, or doctor?</span><a href="{% url 'accounts:professional_register' %}">Create a professional account</a></div>
+                <p class="text-center text-secondary mt-3 mb-0">Already registered? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

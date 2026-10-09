@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.order_number }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Order tracking</p>
+        <h1 class="h2 fw-bold mb-2">{{ order.order_number }}</h1>
+        <p class="text-secondary mb-0">{{ order.get_order_status_display }} - ₹{{ order.total_amount }}</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="content-panel mb-4">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <h2 class="h5 fw-bold mb-0">Items</h2>
+                    <a class="btn btn-sm btn-outline-success" href="{% url 'orders:invoice_detail' order.pk %}">View Invoice</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Seller</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                                <tr>
+                                    <td>{{ item.product_name }}</td>
+                                    <td>{{ item.seller_name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.unit_price }}</td>
+                                    <td>₹{{ item.total_price }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="content-panel">
+                <h2 class="h5 fw-bold mb-3">Tracking Timeline</h2>
+                <div class="timeline">
+                    {% for history in order.status_history.all %}
+                        <div class="timeline-item">
+                            <strong>{{ history.get_status_display }}</strong>
+                            <span>{{ history.created_at|date:"M d, Y H:i" }}</span>
+                            {% if history.note %}<p>{{ history.note }}</p>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="content-panel mb-4">
+                <h2 class="h5 fw-bold mb-3">Delivery Address</h2>
+                <p class="text-secondary mb-0">{{ order.address_snapshot|linebreaksbr }}</p>
+            </div>
+            <div class="content-panel">
+                <h2 class="h5 fw-bold mb-3">Payment Summary</h2>
+                <div class="summary-row"><span>Subtotal</span><strong>₹{{ order.subtotal }}</strong></div>
+                <div class="summary-row"><span>Discount</span><strong>₹{{ order.discount }}</strong></div>
+                <div class="summary-row"><span>Delivery</span><strong>₹{{ order.delivery_charge }}</strong></div>
+                <hr>
+                <div class="summary-row summary-total"><span>Total</span><strong>₹{{ order.total_amount }}</strong></div>
+                <p class="small text-secondary mt-3">{{ order.get_payment_method_display }} - {{ order.get_payment_status_display }}</p>
+                {% if order.payment_method == "razorpay" and order.payment_status != "paid" %}
+                    <a class="btn btn-success w-100" href="{% url 'orders:payment_start' order.pk %}">
+                        <i class="bi bi-credit-card me-2"></i>Complete Payment
+                    </a>
+                {% endif %}
+                {% if can_cancel %}
+                    <form class="mt-2" method="post" action="{% url 'orders:cancel_order' order.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="reason" value="Cancelled by customer.">
+                        <button class="btn btn-outline-danger w-100" type="submit">Cancel order</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

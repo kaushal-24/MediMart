@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Checkout</p>
+        <h1 class="h2 fw-bold mb-2">Place Your Order</h1>
+        <p class="text-secondary mb-0">Choose a delivery address, coupon, and payment method.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "accounts/form_errors.html" with form=form %}
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="content-panel mb-4">
+                    <h2 class="h5 fw-bold mb-3">Delivery Address</h2>
+                    <label class="form-label" for="{{ form.address.id_for_label }}">Saved address</label>
+                    {{ form.address }}
+                    <div class="form-text">
+                        Need a new address? <a href="{% url 'accounts:address_create' %}">Add address</a>
+                    </div>
+                </div>
+
+                <div class="content-panel mb-4">
+                    <h2 class="h5 fw-bold mb-3">Coupon</h2>
+                    <label class="form-label" for="{{ form.coupon_code.id_for_label }}">Coupon code</label>
+                    {{ form.coupon_code }}
+                </div>
+
+                <div class="content-panel">
+                    <h2 class="h5 fw-bold mb-3">Payment Method</h2>
+                    <label class="form-label" for="{{ form.payment_method.id_for_label }}">Payment</label>
+                    {{ form.payment_method }}
+                    <p class="small text-secondary mt-2 mb-0">Online payments are securely completed through Razorpay. Cash on delivery availability may vary by location.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="content-panel order-summary">
+                    <h2 class="h5 fw-bold mb-3">Order Summary</h2>
+                    {% for item in items %}
+                        <div class="checkout-item">
+                            <span>{{ item.vendor_product.product.name }} x {{ item.quantity }}</span>
+                            <strong>₹{{ item.total_price }}</strong>
+                        </div>
+                        <div class="small text-secondary mb-2">{{ item.vendor_product.vendor.business_name }}</div>
+                    {% endfor %}
+                    <hr>
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <strong>₹{{ subtotal }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Discount</span>
+                        <strong>₹{{ discount }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Delivery</span>
+                        <strong>₹{{ delivery_charge }}</strong>
+                    </div>
+                    <hr>
+                    <div class="summary-row summary-total">
+                        <span>Total</span>
+                        <strong>₹{{ total_amount }}</strong>
+                    </div>
+                    <button class="btn btn-success w-100 mt-3" type="submit">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}

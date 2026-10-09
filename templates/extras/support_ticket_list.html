@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Support | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                <div>
+                    <p class="eyebrow mb-2">Help center</p>
+                    <h1 class="h3 fw-bold mb-0">Support Tickets</h1>
+                </div>
+                <a class="btn btn-success align-self-md-start" href="{% url 'extras:support_ticket_create' %}">
+                    <i class="bi bi-plus-lg me-2"></i>Create Ticket
+                </a>
+            </div>
+
+            {% if tickets %}
+                <div class="content-panel">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Updated</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets %}
+                                    <tr>
+                                        <td>{{ ticket.subject }}</td>
+                                        <td>{{ ticket.get_category_display }}</td>
+                                        <td>{{ ticket.get_status_display }}</td>
+                                        <td>{{ ticket.updated_at|date:"M d, Y" }}</td>
+                                        <td><a class="btn btn-sm btn-outline-success" href="{% url 'extras:support_ticket_detail' ticket.pk %}">Open</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-headset"></i>
+                    <h2 class="h5 fw-semibold">No support tickets</h2>
+                    <p>Create a ticket when you need help with an order, prescription, payment, or account issue.</p>
+                    <a class="btn btn-success" href="{% url 'extras:support_ticket_create' %}">Create Ticket</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Create Support Ticket | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Help center</p>
+                <h1 class="h3 fw-bold mb-4">Create Support Ticket</h1>
+                {% include "accounts/form_errors.html" %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.subject.id_for_label }}">Subject</label>
+                            {{ form.subject }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.order_number.id_for_label }}">Order number</label>
+                            {{ form.order_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.attachment.id_for_label }}">Attachment</label>
+                            {{ form.attachment }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.message.id_for_label }}">Message</label>
+                            {{ form.message }}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-success" type="submit">Create Ticket</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'extras:support_ticket_list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

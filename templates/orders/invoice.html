@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ order.order_number }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="content-panel invoice-panel">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+            <div>
+                <h1 class="h3 fw-bold mb-1">MediMart Invoice</h1>
+                <p class="text-secondary mb-0">Invoice for order {{ order.order_number }}</p>
+            </div>
+            <div class="text-md-end">
+                <strong>Invoice #INV-{{ order.order_number }}</strong>
+                <p class="text-secondary mb-0">{{ order.created_at|date:"M d, Y" }}</p>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <h2 class="h6 fw-bold">Customer</h2>
+                <p class="text-secondary mb-0">{{ order.customer.get_full_name|default:order.customer.username }}</p>
+            </div>
+            <div class="col-md-6">
+                <h2 class="h6 fw-bold">Delivery Address</h2>
+                <p class="text-secondary mb-0">{{ order.address_snapshot|linebreaksbr }}</p>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Seller</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.seller_name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ item.unit_price }}</td>
+                            <td>₹{{ item.total_price }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row justify-content-end">
+            <div class="col-md-5">
+                <div class="summary-row"><span>Subtotal</span><strong>₹{{ order.subtotal }}</strong></div>
+                <div class="summary-row"><span>Discount</span><strong>₹{{ order.discount }}</strong></div>
+                <div class="summary-row"><span>Delivery</span><strong>₹{{ order.delivery_charge }}</strong></div>
+                <hr>
+                <div class="summary-row summary-total"><span>Total</span><strong>₹{{ order.total_amount }}</strong></div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a class="btn btn-success me-2" href="{% url 'orders:invoice_pdf' order.pk %}">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Download PDF
+            </a>
+            <a class="btn btn-outline-secondary" href="{% url 'orders:order_detail' order.pk %}">Back to Order</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

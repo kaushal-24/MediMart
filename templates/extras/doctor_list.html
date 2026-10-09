@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Doctors | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Doctor profiles</p>
+        <h1 class="h2 fw-bold mb-2">Find Doctors</h1>
+        <p class="text-secondary mb-0">Browse verified doctor profiles for clinic and consultation information.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if doctors %}
+        <div class="row g-4">
+            {% for doctor in doctors %}
+                <div class="col-md-6 col-xl-4">
+                    <article class="vendor-card h-100">
+                        <div class="d-flex justify-content-between gap-3 mb-3">
+                            <div>
+                                <h2 class="h5 fw-bold mb-1">{{ doctor.full_name }}</h2>
+                                <p class="text-secondary mb-0">{{ doctor.specialization }}</p>
+                            </div>
+                            <span class="badge text-bg-success align-self-start">Verified</span>
+                        </div>
+                        <p class="small text-secondary mb-2">{{ doctor.experience_years }} year{{ doctor.experience_years|pluralize }} experience</p>
+                        {% if doctor.clinic_name %}
+                            <p class="mb-2"><i class="bi bi-hospital me-2"></i>{{ doctor.clinic_name }}</p>
+                        {% endif %}
+                        <p class="mb-3"><strong>Fee:</strong> ₹{{ doctor.consultation_fee }}</p>
+                        <a class="btn btn-outline-success w-100" href="{% url 'extras:doctor_detail' doctor.pk %}">View Profile</a>
+                    </article>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-person-vcard"></i>
+            <h2 class="h5 fw-semibold">No verified doctors yet</h2>
+            <p>Doctor profiles will appear after admin verification.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

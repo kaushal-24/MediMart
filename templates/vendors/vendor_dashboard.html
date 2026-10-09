@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{% if vendor.business_type == "manufacturer" %}Manufacturer{% else %}Seller{% endif %} Dashboard | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div>
+            <p class="eyebrow mb-2">{% if vendor.business_type == "manufacturer" %}Manufacturer workspace{% else %}Seller workspace{% endif %}</p>
+            <h1 class="h2 fw-bold mb-1">{{ vendor.business_name }}</h1>
+            <p class="mb-0"><span class="status-pill {% if vendor.is_approved %}status-paid{% else %}status-pending{% endif %}">{% if vendor.is_approved %}Approved seller{% else %}Approval pending{% endif %}</span></p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-success" href="{% url 'vendors:vendor_catalog_product_create' %}"><i class="bi bi-box-seam me-2"></i>Add new product</a>
+            <a class="btn btn-outline-success" href="{% url 'vendors:vendor_product_create' %}"><i class="bi bi-tag me-2"></i>Add offer</a>
+            <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}"><i class="bi bi-list-check me-2"></i>Manage inventory</a>
+            <a class="btn btn-outline-secondary" href="{% url 'vendors:business_license_list' %}"><i class="bi bi-patch-check me-2"></i>Licences</a>
+        </div>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if not vendor.is_approved %}<div class="alert alert-warning d-flex gap-3 align-items-start"><i class="bi bi-hourglass-split fs-4"></i><div><strong>Business review in progress</strong><div>Products and offers can be prepared now, but they remain hidden from customers until MediMart approves the business and catalog records.</div></div></div>{% endif %}
+
+    <div class="compliance-strip mb-4">
+        <div><i class="bi bi-shield-check"></i><span><strong>Regulatory licences</strong><small>{{ licenses|length }} record{{ licenses|length|pluralize }} submitted</small></span></div>
+        <div class="d-flex flex-wrap gap-2">{% for license in licenses|slice:":3" %}<span class="status-pill status-{{ license.status }}">{{ license.get_status_display }}</span>{% empty %}<span class="text-secondary small">No licence evidence on file</span>{% endfor %}</div>
+        <a href="{% url 'vendors:business_license_list' %}">Manage licences <i class="bi bi-arrow-right"></i></a>
+    </div>
+
+    <div class="operations-metrics seller-metrics mb-4">
+        <div class="metric-card metric-primary"><span>Recognized sales</span><strong>₹{{ stats.revenue }}</strong><small>Paid or delivered order lines</small></div>
+        <div class="metric-card"><span>Units sold</span><strong>{{ stats.units_sold }}</strong><small>Across all approved products</small></div>
+        <div class="metric-card metric-attention"><span>Orders to fulfill</span><strong>{{ stats.orders_to_fulfill }}</strong><small>Confirmed, processing, or packed</small></div>
+        <div class="metric-card"><span>Active offers</span><strong>{{ stats.active_products }}</strong><small>{{ stats.approved_products }} approved</small></div>
+        <div class="metric-card"><span>Total inventory</span><strong>{{ stats.total_stock }}</strong><small>{{ stats.low_stock }} low-stock alerts</small></div>
+        <div class="metric-card"><span>Awaiting approval</span><strong>{{ stats.pending_products }}</strong><small>New or edited offers</small></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Fulfillment</p><h2>Recent sold items</h2></div></div>
+                {% if recent_order_items %}
+                    <div class="table-responsive"><table class="table align-middle operations-table mb-0"><thead><tr><th>Order</th><th>Product</th><th>Qty</th><th>Value</th><th>Status</th></tr></thead><tbody>
+                    {% for item in recent_order_items %}<tr><td><strong>{{ item.order.order_number }}</strong><small>{{ item.order.created_at|date:"M d, H:i" }}</small></td><td>{{ item.product_name }}</td><td>{{ item.quantity }}</td><td>₹{{ item.total_price }}</td><td><span class="status-pill status-{{ item.order.order_status }}">{{ item.order.get_order_status_display }}</span></td></tr>{% endfor %}
+                    </tbody></table></div>
+                {% else %}<div class="empty-compact"><i class="bi bi-bag-check"></i><span>Sold items will appear here after customers place orders.</span></div>{% endif %}
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Catalog</p><h2>Recent offers</h2></div><a href="{% url 'vendors:vendor_product_list' %}">Manage all</a></div>
+                {% if recent_offers %}
+                    <div class="seller-offer-list">
+                        {% for offer in recent_offers %}<a href="{% url 'vendors:vendor_product_update' offer.pk %}"><span><strong>{{ offer.product.name }}</strong><small>₹{{ offer.price }} · {{ offer.stock_quantity }} in stock</small></span><span class="status-pill {% if offer.is_approved %}status-paid{% else %}status-pending{% endif %}">{% if offer.is_approved %}Live{% else %}Review{% endif %}</span></a>{% endfor %}
+                    </div>
+                {% else %}<div class="empty-compact"><i class="bi bi-box-seam"></i><span>No product offers yet.</span></div>{% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

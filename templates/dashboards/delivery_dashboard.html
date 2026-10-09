@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Dashboard | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Delivery operations</p>
+        <h1 class="h2 fw-bold mb-2">Delivery Dashboard</h1>
+        <p class="text-secondary mb-0">Track orders assigned to this delivery account.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="metric-card"><span>Active Orders</span><strong>{{ stats.assigned_orders }}</strong></div></div>
+        <div class="col-md-3"><div class="metric-card"><span>Out For Delivery</span><strong>{{ stats.out_for_delivery }}</strong></div></div>
+        <div class="col-md-3"><div class="metric-card"><span>Delivered Today</span><strong>{{ stats.delivered_today }}</strong></div></div>
+        <div class="col-md-3"><div class="metric-card"><span>Total Delivered</span><strong>{{ stats.total_delivered }}</strong></div></div>
+    </div>
+
+    <div class="content-panel">
+        <h2 class="h5 fw-bold mb-3">Active Delivery Orders</h2>
+        {% if active_orders %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Delivery details</th>
+                            <th>Status</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in active_orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.customer.username }}</td>
+                                <td>
+                                    <div class="delivery-address">{{ order.address_snapshot|linebreaksbr }}</div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <a class="btn btn-sm btn-outline-secondary" href="tel:{{ order.address.phone }}"><i class="bi bi-telephone me-1"></i>Call</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="https://www.google.com/maps/search/?api=1&amp;query={{ order.address_snapshot|urlencode }}" target="_blank" rel="noopener"><i class="bi bi-map me-1"></i>Map</a>
+                                    </div>
+                                </td>
+                                <td>{{ order.get_order_status_display }}</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        {% if order.order_status != "out_for_delivery" %}
+                                            <form method="post" action="{% url 'dashboards:update_delivery_order_status' order.pk %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="out_for_delivery">
+                                                <button class="btn btn-sm btn-outline-primary" type="submit">Out for Delivery</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if order.order_status == "out_for_delivery" %}<form method="post" action="{% url 'dashboards:update_delivery_order_status' order.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="delivered">
+                                            <button class="btn btn-sm btn-success" type="submit">Delivered</button>
+                                        </form>{% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-truck"></i>
+                <h2 class="h5 fw-semibold">No active delivery orders</h2>
+                <p>Orders marked shipped or out for delivery will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

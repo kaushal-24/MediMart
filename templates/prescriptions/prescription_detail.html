@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Prescription #{{ prescription.pk }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Prescription</p>
+                <h1 class="h4 fw-bold mb-3">Prescription #{{ prescription.pk }}</h1>
+                <span class="badge prescription-status-{{ prescription.status }}">
+                    {{ prescription.get_status_display }}
+                </span>
+                {% if prescription.rejection_reason %}
+                    <div class="alert alert-danger mt-3 mb-0">
+                        {{ prescription.rejection_reason }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="content-panel">
+                <h2 class="h5 fw-bold mb-3">Details</h2>
+                <dl class="product-meta mb-4">
+                    <dt>Doctor</dt>
+                    <dd>{{ prescription.doctor_name|default:"-" }}</dd>
+                    <dt>Prescription Date</dt>
+                    <dd>{{ prescription.prescription_date|default:"-" }}</dd>
+                    <dt>Uploaded</dt>
+                    <dd>{{ prescription.created_at|date:"M d, Y H:i" }}</dd>
+                    <dt>Reviewed</dt>
+                    <dd>{{ prescription.reviewed_at|date:"M d, Y H:i"|default:"-" }}</dd>
+                    <dt>Notes</dt>
+                    <dd>{{ prescription.notes|default:"-" }}</dd>
+                </dl>
+                <a class="btn btn-success" href="{% url 'core:prescription_file' prescription.pk %}" target="_blank" rel="noopener">
+                    <i class="bi bi-file-earmark-medical me-2"></i>Open File
+                </a>
+                <a class="btn btn-outline-secondary" href="{% url 'prescriptions:prescription_list' %}">Back</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

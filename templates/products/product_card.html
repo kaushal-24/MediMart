@@ -1,0 +1,51 @@
+<article class="product-card h-100">
+    <a class="product-image" href="{{ product.get_absolute_url }}">
+        {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async" width="320" height="240">
+        {% else %}
+            <span><i class="bi bi-capsule-pill"></i></span>
+        {% endif %}
+    </a>
+
+    <div class="product-card-body">
+        <div class="d-flex justify-content-between gap-2 mb-2">
+            <span class="badge text-bg-light">{{ product.get_product_type_display }}</span>
+            {% if product.requires_prescription %}
+                <span class="badge text-bg-warning">Rx</span>
+            {% endif %}
+        </div>
+        <h2 class="h6 fw-semibold product-title">
+            <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+        </h2>
+        <p class="small text-secondary mb-2">
+            {% if product.brand %}{{ product.brand.name }}{% else %}MediMart verified{% endif %}
+        </p>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <strong>₹{{ product.lowest_offer_price|default:product.selling_price }}</strong>
+            {% if product.discount_percentage %}
+                <span class="text-secondary text-decoration-line-through small">₹{{ product.mrp }}</span>
+                <span class="discount-label">{{ product.discount_percentage }}% off</span>
+            {% endif %}
+        </div>
+        <p class="small mb-0 {% if product.available_offer_stock == 0 %}text-danger{% elif product.available_offer_stock <= 5 %}text-warning{% else %}text-success{% endif %}">
+            {% if product.available_offer_stock == 0 %}Out of Stock{% elif product.available_offer_stock <= 5 %}Low Stock{% else %}In Stock{% endif %}
+        </p>
+        <a class="btn btn-sm btn-outline-success w-100 mt-3" href="{% url 'products:price_comparison' product.slug %}">
+            Compare Sellers
+        </a>
+        <form method="post" action="{% url 'products:compare_add' product.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="btn btn-sm btn-outline-secondary w-100 mt-2" type="submit">
+                <i class="bi bi-columns-gap me-1"></i>Compare Product
+            </button>
+        </form>
+        <form method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="btn btn-sm btn-outline-primary w-100 mt-2" type="submit">
+                <i class="bi bi-bookmark-heart me-1"></i>Save for Later
+            </button>
+        </form>
+    </div>
+</article>

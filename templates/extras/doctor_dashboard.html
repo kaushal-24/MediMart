@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-3">
+            {% include "accounts/_dashboard_nav.html" %}
+        </div>
+        <div class="col-lg-9">
+            <div class="content-panel">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                    <div>
+                        <p class="eyebrow mb-2">Doctor dashboard</p>
+                        <h1 class="h3 fw-bold mb-0">Doctor Profile</h1>
+                    </div>
+                    <span class="badge {% if doctor_profile.is_verified %}text-bg-success{% else %}text-bg-warning{% endif %} align-self-md-start">
+                        {% if doctor_profile.is_verified %}Verified{% else %}Pending verification{% endif %}
+                    </span>
+                </div>
+
+                {% include "accounts/form_errors.html" %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.full_name.id_for_label }}">Full name</label>
+                            {{ form.full_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.specialization.id_for_label }}">Specialization</label>
+                            {{ form.specialization }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.registration_number.id_for_label }}">Medical registration number</label>
+                            {{ form.registration_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.medical_council.id_for_label }}">Medical council</label>
+                            {{ form.medical_council }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.qualification.id_for_label }}">Qualification</label>
+                            {{ form.qualification }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.qualification_document.id_for_label }}">Credential document</label>
+                            {{ form.qualification_document }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.experience_years.id_for_label }}">Experience years</label>
+                            {{ form.experience_years }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.consultation_fee.id_for_label }}">Consultation fee</label>
+                            {{ form.consultation_fee }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.clinic_name.id_for_label }}">Clinic name</label>
+                            {{ form.clinic_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.availability.id_for_label }}">Availability</label>
+                            {{ form.availability }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.clinic_address.id_for_label }}">Clinic address</label>
+                            {{ form.clinic_address }}
+                        </div>
+                    </div>
+                    <button class="btn btn-success mt-4" type="submit">Save Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} | MediMart{% endblock %}
+{% block meta_description %}{{ post.excerpt|default:post.title }}{% endblock %}
+
+{% block content %}
+<article class="article-page">
+    <header class="article-header">
+        <div class="container article-header-inner">
+            <a class="article-back" href="{% url 'extras:blog_list' %}"><i class="bi bi-arrow-left"></i> Health guides</a>
+            <div class="blog-meta"><span>{{ post.category.name|default:"Health education" }}</span><span>{{ post.estimated_read_minutes }} min read</span></div>
+            <h1>{{ post.title }}</h1>
+            <p>{{ post.excerpt }}</p>
+            <div class="article-byline"><span>Reviewed editorial content</span><time>{{ post.published_at|date:"d F Y" }}</time>{% if post.author %}<span>By {{ post.author.get_full_name|default:post.author.username }}</span>{% endif %}</div>
+        </div>
+    </header>
+
+    <div class="container article-layout py-5">
+        <main>
+            {% if post.image %}<figure class="blog-hero-image"><img src="{{ post.image.url }}" alt="{{ post.title }}" decoding="async" fetchpriority="high" width="1200" height="675"></figure>{% endif %}
+            <div class="article-advisory"><i class="bi bi-info-circle"></i><p><strong>Health information notice</strong><span>This guide is educational and does not replace diagnosis or advice from a qualified healthcare professional.</span></p></div>
+            <div class="article-body">{{ post.content|linebreaks }}</div>
+        </main>
+        <aside class="article-sidebar">
+            <div><p class="eyebrow mb-2">Need a product?</p><h2>Shop related healthcare essentials</h2><p>Compare reviewed sellers, prices, and availability in the MediMart catalogue.</p><a class="btn btn-outline-success w-100" href="{% url 'products:product_list' %}">Browse products</a></div>
+            <div><p class="eyebrow mb-2">Need help?</p><h2>Talk to support</h2><p>Get help with an order, prescription, payment, or account.</p><a class="btn btn-outline-success w-100" href="{% url 'extras:support_ticket_list' %}">Open help center</a></div>
+        </aside>
+    </div>
+
+    {% if related_posts %}<section class="related-guides"><div class="container"><div class="section-heading-row mb-4"><div><p class="eyebrow mb-1">Continue reading</p><h2>Related health guides</h2></div></div><div class="blog-grid">{% for related in related_posts %}<article class="blog-card"><a class="blog-image" href="{{ related.get_absolute_url }}">{% if related.image %}<img src="{{ related.image.url }}" alt="{{ related.title }}" loading="lazy" decoding="async" width="640" height="360">{% else %}<span><i class="bi bi-journal-medical"></i></span>{% endif %}</a><div class="blog-card-body"><div class="blog-meta"><span>{{ related.category.name|default:"Health guide" }}</span><span>{{ related.estimated_read_minutes }} min read</span></div><h2><a href="{{ related.get_absolute_url }}">{{ related.title }}</a></h2><p>{{ related.excerpt|truncatewords:20 }}</p></div></article>{% endfor %}</div></div></section>{% endif %}
+</article>
+{% endblock %}

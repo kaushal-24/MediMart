@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vendor.business_name }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Vendor profile</p>
+        <h1 class="h2 fw-bold mb-2">{{ vendor.business_name }}</h1>
+        <p class="text-secondary mb-0">{{ vendor.get_business_type_display }} · {{ vendor.phone }}</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="content-panel">
+                <h2 class="h5 fw-bold">Business Details</h2>
+                <p class="text-secondary mb-2">{{ vendor.address }}</p>
+                <p class="small text-secondary mb-0">License: {{ vendor.license_number }}</p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="content-panel">
+                <h2 class="h5 fw-bold mb-3">Approved Offers</h2>
+                {% if offers %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Delivery</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for offer in offers %}
+                                    <tr>
+                                        <td><a href="{{ offer.product.get_absolute_url }}">{{ offer.product.name }}</a></td>
+                                        <td>₹{{ offer.price }}</td>
+                                        <td>{{ offer.stock_status }}</td>
+                                        <td>{{ offer.delivery_time }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-box-seam"></i>
+                        <p class="mb-0">No approved offers yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

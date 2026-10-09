@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="content-panel">
+                <p class="eyebrow mb-2">Vendor inventory</p>
+                <h1 class="h3 fw-bold mb-4">{{ page_title }}</h1>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include "accounts/form_errors.html" with form=form %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.product.id_for_label }}">Catalog product</label>
+                            {{ form.product }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.price.id_for_label }}">Your price</label>
+                            {{ form.price }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Stock quantity</label>
+                            {{ form.stock_quantity }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.delivery_time.id_for_label }}">Delivery time</label>
+                            {{ form.delivery_time }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.warranty.id_for_label }}">Warranty</label>
+                            {{ form.warranty }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.offer_text.id_for_label }}">Offer text</label>
+                            {{ form.offer_text }}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active offer</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-success" type="submit">Save Offer</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

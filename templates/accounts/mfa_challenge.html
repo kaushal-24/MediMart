@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Verify Sign In | MediMart{% endblock %}
+{% block content %}
+<section class="auth-page">
+    <div class="auth-shell auth-shell-compact">
+        <p class="eyebrow mb-2">Account security</p>
+        <h1 class="h3 fw-bold">Verify your sign in</h1>
+        <p class="text-secondary">Enter the current 6-digit code from your authenticator app.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <label class="form-label" for="mfaCode">Verification code</label>
+            <input class="form-control" id="mfaCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus>
+            <button class="btn btn-success w-100 mt-3" type="submit">Verify</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Vendors | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Marketplace sellers</p>
+        <h1 class="h2 fw-bold mb-2">Approved MediMart Vendors</h1>
+        <p class="text-secondary mb-0">Browse verified vendors and their approved product offers.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    {% if vendors %}
+        <div class="row g-3">
+            {% for vendor in vendors %}
+                <div class="col-md-6 col-xl-4">
+                    <article class="vendor-card h-100">
+                        <span class="badge text-bg-success mb-3">{{ vendor.get_business_type_display }}</span>
+                        <h2 class="h5 fw-bold">{{ vendor.business_name }}</h2>
+                        <p class="text-secondary">{{ vendor.address|truncatechars:120 }}</p>
+                        <a class="btn btn-outline-success" href="{% url 'vendors:vendor_detail' vendor.pk %}">View Vendor</a>
+                    </article>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-shop"></i>
+            <h2 class="h5 fw-semibold">No approved vendors yet</h2>
+            <p>Approved vendors will appear here after admin review.</p>
+            {% if user.is_authenticated %}
+                <a class="btn btn-success" href="{% url 'vendors:vendor_register' %}">Register as Vendor</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} | MediMart{% endblock %}
+{% block meta_description %}{{ page_description }}{% endblock %}
+
+{% block content %}
+<section class="blog-masthead">
+    <div class="container">
+        <div class="blog-masthead-copy">
+            <p class="eyebrow mb-2">MediMart Health Guides</p>
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_description }}</p>
+        </div>
+        <form class="blog-search" method="get" role="search">
+            <i class="bi bi-search"></i>
+            <input name="q" value="{{ query }}" type="search" placeholder="Search health topics" aria-label="Search health guides">
+            <button class="btn btn-success" type="submit">Search</button>
+        </form>
+    </div>
+</section>
+
+<nav class="blog-category-bar" aria-label="Health guide categories">
+    <div class="container">
+        <a class="{% if not category %}active{% endif %}" href="{% url 'extras:blog_list' %}">All guides</a>
+        {% for item in categories %}<a class="{% if category.pk == item.pk %}active{% endif %}" href="{{ item.get_absolute_url }}">{{ item.name }} <span>{{ item.published_count }}</span></a>{% endfor %}
+    </div>
+</nav>
+
+<section class="container py-5">
+    {% if featured_post %}
+    <article class="blog-featured mb-5">
+        <a class="blog-featured-media" href="{{ featured_post.get_absolute_url }}">
+            {% if featured_post.image %}<img src="{{ featured_post.image.url }}" alt="{{ featured_post.title }}" decoding="async" fetchpriority="high" width="960" height="540">{% else %}<span><i class="bi bi-journal-medical"></i></span>{% endif %}
+        </a>
+        <div class="blog-featured-copy">
+            <div class="blog-meta"><span>{{ featured_post.category.name|default:"Health guide" }}</span><span>{{ featured_post.estimated_read_minutes }} min read</span></div>
+            <h2><a href="{{ featured_post.get_absolute_url }}">{{ featured_post.title }}</a></h2>
+            <p>{{ featured_post.excerpt|default:featured_post.content|truncatewords:35 }}</p>
+            <a class="btn btn-success" href="{{ featured_post.get_absolute_url }}">Read guide <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+    </article>
+    {% endif %}
+
+    <div class="section-heading-row mb-4">
+        <div><p class="eyebrow mb-1">Browse knowledge</p><h2>{% if query %}Results for “{{ query }}”{% elif category %}{{ category.name }} articles{% else %}Latest guides{% endif %}</h2></div>
+        <span>{{ page_obj.paginator.count }} article{{ page_obj.paginator.count|pluralize }}</span>
+    </div>
+
+    {% if posts %}
+        <div class="blog-grid">
+            {% for post in posts %}
+                <article class="blog-card">
+                    <a class="blog-image" href="{{ post.get_absolute_url }}">
+                        {% if post.image %}<img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy" decoding="async" width="640" height="360">{% else %}<span><i class="bi bi-journal-medical"></i></span>{% endif %}
+                    </a>
+                    <div class="blog-card-body">
+                        <div class="blog-meta"><span>{{ post.category.name|default:"Health guide" }}</span><span>{{ post.estimated_read_minutes }} min read</span></div>
+                        <h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2>
+                        <p>{{ post.excerpt|default:post.content|truncatewords:24 }}</p>
+                        <div class="blog-card-footer"><time>{{ post.published_at|date:"d M Y" }}</time><a href="{{ post.get_absolute_url }}" aria-label="Read {{ post.title }}"><i class="bi bi-arrow-right"></i></a></div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+        {% include "partials/pagination.html" with page_obj=page_obj %}
+    {% else %}
+        <div class="empty-state"><i class="bi bi-journal-medical"></i><h2 class="h5 fw-semibold">No matching guides</h2><p>Try a broader health topic or browse all guides.</p><a class="btn btn-success" href="{% url 'extras:blog_list' %}">Browse all guides</a></div>
+    {% endif %}
+</section>
+{% endblock %}

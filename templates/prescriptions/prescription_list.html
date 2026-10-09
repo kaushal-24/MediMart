@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}My Prescriptions | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Prescription records</p>
+        <h1 class="h2 fw-bold mb-2">My Prescriptions</h1>
+        <p class="text-secondary mb-0">Upload and track prescriptions required for eligible medicines.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="h4 fw-bold mb-1">Uploaded Prescriptions</h2>
+            <p class="text-secondary mb-0">Approved prescriptions can be used for prescription-required products.</p>
+        </div>
+        <a class="btn btn-success align-self-md-start" href="{% url 'prescriptions:prescription_upload' %}">
+            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Prescription
+        </a>
+    </div>
+
+    {% if prescriptions %}
+        <div class="content-panel">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Doctor</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prescription in prescriptions %}
+                            <tr>
+                                <td>#{{ prescription.pk }}</td>
+                                <td>{{ prescription.doctor_name|default:"-" }}</td>
+                                <td>{{ prescription.prescription_date|default:"-" }}</td>
+                                <td>
+                                    <span class="badge prescription-status-{{ prescription.status }}">
+                                        {{ prescription.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ prescription.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'prescriptions:prescription_detail' prescription.pk %}">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-file-earmark-medical"></i>
+            <h2 class="h5 fw-semibold">No prescriptions uploaded</h2>
+            <p>Upload a prescription to buy products that require one after approval.</p>
+            <a class="btn btn-success" href="{% url 'prescriptions:prescription_upload' %}">Upload Prescription</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
