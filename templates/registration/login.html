@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Secure Login | MediMart{% endblock %}
 
@@ -6,7 +7,7 @@
 <section class="auth-section">
     <div class="container auth-shell">
         <aside class="auth-intro">
-            <a class="auth-brand" href="{% url 'core:home' %}"><i class="bi bi-heart-pulse-fill"></i>MediMart</a>
+            <a class="auth-brand" href="{% url 'core:home' %}"><img src="{% static 'images/MediMart-favicon-Logo.png' %}" alt=""> <span>MediMart</span></a>
             <p class="eyebrow">Secure account access</p>
             <h1>Welcome back to your healthcare workspace.</h1>
             <p>Track orders, prescriptions, saved products, seller operations, and delivery work from one protected account.</p>
@@ -26,12 +27,15 @@
                     {% include "accounts/form_errors.html" with form=form %}
                     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
                     <div class="mb-3">
-                        <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                        <label class="form-label" for="{{ form.username.id_for_label }}">Username, email, or phone number</label>
                         <div class="input-icon"><i class="bi bi-person"></i>{{ form.username }}</div>
                     </div>
                     <div class="mb-2">
                         <div class="d-flex justify-content-between gap-3"><label class="form-label" for="{{ form.password.id_for_label }}">Password</label><a class="small" href="{% url 'accounts:password_reset' %}">Forgot password?</a></div>
-                        <div class="input-icon"><i class="bi bi-lock"></i>{{ form.password }}</div>
+                        <div class="input-icon password-input-wrap">
+                            <i class="bi bi-lock" aria-hidden="true"></i>{{ form.password }}
+                            <button class="password-toggle" type="button" data-password-toggle="{{ form.password.id_for_label }}" aria-label="Show password" aria-pressed="false" title="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                     <button class="btn btn-success btn-lg w-100 mt-3" type="submit">Sign in securely</button>
                 </form>

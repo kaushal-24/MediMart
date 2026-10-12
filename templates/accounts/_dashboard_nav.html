@@ -1,48 +1,57 @@
-<div class="list-group dashboard-nav">
-    <a class="list-group-item list-group-item-action" href="{% url 'accounts:dashboard' %}">
+<div class="dashboard-nav">
+    <div class="dashboard-nav-heading">
+        <span class="eyebrow">MediMart workspace</span>
+        <strong>{{ user.get_full_name|default:user.username }}</strong>
+    </div>
+    <div class="list-group">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.namespace == 'accounts' %}active{% endif %}" href="{% url 'accounts:dashboard' %}">
         <i class="bi bi-grid me-2"></i>Dashboard
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'accounts:profile' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'accounts:profile' %}">
         <i class="bi bi-person me-2"></i>My Profile
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'accounts:address_list' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'address_list' or request.resolver_match.url_name == 'address_create' or request.resolver_match.url_name == 'address_edit' %}active{% endif %}" href="{% url 'accounts:address_list' %}">
         <i class="bi bi-geo-alt me-2"></i>My Addresses
     </a>
-    {% if can_view_vendor_dashboard %}<a class="list-group-item list-group-item-action" href="{% url 'vendors:vendor_dashboard' %}"><i class="bi bi-shop me-2"></i>Seller Workspace</a><a class="list-group-item list-group-item-action" href="{% url 'vendors:business_license_list' %}"><i class="bi bi-patch-check me-2"></i>Business Licences</a>{% else %}<a class="list-group-item list-group-item-action" href="{% url 'vendors:vendor_register' %}"><i class="bi bi-shop-window me-2"></i>Become a Seller</a>{% endif %}
-    <a class="list-group-item list-group-item-action" href="{% url 'orders:order_list' %}">
+    {% if can_view_vendor_dashboard %}<a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'vendors' and request.resolver_match.url_name == 'vendor_dashboard' or request.resolver_match.namespace == 'vendors' and 'vendor_product' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'vendors:vendor_dashboard' %}"><i class="bi bi-shop me-2"></i>Seller Workspace</a><a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'vendors' and 'business_license' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'vendors:business_license_list' %}"><i class="bi bi-patch-check me-2"></i>Business Licences</a>{% else %}<a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'vendor_register' %}active{% endif %}" href="{% url 'vendors:vendor_register' %}"><i class="bi bi-shop-window me-2"></i>Become a Seller</a>{% endif %}
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'orders' and request.resolver_match.url_name != 'invoice_pdf' %}active{% endif %}" href="{% url 'orders:order_list' %}">
         <i class="bi bi-bag me-2"></i>My Orders
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'prescriptions:prescription_list' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'prescriptions' %}active{% endif %}" href="{% url 'prescriptions:prescription_list' %}">
         <i class="bi bi-file-earmark-medical me-2"></i>My Prescriptions
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'cart:wishlist_detail' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'cart' and request.resolver_match.url_name == 'wishlist_detail' %}active{% endif %}" href="{% url 'cart:wishlist_detail' %}">
         <i class="bi bi-bookmark-heart me-2"></i>Saved for Later
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'reviews:review_list' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'reviews' %}active{% endif %}" href="{% url 'reviews:review_list' %}">
         <i class="bi bi-star me-2"></i>My Reviews
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'extras:notification_list' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'extras' and request.resolver_match.url_name == 'notification_list' %}active{% endif %}" href="{% url 'extras:notification_list' %}">
         <i class="bi bi-bell me-2"></i>Notifications
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'extras:support_ticket_list' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'extras' and request.resolver_match.url_name == 'support_ticket_list' %}active{% endif %}" href="{% url 'extras:support_ticket_list' %}">
         <i class="bi bi-headset me-2"></i>Support
     </a>
-    <a class="list-group-item list-group-item-action" href="{% url 'cart:cart_detail' %}">
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'cart' and request.resolver_match.url_name == 'cart_detail' %}active{% endif %}" href="{% url 'cart:cart_detail' %}">
         <i class="bi bi-cart3 me-2"></i>My Cart
     </a>
+    <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'healthcare' %}active{% endif %}" href="{% url 'healthcare:dashboard' %}">
+        <i class="bi bi-heart-pulse me-2"></i>Health Workspace
+    </a>
     {% if can_view_doctor_dashboard %}
-        <a class="list-group-item list-group-item-action" href="{% url 'extras:doctor_dashboard' %}">
+        <a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'doctor_dashboard' %}active{% endif %}" href="{% url 'extras:doctor_dashboard' %}">
             <i class="bi bi-person-vcard me-2"></i>Doctor Dashboard
         </a>
     {% endif %}
     {% if can_view_admin_dashboard %}
-        <a class="list-group-item list-group-item-action" href="{% url 'dashboards:admin_dashboard' %}">
+        <a class="list-group-item list-group-item-action {% if request.resolver_match.namespace == 'dashboards' %}active{% endif %}" href="{% url 'dashboards:admin_dashboard' %}">
             <i class="bi bi-speedometer2 me-2"></i>Operations Center
         </a>
     {% endif %}
     {% if can_view_delivery_dashboard %}
-        <a class="list-group-item list-group-item-action" href="{% url 'dashboards:delivery_dashboard' %}">
+        <a class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'delivery_dashboard' %}active{% endif %}" href="{% url 'dashboards:delivery_dashboard' %}">
             <i class="bi bi-truck me-2"></i>Delivery Dashboard
         </a>
     {% endif %}
+    </div>
 </div>

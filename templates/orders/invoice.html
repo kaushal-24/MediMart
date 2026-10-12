@@ -4,6 +4,9 @@
 
 {% block content %}
 <section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
     <div class="content-panel invoice-panel">
         <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
             <div>
@@ -27,6 +30,27 @@
             </div>
         </div>
 
+        <div class="invoice-seller-section mb-4">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <h2 class="h6 fw-bold mb-0">Seller details</h2>
+                <span class="small text-secondary">Seller information for this order</span>
+            </div>
+            <div class="invoice-seller-grid">
+                {% for seller in seller_profiles %}
+                    <article class="invoice-seller-card">
+                        <h3 class="h6 fw-bold mb-2">{{ seller.business_name }}</h3>
+                        {% if seller.owner_name %}<p class="small text-secondary mb-1">Owner: {{ seller.owner_name }}</p>{% endif %}
+                        {% if seller.gst_number %}<p class="small text-secondary mb-1">GSTIN: {{ seller.gst_number }}</p>{% endif %}
+                        {% if seller.license_number %}<p class="small text-secondary mb-1">Licence: {{ seller.license_number }}</p>{% endif %}
+                        {% if seller.email or seller.phone %}<p class="small text-secondary mb-1">{% if seller.email %}{{ seller.email }}{% endif %}{% if seller.email and seller.phone %} · {% endif %}{% if seller.phone %}{{ seller.phone }}{% endif %}</p>{% endif %}
+                        {% if seller.address %}<p class="small text-secondary mb-0">{{ seller.address|linebreaksbr }}</p>{% endif %}
+                    </article>
+                {% empty %}
+                    <p class="small text-secondary mb-0">Seller information is unavailable for this historical order.</p>
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="table-responsive mb-4">
             <table class="table align-middle">
                 <thead>
@@ -42,7 +66,7 @@
                     {% for item in order.items.all %}
                         <tr>
                             <td>{{ item.product_name }}</td>
-                            <td>{{ item.seller_name }}</td>
+                            <td>{{ item.vendor.business_name|default:item.seller_name }}</td>
                             <td>{{ item.quantity }}</td>
                             <td>₹{{ item.unit_price }}</td>
                             <td>₹{{ item.total_price }}</td>
@@ -54,11 +78,15 @@
 
         <div class="row justify-content-end">
             <div class="col-md-5">
-                <div class="summary-row"><span>Subtotal</span><strong>₹{{ order.subtotal }}</strong></div>
-                <div class="summary-row"><span>Discount</span><strong>₹{{ order.discount }}</strong></div>
-                <div class="summary-row"><span>Delivery</span><strong>₹{{ order.delivery_charge }}</strong></div>
+                <div class="summary-row"><span>Subtotal</span><strong>₹{{ invoice_totals.subtotal }}</strong></div>
+                <div class="summary-row"><span>Discount</span><strong>₹{{ invoice_totals.discount }}</strong></div>
+                <div class="summary-row"><span>Tax / GST</span><strong>₹{{ invoice_totals.tax_amount }}</strong></div>
+                <div class="summary-row"><span>Handling</span><strong>₹{{ invoice_totals.handling_charge }}</strong></div>
+                <div class="summary-row"><span>Platform fee</span><strong>₹{{ invoice_totals.platform_fee }}</strong></div>
+                <div class="summary-row"><span>Delivery</span><strong>₹{{ invoice_totals.delivery_charge }}</strong></div>
+                <div class="summary-row"><span>Cold-chain</span><strong>₹{{ invoice_totals.cold_chain_charge }}</strong></div>
                 <hr>
-                <div class="summary-row summary-total"><span>Total</span><strong>₹{{ order.total_amount }}</strong></div>
+                <div class="summary-row summary-total"><span>Total</span><strong>₹{{ invoice_totals.total_amount }}</strong></div>
             </div>
         </div>
 
@@ -67,6 +95,8 @@
                 <i class="bi bi-file-earmark-pdf me-2"></i>Download PDF
             </a>
             <a class="btn btn-outline-secondary" href="{% url 'orders:order_detail' order.pk %}">Back to Order</a>
+        </div>
+    </div>
         </div>
     </div>
 </section>

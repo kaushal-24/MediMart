@@ -4,68 +4,41 @@
 
 {% block content %}
 <section class="product-header">
-    <div class="container">
-        <p class="eyebrow mb-2">Prescription records</p>
-        <h1 class="h2 fw-bold mb-2">My Prescriptions</h1>
-        <p class="text-secondary mb-0">Upload and track prescriptions required for eligible medicines.</p>
+    <div class="container d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3">
+        <div><p class="eyebrow mb-2">Prescription centre</p><h1 class="h2 fw-bold mb-2">My prescriptions</h1><p class="text-secondary mb-0">Track review decisions, approved medicines, validity, and remaining fulfilments.</p></div>
+        <a class="btn btn-success" href="{% url 'prescriptions:prescription_upload' %}"><i class="bi bi-cloud-arrow-up me-2"></i>Upload prescription</a>
     </div>
 </section>
 
 <section class="container py-5">
-    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
-        <div>
-            <h2 class="h4 fw-bold mb-1">Uploaded Prescriptions</h2>
-            <p class="text-secondary mb-0">Approved prescriptions can be used for prescription-required products.</p>
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            {% if prescriptions %}
+                <div class="prescription-record-list">
+                    {% for prescription in prescriptions %}
+                        <article class="content-panel prescription-record-card">
+                            <div class="prescription-record-main">
+                                <div class="prescription-record-icon"><i class="bi bi-file-earmark-medical"></i></div>
+                                <div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1"><h2 class="h5 fw-bold mb-0">Prescription #{{ prescription.pk }}</h2><span class="badge prescription-status-{{ prescription.status }}">{{ prescription.get_status_display }}</span></div>
+                                    <p class="mb-1">{{ prescription.patient_name|default:request.user.username }}</p>
+                                    <small class="text-secondary">{% if prescription.doctor_name %}Dr. {{ prescription.doctor_name }} · {% endif %}Uploaded {{ prescription.created_at|date:"d M Y" }}</small>
+                                </div>
+                            </div>
+                            <div class="prescription-record-facts">
+                                <span><small>Mapped items</small><strong>{{ prescription.items.count }}</strong></span>
+                                <span><small>Valid until</small><strong>{{ prescription.valid_until|date:"d M Y"|default:"Review pending" }}</strong></span>
+                                <span><small>Uses left</small><strong>{% if prescription.status == 'approved' %}{{ prescription.remaining_fulfillments }}{% else %}-{% endif %}</strong></span>
+                            </div>
+                            <a class="btn btn-sm btn-outline-success" href="{{ prescription.get_absolute_url }}">View details <i class="bi bi-arrow-right ms-1"></i></a>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state"><i class="bi bi-file-earmark-medical"></i><h2 class="h5 fw-semibold">No prescriptions uploaded</h2><p>Upload a prescription for secure review before ordering eligible prescription medicines.</p><a class="btn btn-success" href="{% url 'prescriptions:prescription_upload' %}">Upload prescription</a></div>
+            {% endif %}
         </div>
-        <a class="btn btn-success align-self-md-start" href="{% url 'prescriptions:prescription_upload' %}">
-            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Prescription
-        </a>
     </div>
-
-    {% if prescriptions %}
-        <div class="content-panel">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Doctor</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Uploaded</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for prescription in prescriptions %}
-                            <tr>
-                                <td>#{{ prescription.pk }}</td>
-                                <td>{{ prescription.doctor_name|default:"-" }}</td>
-                                <td>{{ prescription.prescription_date|default:"-" }}</td>
-                                <td>
-                                    <span class="badge prescription-status-{{ prescription.status }}">
-                                        {{ prescription.get_status_display }}
-                                    </span>
-                                </td>
-                                <td>{{ prescription.created_at|date:"M d, Y" }}</td>
-                                <td>
-                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'prescriptions:prescription_detail' prescription.pk %}">
-                                        View
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <i class="bi bi-file-earmark-medical"></i>
-            <h2 class="h5 fw-semibold">No prescriptions uploaded</h2>
-            <p>Upload a prescription to buy products that require one after approval.</p>
-            <a class="btn btn-success" href="{% url 'prescriptions:prescription_upload' %}">Upload Prescription</a>
-        </div>
-    {% endif %}
 </section>
 {% endblock %}

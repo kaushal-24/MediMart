@@ -48,10 +48,9 @@ Update at least:
 - `DB_PASSWORD`
 - Email settings if password reset or support email will be used
 - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`
-- SMS provider URL and credentials if transactional SMS is enabled
+- SMTP provider URL and credentials if outbound notification email is enabled
 - A production geocoding endpoint and contactable `GEOCODING_USER_AGENT`
 - Cloud object storage settings for uploaded prescriptions, documents, and images
-- An authorized licence-registry API URL and credentials, when your regulator or verification provider grants access
 
 When `USE_CLOUD_MEDIA=True`, MediMart uses the S3-compatible storage backend from
 `django-storages`. Configure `MEDIA_CLOUD_BUCKET`, the AWS credentials, and the
@@ -59,12 +58,10 @@ region. Set `AWS_S3_ENDPOINT_URL` only when using a compatible provider rather
 than AWS S3. Uploaded files remain private and are served through expiring signed
 URLs; keep bucket-level public access disabled.
 
-MediMart does not scrape government portals. Configure `LICENSE_VERIFICATION_API_URL`
-and `LICENSE_VERIFICATION_API_KEY` only for a documented CDSCO, ONDLS, state-regulator,
-or authorized verification-provider API. Without these values, applicants can still
-submit licence details and evidence, and compliance officers complete the review using
-the official portal links shown in the operations center. Keep the resulting registry
-payload and reviewer decision as auditable evidence, subject to your retention policy.
+MediMart does not scrape or call government licence portals. Applicants submit licence
+details and evidence, and compliance officers complete the review manually. Keep the
+reviewer decision and supporting document as auditable evidence, subject to your
+retention policy.
 
 For production, keep:
 
@@ -172,3 +169,55 @@ sudo systemctl restart medimart
 - Serve `staticfiles/` from Nginx. In local-filesystem deployments, serve authorized media carefully; cloud deployments use signed object-storage URLs.
 - Keep `DEBUG=False` on public servers.
 - Keep the development server for local work only; production should use Gunicorn behind Nginx.
+
+## Additive 102-Item Readiness Record
+
+This section is additive and does not replace any deployment instruction above. Before treating the full MediMart scope as production-ready, complete the checklist in `ONE_MG_GAP_ANALYSIS.md` and obtain evidence for each external dependency.
+
+Required launch inputs are a production domain and HTTPS certificate, dedicated MySQL credentials, live Razorpay keys and signed webhook secret, transactional SMTP credentials, private object storage with signed URLs, malware scanning, courier and lab partner accounts, doctor consultation provider access, approved AI provider configuration, error monitoring, uptime alerts, backup storage, restore-drill evidence, and named owners for pharmacy, clinical, finance, delivery, support, privacy, and incident response.
+
+Healthcare legal and regulatory controls must be reviewed by qualified counsel and responsible professionals before launch. Application code cannot substitute for pharmacy licences, pharmacist registration, medical-device obligations, GST/tax advice, DPDP privacy review, telemedicine review, consumer policy approval, or partner contracts.
+
+MediMart uses MySQL and excludes Redis. Use Windows Task Scheduler or a MySQL-backed job mechanism for scheduled work, and run migrations, checks, tests, private-media migration, payment webhook verification, and backup validation as part of every release.
+
+## Additive External Readiness Inputs
+
+### Required integrations
+
+- Razorpay live/test keys and webhook secret in `.env`
+- Courier API account, documentation, and credentials
+- Lab partner API or confirmed manual lab workflow
+- Doctor consultation provider or chat/video API
+- AI provider API keys and approved models
+- Private object storage credentials, such as S3
+- SMTP Gmail app password for email notifications
+- Production error monitoring and uptime service
+
+### Business decisions
+
+- Delivery pincodes, delivery fees, SLA, COD rules, and return policy
+- GST/tax rules and invoice requirements
+- Product categories allowed for sale
+- Prescription acceptance, pharmacist approval, substitution, and expiry policies
+- Cold-chain products and temperature rules
+- Refund, cancellation, recall, and reverse-pickup policies
+- Loyalty points and Care Plan rules
+- Languages to support, beginning with Hindi or Gujarati
+
+### Compliance documents
+
+- Pharmacy and vendor licences
+- Pharmacist registrations
+- Doctor and lab accreditation records
+- Legal review for Drugs and Cosmetics rules, DPDP, GST, consumer protection, and telemedicine
+- Privacy policy, consent wording, retention policy, grievance process, and terms
+
+### Production setup
+
+- Domain name and hosting provider
+- Dedicated MySQL production user; do not use `root` in production
+- Backup destination and restore schedule
+- Admin, pharmacist, compliance, delivery, lab, and doctor operational accounts
+- Approved production product, vendor, lab, and doctor data
+
+Internal application work can proceed without these credentials. External integrations and production-monitoring features are not production-complete until their providers and policies are supplied.

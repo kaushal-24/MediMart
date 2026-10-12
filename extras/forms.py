@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 
 from accounts.forms import BootstrapFormMixin
 
-from .models import BlogPost, DoctorProfile, SupportMessage, SupportTicket
+from .models import BlogPost, ContentIssue, DoctorProfile, SupportMessage, SupportTicket
 
 
 MAX_SUPPORT_ATTACHMENT_SIZE = 5 * 1024 * 1024
@@ -91,6 +91,19 @@ class BlogPostForm(BootstrapFormMixin, forms.ModelForm):
         widgets = {
             "excerpt": forms.Textarea(attrs={"rows": 3}),
             "content": forms.Textarea(attrs={"rows": 14}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_classes()
+
+
+class ContentIssueForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = ContentIssue
+        fields = ["issue_type", "details"]
+        widgets = {
+            "details": forms.Textarea(attrs={"rows": 4, "placeholder": "Tell us what needs review and why."}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -1,0 +1,54 @@
+{% if items %}
+<div class="cart-checkout-layout">
+    <div class="cart-lines-column">
+        <section class="content-panel cart-items-panel">
+            <div class="cart-panel-heading"><div><h2>Your items</h2><p>{{ cart_item_count }} item{{ cart_item_count|pluralize }} from approved sellers</p></div><a href="{% url 'products:product_list' %}"><i class="bi bi-plus-lg"></i> Add more</a></div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 cart-table">
+                    <thead><tr><th>Product</th><th>Seller</th><th>Price</th><th>Quantity</th><th>Total</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+                    <tbody>
+                    {% for item in items %}
+                        <tr data-cart-item-id="{{ item.pk }}">
+                            <td><div class="cart-product-cell"><a class="cart-product-thumb" href="{{ item.vendor_product.product.get_absolute_url }}" aria-label="View {{ item.vendor_product.product.name }}">{% if item.vendor_product.product.image %}<img src="{{ item.vendor_product.product.image.url }}" alt="{{ item.vendor_product.product.name }}" loading="lazy" decoding="async" width="88" height="88">{% else %}<i class="bi bi-capsule-pill" aria-hidden="true"></i>{% endif %}</a><div class="cart-product-copy"><a class="cart-product-name" href="{{ item.vendor_product.product.get_absolute_url }}">{{ item.vendor_product.product.name }}</a><p class="cart-product-description mb-1">{{ item.vendor_product.product.short_description|default:item.vendor_product.product.description|truncatechars:150 }}</p><div class="cart-product-meta">{% if item.vendor_product.product.brand %}<span>{{ item.vendor_product.product.brand.name }}</span>{% endif %}{% if item.vendor_product.product.pack_size %}<span>{{ item.vendor_product.product.pack_size }}</span>{% endif %}{% if item.vendor_product.product.unit %}<span>{{ item.vendor_product.product.unit }}</span>{% endif %}</div><details class="cart-product-details"><summary>Product details</summary><p>{{ item.vendor_product.product.description }}</p>{% if item.vendor_product.product.manufacturer %}<div><strong>Manufacturer:</strong> {{ item.vendor_product.product.manufacturer }}</div>{% endif %}{% if item.vendor_product.product.composition %}<div><strong>Composition:</strong> {{ item.vendor_product.product.composition }}</div>{% endif %}</details><div class="small text-secondary mt-1">{{ item.vendor_product.delivery_time }} · {{ item.vendor_product.warranty|default:"No warranty listed" }}</div></div></div></td>
+                            <td>{{ item.vendor_product.vendor.business_name }}</td><td>₹{{ item.vendor_product.price }}</td>
+                            <td><form class="quantity-form" data-cart-action method="post" action="{% url 'cart:update_cart_item' item.pk %}">{% csrf_token %}<div class="quantity-stepper" data-quantity-stepper><button class="quantity-stepper-button" type="button" data-quantity-action="decrement" aria-label="Decrease quantity">-</button><input class="quantity-input" data-cart-quantity type="number" name="quantity" value="{{ item.quantity }}" min="1" aria-label="Quantity for {{ item.vendor_product.product.name }}"><button class="quantity-stepper-button" type="button" data-quantity-action="increment" aria-label="Increase quantity">+</button></div></form></td>
+                            <td><strong>₹{{ item.total_price }}</strong></td>
+                            <td><form data-cart-action method="post" action="{% url 'cart:remove_cart_item' item.pk %}">{% csrf_token %}<button class="cart-remove-button" type="submit" aria-label="Remove {{ item.vendor_product.product.name }}" title="Remove item"><i class="bi bi-trash3"></i></button></form></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="content-panel cart-delivery-panel">
+            <div class="cart-panel-heading"><div><h2>Delivery and payment</h2><p>Your default address and Razorpay are selected automatically.</p></div><span class="checkout-secure-label"><i class="bi bi-shield-check"></i> Secure</span></div>
+            <form id="cartCheckoutForm" method="post" action="{% url 'orders:checkout' %}">
+                {% csrf_token %}<input type="hidden" name="coupon_code" value="{% if applied_coupon %}{{ applied_coupon.code }}{% endif %}">
+                <div class="row g-3">
+                    <div class="col-md-7"><label class="form-label" for="{{ checkout_form.address.id_for_label }}">Delivery address</label>{{ checkout_form.address }}<div class="form-text"><a href="{% url 'accounts:address_list' %}">Manage saved addresses</a></div></div>
+                    <div class="col-md-5"><label class="form-label" for="{{ checkout_form.payment_method.id_for_label }}">Payment method</label>{{ checkout_form.payment_method }}<div class="form-text">Razorpay opens in a secure popup after order confirmation.</div></div>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <aside class="content-panel order-summary cart-checkout-summary">
+        <h2 class="h5 fw-bold mb-3">Order summary</h2>
+        <form class="cart-coupon-form" method="get" action="{% url 'cart:cart_detail' %}" data-cart-coupon-form>
+            <label class="form-label" for="cartCouponCode">Coupon code</label>
+            <div class="input-group"><input class="form-control" id="cartCouponCode" name="coupon_code" value="{{ coupon_code }}" maxlength="30" placeholder="Enter coupon"><button class="btn btn-outline-success" type="submit">Apply</button></div>
+            {% if coupon_error %}<div class="text-danger small mt-2">{{ coupon_error }}</div>{% elif applied_coupon %}<div class="cart-coupon-success"><i class="bi bi-check-circle-fill"></i><span><strong>{{ applied_coupon.code }}</strong> applied</span><button type="submit" name="coupon_code" value="" aria-label="Remove coupon"><i class="bi bi-x"></i></button></div>{% endif %}
+        </form>
+        <div class="summary-divider"></div>
+        <div class="summary-row"><span>Subtotal</span><strong>₹{{ subtotal }}</strong></div>
+        <div class="summary-row text-success"><span>Discount</span><strong>-₹{{ discount }}</strong></div>
+        <div class="summary-row"><span>Delivery fee</span><strong>{% if delivery_fee %}₹{{ delivery_fee }}{% else %}Free{% endif %}</strong></div>
+        <hr><div class="summary-row summary-total"><span>Payable total</span><strong>₹{{ final_total }}</strong></div>
+        {% if checkout_form.address.field.queryset.exists %}<button class="btn btn-success btn-lg w-100 mt-3" type="submit" form="cartCheckoutForm"><i class="bi bi-lock-fill me-2"></i>Place order securely</button>{% else %}<a class="btn btn-success w-100 mt-3" href="{% url 'accounts:address_create' %}">Add delivery address</a>{% endif %}
+        <p class="cart-payment-note"><i class="bi bi-credit-card"></i> Online payment details are handled by Razorpay and are never stored by MediMart.</p>
+    </aside>
+</div>
+{% else %}
+<div class="empty-state"><i class="bi bi-cart3"></i><h2 class="h5 fw-semibold">Your cart is empty</h2><p>Add products from approved sellers to start an order.</p><a class="btn btn-success" href="{% url 'products:product_list' %}">Browse products</a></div>
+{% endif %}

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5"><div class="row g-4"><aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside><div class="col-lg-9"><div class="management-form-shell"><p class="eyebrow">{{ eyebrow }}</p><h1 class="h3 fw-bold mb-4">{{ title }}</h1><div class="content-panel"><form method="post" enctype="multipart/form-data">{% csrf_token %}{% include "accounts/form_errors.html" with form=form %}{% for field in form %}<div class="mb-3"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>{% endfor %}<button class="btn btn-success" type="submit">Save securely</button></form></div></div></div></div></section>
+{% endblock %}
+

@@ -1,0 +1,31 @@
+{% load static %}
+
+<div class="medimart-chatbot" data-chatbot data-endpoint="{% url 'assistant:chat' %}">
+    <button class="medimart-chatbot-toggle" type="button" data-chatbot-toggle aria-expanded="false" aria-controls="medimartChatbotPanel" title="Open MediMart assistant">
+        <img src="{% static 'images/MediMart-chatbot-logo-transparent.png' %}" alt="" aria-hidden="true">
+        <span class="visually-hidden">Open MediMart assistant</span>
+    </button>
+    <section class="medimart-chatbot-panel" id="medimartChatbotPanel" data-chatbot-panel hidden aria-label="MediMart assistant">
+        <header class="medimart-chatbot-header">
+            <div class="medimart-chatbot-brand">
+                <img src="{% static 'images/MediMart-chatbot-logo-transparent.png' %}" alt="" aria-hidden="true">
+                <span>
+                    <strong>MediMart Assistant</strong>
+                    <small>Product and order support</small>
+                </span>
+            </div>
+            <button type="button" class="btn btn-sm btn-link text-light p-1" data-chatbot-close aria-label="Close assistant">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </header>
+        <div class="medimart-chatbot-messages" data-chatbot-messages aria-live="polite">
+            <div class="medimart-chatbot-message is-assistant">Hi. I can help with products and your order status. Please do not share passwords, OTPs, or payment details.</div>
+        </div>
+        <form class="medimart-chatbot-form" data-chatbot-form>
+            {% csrf_token %}
+            <label class="visually-hidden" for="medimartChatbotInput">Ask MediMart Assistant</label>
+            <input id="medimartChatbotInput" class="form-control" name="message" maxlength="1000" autocomplete="off" placeholder="Ask a question" required>
+            <button class="btn btn-success" type="submit" aria-label="Send message" title="Send message"><i class="bi bi-send-fill" aria-hidden="true"></i></button>
+        </form>
+    </section>
+</div>

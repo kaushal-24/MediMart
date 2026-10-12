@@ -12,10 +12,13 @@
 </section>
 
 <section class="container py-5">
-    <form method="post" novalidate>
-        {% csrf_token %}
-        {% include "accounts/form_errors.html" with form=form %}
-        <div class="row g-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% include "accounts/form_errors.html" with form=form %}
+            <div class="row g-4">
             <div class="col-lg-8">
                 <div class="content-panel mb-4">
                     <h2 class="h5 fw-bold mb-3">Delivery Address</h2>
@@ -28,7 +31,7 @@
 
                 <div class="content-panel mb-4">
                     <h2 class="h5 fw-bold mb-3">Coupon</h2>
-                    <label class="form-label" for="{{ form.coupon_code.id_for_label }}">Coupon code</label>
+                    <label class="form-label" for="{{ form.coupon_code.id_for_label }}">Coupon code (Optional)</label>
                     {{ form.coupon_code }}
                 </div>
 
@@ -71,7 +74,9 @@
                     <button class="btn btn-success w-100 mt-3" type="submit">Place Order</button>
                 </div>
             </div>
+            </div>
+        </form>
         </div>
-    </form>
+    </div>
 </section>
 {% endblock %}

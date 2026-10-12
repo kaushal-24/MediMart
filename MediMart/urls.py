@@ -19,6 +19,8 @@ urlpatterns = [
     path("", include("reviews.urls")),
     path("", include("dashboards.urls")),
     path("", include("extras.urls")),
+    path("", include("healthcare.urls")),
+    path("assistant/", include("assistant.urls")),
     path("", include("core.urls")),
 ]
 

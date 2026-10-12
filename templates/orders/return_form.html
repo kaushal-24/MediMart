@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Request Return | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="management-form-shell">
+                <p class="eyebrow">Order support</p>
+                <h1 class="h3 fw-bold mb-2">Request a return</h1>
+                <p class="text-secondary mb-4">{{ item.product_name }} · Order {{ item.order.order_number }}</p>
+                <div class="content-panel">
+                    <div class="return-policy-note mb-4">
+                        <strong>Return window and refund estimate</strong>
+                        <p class="small text-secondary mb-0">Eligible delivered items can be requested within seven days. Up to {{ remaining_quantity }} unit{{ remaining_quantity|pluralize }} remain eligible; the final refund is confirmed after inspection.</p>
+                    </div>
+                    <p class="small text-secondary">Returns are reviewed for damage, tampering, wrong item, expiry, missing items, or product-quality concerns. Keep the original packaging and invoice.</p>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% include "accounts/form_errors.html" with form=form %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                        {% endfor %}
+                        <button class="btn btn-success" type="submit"><i class="bi bi-arrow-return-left me-2"></i>Submit return request</button>
+                        <a class="btn btn-outline-secondary ms-2" href="{% url 'orders:order_detail' item.order.pk %}">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

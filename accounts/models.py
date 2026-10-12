@@ -12,6 +12,8 @@ class UserProfile(models.Model):
         VENDOR = "vendor", "Vendor"
         MANUFACTURER = "manufacturer", "Manufacturer"
         PHARMACY = "pharmacy", "Pharmacy"
+        PHARMACIST = "pharmacist", "Pharmacist"
+        PHLEBOTOMIST = "phlebotomist", "Phlebotomist"
         DOCTOR = "doctor", "Doctor"
         DELIVERY_STAFF = "delivery_staff", "Delivery Staff"
         SUPPORT_STAFF = "support_staff", "Support Staff"
@@ -69,6 +71,25 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} profile"
+
+
+class UserCapabilityOverride(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_overrides")
+    capability = models.CharField(max_length=100, db_index=True)
+    is_granted = models.BooleanField(default=True)
+    reason = models.CharField(max_length=255, blank=True)
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="issued_capability_overrides", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user__username", "capability"]
+        constraints = [models.UniqueConstraint(fields=["user", "capability"], name="unique_user_capability_override")]
+        indexes = [models.Index(fields=["capability", "is_granted"], name="capability_override_idx")]
+
+    def __str__(self):
+        action = "granted" if self.is_granted else "denied"
+        return f"{self.user.username}: {self.capability} ({action})"
 
 
 class Address(models.Model):

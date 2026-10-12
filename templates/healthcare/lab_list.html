@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Book Lab Tests | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow">Diagnostics</p>
+        <h1 class="h2 fw-bold mb-2">Book lab tests at home</h1>
+        <p class="text-secondary mb-0">Choose a partner, test or package, and request a collection slot.</p>
+    </div>
+</section>
+<section class="container py-5">
+    <form class="input-group mb-4" method="get">
+        <input class="form-control" name="q" value="{{ query }}" placeholder="Search tests, packages, labs, or cities">
+        <button class="btn btn-success" type="submit"><i class="bi bi-search me-2"></i>Search</button>
+    </form>
+    <div class="row g-4">
+        {% for test in tests %}
+            <div class="col-md-6 col-xl-4">
+                <article class="content-panel lab-list-card h-100">
+                    <div class="lab-list-card-image">
+                        {% if test.image %}<img src="{{ test.image.url }}" alt="{{ test.name }}" loading="lazy" decoding="async" width="640" height="360">{% else %}<i class="bi bi-eyedropper" aria-hidden="true"></i>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between gap-2"><span class="badge text-bg-light">{{ test.get_category_display }}</span><span class="text-success">{{ test.report_sla_hours }}h report</span></div>
+                    <h2 class="h5 fw-bold mt-3">{{ test.name }}</h2>
+                    <p class="text-secondary small">{{ test.partner.name }} - {{ test.partner.city }}</p>
+                    <p class="mb-3">{{ test.description|truncatewords:22 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto"><strong>Rs {{ test.price }}</strong><a class="btn btn-sm btn-success" href="{% url 'healthcare:lab_booking_for_test' test.pk %}">Book</a></div>
+                </article>
+            </div>
+        {% empty %}
+            <div class="col-12"><div class="empty-state"><h2 class="h5">No tests found</h2><p>Lab partners and packages will appear here after onboarding.</p></div></div>
+        {% endfor %}
+    </div>
+    {% if page_obj.has_other_pages %}
+        {% with encoded_query=query|urlencode %}
+            {% with lab_filter_query="q="|add:encoded_query %}
+                {% include "partials/pagination.html" with page_obj=page_obj filter_query=lab_filter_query %}
+            {% endwith %}
+        {% endwith %}
+    {% endif %}
+</section>
+{% endblock %}

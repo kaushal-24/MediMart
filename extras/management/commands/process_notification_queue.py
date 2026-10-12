@@ -9,7 +9,7 @@ from extras.services import deliver_notification
 
 
 class Command(BaseCommand):
-    help = "Deliver queued MediMart email and SMS notifications with retries."
+    help = "Deliver queued MediMart email notifications with retries."
 
     def add_arguments(self, parser):
         parser.add_argument("--limit", type=int, default=100)
@@ -19,6 +19,7 @@ class Command(BaseCommand):
         now = timezone.now()
         ids = list(
             NotificationDelivery.objects.filter(
+                channel=NotificationDelivery.Channel.EMAIL,
                 status__in=[
                     NotificationDelivery.Status.PENDING,
                     NotificationDelivery.Status.FAILED,

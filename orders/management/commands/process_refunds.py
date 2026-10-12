@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from orders.models import Order, Payment, Refund
+from orders.models import Refund
+from orders.services import complete_refund
 from orders.views import get_razorpay_client, razorpay_is_configured
 
 
@@ -51,26 +52,9 @@ class Command(BaseCommand):
                 failed += 1
                 continue
             refund.gateway_refund_id = response.get("id", "")
-            refund.status = (
-                Refund.Status.COMPLETED
-                if response.get("status") == "processed"
-                else Refund.Status.PROCESSING
-            )
+            refund.status = Refund.Status.PROCESSING
             refund.save(update_fields=["gateway_refund_id", "status", "updated_at"])
-            if refund.status == Refund.Status.COMPLETED:
-                self._mark_payment_refunded(refund)
+            if response.get("status") == "processed":
+                complete_refund(refund)
             submitted += 1
         self.stdout.write(self.style.SUCCESS(f"Refund queue processed: {submitted} submitted, {failed} failed."))
-
-    @staticmethod
-    def _mark_payment_refunded(refund):
-        payment = refund.payment
-        payment.refunded_amount = min(payment.amount, payment.refunded_amount + refund.amount)
-        payment.status = (
-            Order.PaymentStatus.REFUNDED
-            if payment.refunded_amount >= payment.amount
-            else Order.PaymentStatus.PARTIALLY_REFUNDED
-        )
-        payment.save(update_fields=["refunded_amount", "status", "updated_at"])
-        payment.order.payment_status = payment.status
-        payment.order.save(update_fields=["payment_status", "updated_at"])

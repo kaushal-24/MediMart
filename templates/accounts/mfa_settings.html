@@ -14,8 +14,21 @@
                 <div class="col-12"><button class="btn btn-outline-danger" type="submit">Disable two-factor authentication</button></div>
             </form>
         {% else %}
-            <p class="text-secondary">Add MediMart to an authenticator app using the setup key, then confirm the current code.</p>
-            <div class="alert alert-light border"><strong>Setup key</strong><br><code class="user-select-all">{{ secret }}</code></div>
+            <p class="text-secondary">Scan this QR code in Google Authenticator or another compatible authenticator app, then confirm the current code.</p>
+            <div class="row g-4 align-items-center mb-3">
+                <div class="col-sm-auto">
+                    <div class="bg-white border rounded-3 p-3 d-inline-flex" aria-label="MediMart authenticator setup QR code">
+                        <img src="{{ qr_code_data_uri }}" width="220" height="220" alt="Scan this QR code with your authenticator app">
+                    </div>
+                </div>
+                <div class="col-sm">
+                    <div class="alert alert-light border mb-0">
+                        <strong>Can’t scan the code?</strong>
+                        <p class="mb-2 mt-1">Enter this setup key manually in your authenticator app.</p>
+                        <code class="user-select-all text-break">{{ secret }}</code>
+                    </div>
+                </div>
+            </div>
             <details class="mb-3"><summary>Manual provisioning URI</summary><code class="d-block text-break mt-2 user-select-all">{{ provisioning_uri }}</code></details>
             <form method="post">
                 {% csrf_token %}<input type="hidden" name="action" value="enable">

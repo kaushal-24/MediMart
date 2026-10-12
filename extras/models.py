@@ -43,7 +43,6 @@ class Notification(models.Model):
 class NotificationDelivery(models.Model):
     class Channel(models.TextChoices):
         EMAIL = "email", "Email"
-        SMS = "sms", "SMS"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -207,6 +206,13 @@ class BlogPost(models.Model):
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     published_at = models.DateTimeField(blank=True, null=True)
+    reviewer_name = models.CharField(max_length=160, blank=True)
+    reviewer_credentials = models.CharField(max_length=255, blank=True)
+    source_references = models.TextField(blank=True)
+    last_reviewed_at = models.DateTimeField(blank=True, null=True)
+    review_due_at = models.DateTimeField(blank=True, null=True)
+    correction_note = models.TextField(blank=True)
+    version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -229,6 +235,72 @@ class BlogPost(models.Model):
     @property
     def estimated_read_minutes(self):
         return max(1, round(len(self.content.split()) / 200))
+
+
+class ContentIssue(models.Model):
+    class IssueType(models.TextChoices):
+        INCORRECT = "incorrect", "Incorrect information"
+        OUTDATED = "outdated", "Outdated information"
+        SAFETY = "safety", "Safety concern"
+        TYPO = "typo", "Typo or formatting"
+        OTHER = "other", "Other"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        IN_REVIEW = "in_review", "In review"
+        RESOLVED = "resolved", "Resolved"
+        DISMISSED = "dismissed", "Dismissed"
+
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="content_issues",
+        blank=True,
+        null=True,
+    )
+    blog_post = models.ForeignKey(
+        BlogPost,
+        on_delete=models.CASCADE,
+        related_name="content_issues",
+        blank=True,
+        null=True,
+    )
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.CASCADE,
+        related_name="content_issues",
+        blank=True,
+        null=True,
+    )
+    issue_type = models.CharField(max_length=20, choices=IssueType.choices)
+    details = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    reviewer_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_content_issues",
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(blog_post__isnull=False) | models.Q(product__isnull=False)),
+                name="content_issue_has_content",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="content_issue_queue_idx"),
+        ]
+
+    def __str__(self):
+        subject = self.blog_post or self.product or "content"
+        return f"{self.get_issue_type_display()} on {subject}"
 
 
 class DoctorProfile(models.Model):
@@ -282,3 +354,83 @@ class DoctorProfile(models.Model):
 
     def __str__(self):
         return self.full_name
+
+
+class PharmacistProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="pharmacist_profile",
+    )
+    full_name = models.CharField(max_length=160)
+    registration_number = models.CharField(max_length=100)
+    licensing_authority = models.CharField(max_length=180, blank=True)
+    pharmacy_name = models.CharField(max_length=180)
+    pharmacy_license_number = models.CharField(max_length=120)
+    state = models.CharField(max_length=100)
+    credential_document = models.FileField(
+        upload_to="pharmacists/credentials/",
+        storage=private_media_storage,
+        validators=[validate_private_document],
+        blank=True,
+        null=True,
+    )
+    is_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="verified_pharmacists",
+        blank=True,
+        null=True,
+    )
+    verified_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["full_name"]
+        indexes = [
+            models.Index(fields=["is_verified", "state"], name="pharmacist_verified_state_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.full_name} - {self.pharmacy_name}"
+
+
+class QualityComplaint(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        UNDER_REVIEW = "under_review", "Under review"
+        ESCALATED = "escalated", "Escalated"
+        RESOLVED = "resolved", "Resolved"
+        CLOSED = "closed", "Closed"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="quality_complaints")
+    product = models.ForeignKey("products.Product", on_delete=models.PROTECT, related_name="quality_complaints")
+    order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, related_name="quality_complaints", blank=True, null=True)
+    batch_number = models.CharField(max_length=80, blank=True)
+    description = models.TextField()
+    evidence = models.FileField(
+        upload_to="quality-complaints/",
+        storage=private_media_storage,
+        validators=[validate_private_document],
+        blank=True,
+        null=True,
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    resolution_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_quality_complaints",
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Quality complaint #{self.pk} - {self.product.name}"

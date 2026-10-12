@@ -3,42 +3,52 @@
 {% block title %}Prescription #{{ prescription.pk }} | MediMart{% endblock %}
 
 {% block content %}
+<section class="product-header"><div class="container"><a class="management-back" href="{% url 'prescriptions:prescription_list' %}"><i class="bi bi-arrow-left"></i> My prescriptions</a><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mt-3"><div><p class="eyebrow mb-2">Prescription record</p><h1 class="h2 fw-bold mb-1">Prescription #{{ prescription.pk }}</h1><p class="text-secondary mb-0">Uploaded {{ prescription.created_at|date:"d M Y, H:i" }}</p></div><span class="badge prescription-status-{{ prescription.status }} fs-6">{{ prescription.get_status_display }}</span></div></div></section>
+
 <section class="container py-5">
     <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="content-panel">
-                <p class="eyebrow mb-2">Prescription</p>
-                <h1 class="h4 fw-bold mb-3">Prescription #{{ prescription.pk }}</h1>
-                <span class="badge prescription-status-{{ prescription.status }}">
-                    {{ prescription.get_status_display }}
-                </span>
-                {% if prescription.rejection_reason %}
-                    <div class="alert alert-danger mt-3 mb-0">
-                        {{ prescription.rejection_reason }}
-                    </div>
-                {% endif %}
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            {% if prescription.status == 'needs_information' %}<div class="alert alert-warning prescription-action-alert"><div><strong>More information is required</strong><p class="mb-0">{{ prescription.clarification_message }}</p></div><a class="btn btn-warning" href="{% url 'prescriptions:prescription_resubmit' prescription.pk %}">Upload replacement</a></div>{% endif %}
+            {% if prescription.status == 'rejected' %}<div class="alert alert-danger prescription-action-alert"><div><strong>This prescription was not approved</strong><p class="mb-0">{{ prescription.rejection_reason }}</p></div><a class="btn btn-outline-danger" href="{% url 'prescriptions:prescription_resubmit' prescription.pk %}">Submit a new copy</a></div>{% endif %}
+
+            <div class="prescription-overview-grid">
+                <section class="content-panel">
+                    <h2 class="h5 fw-bold mb-3">Review progress</h2>
+                    <ol class="prescription-progress">
+                        <li class="is-complete"><span><i class="bi bi-check-lg"></i></span><div><strong>Uploaded securely</strong><small>{{ prescription.created_at|date:"d M Y, H:i" }}</small></div></li>
+                        <li class="{% if prescription.scan_status == 'complete' or prescription.scan_status == 'needs_review' %}is-complete{% endif %}"><span><i class="bi bi-shield-check"></i></span><div><strong>File safety check</strong><small>{{ prescription.get_scan_status_display }}</small></div></li>
+                        <li class="{% if prescription.status != 'pending' %}is-complete{% endif %}"><span><i class="bi bi-person-check"></i></span><div><strong>Authorised review</strong><small>{% if prescription.reviewed_at %}Updated {{ prescription.reviewed_at|date:"d M Y, H:i" }}{% else %}Waiting in review queue{% endif %}</small></div></li>
+                        <li class="{% if prescription.status == 'approved' %}is-complete{% endif %}"><span><i class="bi bi-bag-check"></i></span><div><strong>Ready for eligible orders</strong><small>{% if prescription.is_current %}Valid until {{ prescription.valid_until|date:"d M Y" }}{% elif prescription.status == 'approved' %}No longer current{% else %}Available after approval{% endif %}</small></div></li>
+                    </ol>
+                </section>
+                <section class="content-panel">
+                    <h2 class="h5 fw-bold mb-3">Patient and prescriber</h2>
+                    <dl class="product-meta prescription-meta mb-0">
+                        <dt>Patient</dt><dd>{{ prescription.patient_name|default:"Not provided" }}</dd>
+                        <dt>Date of birth</dt><dd>{{ prescription.patient_date_of_birth|date:"d M Y"|default:"Not provided" }}</dd>
+                        <dt>Doctor</dt><dd>{{ prescription.doctor_name|default:"Not provided" }}</dd>
+                        <dt>Registration</dt><dd>{{ prescription.doctor_registration_number|default:"Not provided" }}</dd>
+                        <dt>Clinic</dt><dd>{{ prescription.clinic_name|default:"Not provided" }}</dd>
+                        <dt>Prescription date</dt><dd>{{ prescription.prescription_date|date:"d M Y"|default:"Not provided" }}</dd>
+                    </dl>
+                </section>
             </div>
-        </div>
-        <div class="col-lg-8">
-            <div class="content-panel">
-                <h2 class="h5 fw-bold mb-3">Details</h2>
-                <dl class="product-meta mb-4">
-                    <dt>Doctor</dt>
-                    <dd>{{ prescription.doctor_name|default:"-" }}</dd>
-                    <dt>Prescription Date</dt>
-                    <dd>{{ prescription.prescription_date|default:"-" }}</dd>
-                    <dt>Uploaded</dt>
-                    <dd>{{ prescription.created_at|date:"M d, Y H:i" }}</dd>
-                    <dt>Reviewed</dt>
-                    <dd>{{ prescription.reviewed_at|date:"M d, Y H:i"|default:"-" }}</dd>
-                    <dt>Notes</dt>
-                    <dd>{{ prescription.notes|default:"-" }}</dd>
-                </dl>
-                <a class="btn btn-success" href="{% url 'core:prescription_file' prescription.pk %}" target="_blank" rel="noopener">
-                    <i class="bi bi-file-earmark-medical me-2"></i>Open File
-                </a>
-                <a class="btn btn-outline-secondary" href="{% url 'prescriptions:prescription_list' %}">Back</a>
+
+            <section class="content-panel mt-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"><div><h2 class="h5 fw-bold mb-1">Approved product scope</h2><p class="text-secondary small mb-0">Only products mapped by the reviewer can use this prescription at checkout.</p></div>{% if prescription.status == 'approved' %}<span class="status-pill status-approved">{{ prescription.remaining_fulfillments }} fulfilment{{ prescription.remaining_fulfillments|pluralize }} remaining</span>{% endif %}</div>
+                {% if prescription.items.all %}
+                    <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Product</th><th>Dosage</th><th>Instructions</th><th>Decision</th><th>Remaining</th></tr></thead><tbody>{% for item in prescription.items.all %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a>{% if item.prescribed_name %}<small class="d-block text-secondary">Written as: {{ item.prescribed_name }}</small>{% endif %}</td><td>{{ item.dosage|default:"-" }}</td><td>{{ item.instructions|default:"-" }}</td><td><span class="status-pill status-{{ item.approval_status }}">{{ item.get_approval_status_display }}</span>{% if item.review_note %}<small class="d-block text-secondary">{{ item.review_note }}</small>{% endif %}</td><td>{{ item.remaining_quantity }}</td></tr>{% endfor %}</tbody></table></div>
+                {% else %}<div class="prescription-empty-scope"><i class="bi bi-hourglass-split"></i><span><strong>Product mapping is pending</strong><small>An authorised reviewer will add eligible catalogue products after checking the document.</small></span></div>{% endif %}
+            </section>
+
+            <div class="row g-4 mt-0">
+                <div class="col-md-7"><section class="content-panel h-100"><h2 class="h5 fw-bold mb-3">Submitted information</h2><p class="small text-secondary mb-1">Requested medicines or supplies</p><div class="prescription-requested-list">{{ prescription.requested_medicines|default:"None listed"|linebreaksbr }}</div>{% if prescription.notes %}<p class="small text-secondary mt-3 mb-1">Notes for reviewer</p><p class="mb-0">{{ prescription.notes }}</p>{% endif %}</section></div>
+                <div class="col-md-5"><section class="content-panel h-100"><h2 class="h5 fw-bold mb-3">Document</h2><p class="text-secondary small">The original file is served through private, permission-checked storage.</p><a class="btn btn-outline-success w-100" href="{% url 'core:prescription_file' prescription.pk %}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-lock me-2"></i>Open secure file</a>{% if prescription.original_required_on_delivery %}<div class="alert alert-info small mt-3 mb-0">Keep the original prescription available at delivery.</div>{% endif %}</section></div>
             </div>
+
+            {% if prescription.status == 'pending' or prescription.status == 'under_review' or prescription.status == 'needs_information' %}<form class="mt-4" method="post" action="{% url 'prescriptions:prescription_cancel' prescription.pk %}" onsubmit="return confirm('Cancel this prescription review?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Cancel review</button></form>{% endif %}
+            {% if prescription.revisions.exists %}<section class="content-panel mt-4"><h2 class="h5 fw-bold mb-3">Replacement history</h2>{% for revision in prescription.revisions.all %}<a class="prescription-revision-link" href="{{ revision.get_absolute_url }}"><span>Prescription #{{ revision.pk }} · {{ revision.created_at|date:"d M Y" }}</span><strong>{{ revision.get_status_display }}</strong></a>{% endfor %}</section>{% endif %}
         </div>
     </div>
 </section>

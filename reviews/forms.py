@@ -32,3 +32,11 @@ class ReviewForm(forms.ModelForm):
         if content_type and content_type not in ALLOWED_REVIEW_IMAGE_TYPES:
             raise ValidationError("Upload a JPG, PNG, or WEBP review image.")
         return image
+
+
+class ReviewAbuseReportForm(forms.Form):
+    reason = forms.CharField(max_length=255, min_length=5, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Tell us what is wrong"}))
+
+
+class SellerReplyForm(forms.Form):
+    reply = forms.CharField(min_length=5, max_length=2000, widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}))

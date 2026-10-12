@@ -5,6 +5,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{% block meta_description %}MediMart is a trusted marketplace for medicines, healthcare essentials, and medical equipment.{% endblock %}">
+    <meta name="theme-color" content="#ffffff">
+    <meta property="og:site_name" content="MediMart">
+    <meta property="og:title" content="MediMart">
+    <meta property="og:description" content="MediMart medicines, diagnostics, equipment and everyday care.">
+    <meta property="og:image" content="{% static 'images/MediMart-Main-Logo.png' %}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{% static 'images/MediMart-favicon-Logo.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/MediMart-favicon-Logo.png' %}">
     <title>{% block title %}MediMart{% endblock %}</title>
     <script>
         (() => {
@@ -20,22 +27,49 @@
             document.documentElement.setAttribute("data-theme", theme);
         })();
     </script>
+    <script>
+        (() => {
+            const splashStorageKey = "medimart-splash-seen-v2";
+            try {
+                if (sessionStorage.getItem(splashStorageKey) === "1") {
+                    document.documentElement.classList.add("splash-seen");
+                } else {
+                    sessionStorage.setItem(splashStorageKey, "1");
+                }
+            } catch (error) {
+                // Do not replay a blocking splash when browser persistence is unavailable.
+                document.documentElement.classList.add("splash-seen");
+            }
+        })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="{% static 'css/style.css' %}?v=20261009-1" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}?v=20261012-14" rel="stylesheet">
 </head>
 <body>
+    <div class="site-splash" id="siteSplash" role="status" aria-live="polite" aria-label="Loading MediMart">
+        <div class="site-splash-inner">
+            <img class="site-splash-logo" src="{% static 'images/MediMart-Main-Logo.png' %}" alt="MediMart">
+            <span class="site-splash-loader" aria-hidden="true"><span></span><span></span><span></span></span>
+            <small>Preparing your healthcare experience</small>
+        </div>
+    </div>
     {% include "partials/navbar.html" %}
     {% include "partials/location_modal.html" %}
 
     <main>
         {% include "partials/messages.html" %}
+        {% include "partials/in_app_notification_toasts.html" %}
+        <div id="siteToastRegion" class="site-toast-region" aria-live="polite" aria-atomic="true"></div>
         {% block content %}{% endblock %}
     </main>
 
     {% include "partials/footer.html" %}
+    {% include "partials/mobile_bottom_nav.html" %}
+    {% include "partials/chatbot.html" %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <script src="{% static 'js/script.js' %}?v=20261009-1" defer></script>
+    <script src="{% static 'js/script.js' %}?v=20261012-04" defer></script>
+    <script src="{% static 'js/chatbot.js' %}?v=20261010-3" defer></script>
 </body>
 </html>

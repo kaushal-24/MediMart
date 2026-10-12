@@ -2,13 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q, Sum
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
-from django.views.decorators.http import require_POST
 
 from accounts.models import UserProfile
-from core.throttling import rate_limit
 from orders.models import Order, OrderItem
 
 from .forms import (
@@ -18,7 +14,6 @@ from .forms import (
     VendorRegistrationForm,
 )
 from .models import BusinessLicense, Vendor, VendorProduct
-from .services import LicenseLookupError, lookup_business_license, official_registry_url
 
 
 def vendor_list(request):
@@ -75,10 +70,7 @@ def vendor_register(request):
                         else UserProfile.Role.VENDOR
                     )
                 profile.save()
-            messages.success(
-                request,
-                "Your vendor registration has been submitted for admin approval.",
-            )
+            messages.success(request, "Your vendor registration has been submitted for manual compliance review.")
             return redirect("vendors:vendor_dashboard")
     else:
         initial = {
@@ -156,8 +148,6 @@ def business_license_list(request):
         {
             "vendor": vendor,
             "licenses": vendor.licenses.all(),
-            "drug_registry_url": official_registry_url(BusinessLicense.LicenseType.DRUG_RETAIL),
-            "device_registry_url": official_registry_url(BusinessLicense.LicenseType.DEVICE_SALE),
         },
     )
 
@@ -175,49 +165,11 @@ def business_license_create(request):
             license_record.status = BusinessLicense.Status.PENDING
             license_record.verification_source = BusinessLicense.VerificationSource.APPLICANT
             license_record.save()
-            messages.success(request, "Licence submitted for registry lookup and compliance review.")
+            messages.success(request, "Licence submitted for manual compliance review.")
             return redirect("vendors:business_license_list")
     else:
         form = BusinessLicenseForm(initial={"legal_name": vendor.business_name})
     return render(request, "vendors/business_license_form.html", {"form": form, "vendor": vendor})
-
-
-@login_required
-@require_POST
-@rate_limit("licence-lookup", 10, 60 * 60, methods={"POST"}, json_response=True)
-def business_license_lookup(request, pk):
-    vendor = get_vendor_or_redirect(request)
-    if not isinstance(vendor, Vendor):
-        return JsonResponse({"ok": False, "error": "Seller registration required."}, status=403)
-    license_record = get_object_or_404(BusinessLicense, pk=pk, vendor=vendor)
-    try:
-        result = lookup_business_license(license_record.license_number, license_record.license_type)
-    except LicenseLookupError as exc:
-        return JsonResponse({"ok": False, "error": str(exc)}, status=503)
-
-    if result["available"]:
-        license_record.registry_checked_at = timezone.now()
-        license_record.registry_reference = result["official_url"]
-        license_record.registry_payload = result.get("raw", {})
-        if result["matched"]:
-            record = result["record"]
-            for field in (
-                "form_number",
-                "legal_name",
-                "premises_address",
-                "state",
-                "licensing_authority",
-                "issued_on",
-                "valid_until",
-            ):
-                if record.get(field):
-                    setattr(license_record, field, record[field])
-            license_record.status = BusinessLicense.Status.API_MATCHED
-            license_record.verification_source = BusinessLicense.VerificationSource.AUTHORIZED_API
-        else:
-            license_record.status = BusinessLicense.Status.MANUAL_REVIEW
-        license_record.save()
-    return JsonResponse({"ok": True, **result})
 
 
 @login_required

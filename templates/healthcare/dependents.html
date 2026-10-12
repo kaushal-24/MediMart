@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Family Members | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4 family-members-layout">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <p class="eyebrow">Family care</p>
+                    <h1 class="h3 fw-bold mb-4">Family members</h1>
+                    {% for dependent in dependents %}
+                        <article class="content-panel family-member-card mb-3">
+                            <div class="family-member-card-header">
+                                <div class="family-member-card-copy">
+                                    <h2 class="h5 mb-1">{{ dependent.full_name }}</h2>
+                                    <p class="text-secondary mb-0">{{ dependent.get_relationship_display }}{% if dependent.date_of_birth %} · {{ dependent.date_of_birth|date:"d M Y" }}{% endif %}</p>
+                                </div>
+                                <span class="badge text-bg-success family-member-status">Active</span>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="empty-state">
+                            <h2 class="h5">No family members yet</h2>
+                            <p>Add a profile to book tests and manage records for someone you care for.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="col-lg-5">
+                    <div class="content-panel family-member-form">
+                        <h2 class="h5 fw-bold mb-3">Add family member</h2>
+                        <form method="post">
+                            {% csrf_token %}
+                            {% include "accounts/form_errors.html" with form=form %}
+                            {% for field in form %}
+                                <div class="mb-3">
+                                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                </div>
+                            {% endfor %}
+                            <button class="btn btn-success w-100" type="submit"><i class="bi bi-person-plus me-2"></i>Add member</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

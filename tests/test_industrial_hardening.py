@@ -1,15 +1,20 @@
+import base64
+import json
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 import pyotp
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
-from django.test import TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Address, UserProfile
+from core.throttling import rate_limit
 from extras.models import Notification, NotificationDelivery
 from extras.services import create_notification
 from orders.models import Order, OrderItem, Payment
@@ -114,7 +119,7 @@ class IndustrialHardeningTests(TestCase):
         self.vendor.refresh_from_db()
         self.assertEqual(self.vendor.bank_account_number, "123456789012")
 
-    def test_notification_creates_retryable_delivery_jobs(self):
+    def test_notification_creates_email_delivery_and_stays_in_app(self):
         notification = create_notification(
             self.customer,
             "Order update",
@@ -124,8 +129,25 @@ class IndustrialHardeningTests(TestCase):
         channels = set(notification.deliveries.values_list("channel", flat=True))
         self.assertEqual(
             channels,
-            {NotificationDelivery.Channel.EMAIL, NotificationDelivery.Channel.SMS},
+            {NotificationDelivery.Channel.EMAIL},
         )
+
+    def test_notification_toast_is_seen_once_but_remains_in_notification_center(self):
+        Notification.objects.create(
+            user=self.customer,
+            title="One-time toast",
+            message="This should remain in the notification center.",
+            notification_type=Notification.NotificationType.GENERAL,
+        )
+        self.client.force_login(self.customer)
+
+        first_page = self.client.get(reverse("core:home"))
+        second_page = self.client.get(reverse("core:home"))
+        notification_page = self.client.get(reverse("extras:notification_list"))
+
+        self.assertContains(first_page, "One-time toast")
+        self.assertNotContains(second_page, "One-time toast")
+        self.assertContains(notification_page, "One-time toast")
 
     def test_mfa_challenges_login_and_accepts_current_totp(self):
         secret = pyotp.random_base32()
@@ -144,14 +166,65 @@ class IndustrialHardeningTests(TestCase):
             reverse("accounts:mfa_challenge"),
             {"code": pyotp.TOTP(secret).now()},
         )
-        self.assertRedirects(verify_response, reverse("accounts:dashboard"))
+        self.assertRedirects(verify_response, reverse("core:home"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.customer.pk)
+
+    def test_mfa_setup_renders_google_authenticator_qr(self):
+        self.client.force_login(self.customer)
+
+        response = self.client.get(reverse("accounts:mfa_settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data:image/svg+xml;base64,")
+        qr_data_uri = response.context["qr_code_data_uri"]
+        svg_bytes = base64.b64decode(qr_data_uri.split(",", 1)[1])
+        self.assertIn(b"<svg", svg_bytes)
+        self.assertIn("otpauth://totp/MediMart", response.context["provisioning_uri"])
+
+    def test_deactivated_account_is_removed_from_existing_session(self):
+        self.client.force_login(self.customer)
+        self.customer.is_active = False
+        self.customer.save(update_fields=["is_active"])
+
+        response = self.client.get(reverse("accounts:dashboard"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('accounts:login')}?next={reverse('accounts:dashboard')}",
+        )
+        follow_up = self.client.get(reverse("accounts:dashboard"))
+        self.assertRedirects(
+            follow_up,
+            f"{reverse('accounts:login')}?next={reverse('accounts:dashboard')}",
+        )
+
+    def test_mfa_pending_session_is_invalidated_after_password_change(self):
+        secret = pyotp.random_base32()
+        self.profile.mfa_secret = secret
+        self.profile.mfa_enabled = True
+        self.profile.save(update_fields=["mfa_secret", "mfa_enabled"])
+
+        login_response = self.client.post(
+            reverse("accounts:login"),
+            {"username": self.customer.username, "password": "Testpass123!"},
+        )
+        self.assertRedirects(login_response, reverse("accounts:mfa_challenge"))
+
+        self.customer.set_password("ChangedPass123!")
+        self.customer.save(update_fields=["password"])
+        response = self.client.post(
+            reverse("accounts:mfa_challenge"),
+            {"code": pyotp.TOTP(secret).now()},
+        )
+
+        self.assertRedirects(response, reverse("accounts:login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_catalog_api_uses_active_offer_stock_and_price(self):
         response = self.client.get(reverse("core:api_product_detail", args=[self.product.slug]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["available_stock"], 5)
-        self.assertEqual(response.json()["price"], "90")
+        self.assertEqual(response.json()["price"], "90.00")
 
     def test_review_requires_delivered_order(self):
         order = self._create_order(status=Order.OrderStatus.CONFIRMED)
@@ -218,6 +291,22 @@ class IndustrialHardeningTests(TestCase):
     def test_health_endpoints_report_live_and_ready(self):
         self.assertEqual(self.client.get(reverse("core:health_live")).status_code, 200)
         self.assertEqual(self.client.get(reverse("core:health_ready")).status_code, 200)
+
+    @override_settings(RATE_LIMIT_FAIL_CLOSED=True)
+    def test_rate_limiter_fails_closed_when_cache_is_unavailable(self):
+        factory = RequestFactory()
+
+        @rate_limit("cache-outage-test", 1, 60, json_response=True)
+        def protected_view(request):
+            return None
+
+        request = factory.post("/protected/")
+        request.user = AnonymousUser()
+        with patch("core.throttling.cache.add", side_effect=RuntimeError("cache unavailable")):
+            response = protected_view(request)
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(json.loads(response.content)["ok"])
 
     def _create_order(self, status):
         return Order.objects.create(

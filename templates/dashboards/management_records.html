@@ -11,6 +11,9 @@
 </section>
 
 <section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
     <div class="management-toolbar mb-4">
         <form method="get" class="management-search" role="search"><i class="bi bi-search"></i><input name="q" value="{{ query }}" type="search" placeholder="Search {{ title|lower }}" aria-label="Search {{ title|lower }}"><button class="btn btn-outline-success" type="submit">Search</button></form>
         <span>{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
@@ -30,6 +33,7 @@
                             {% if row.view_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ row.view_url }}" target="_blank" rel="noopener" title="View document"><i class="bi bi-eye"></i><span class="visually-hidden">View document</span></a>{% endif %}
                             {% if row.edit_url %}<a class="btn btn-sm btn-outline-success" href="{{ row.edit_url }}" title="Edit"><i class="bi bi-pencil"></i><span class="visually-hidden">Edit</span></a>{% endif %}
                             {% for value, label, style in row.actions %}<form method="post" action="{% url 'dashboards:management_record_action' section row.pk %}">{% csrf_token %}<button class="btn btn-sm btn-{{ style }}" name="action" value="{{ value }}" type="submit">{{ label }}</button></form>{% endfor %}
+                            {% if row.delete_url %}<form method="post" action="{{ row.delete_url }}" onsubmit="return window.confirm('Delete this record permanently?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" name="action" value="delete" type="submit" title="Delete"><i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button></form>{% endif %}
                         </div></td>
                     </tr>
                     {% endfor %}
@@ -39,5 +43,7 @@
         {% else %}<div class="empty-state"><i class="bi bi-inbox"></i><h2 class="h5 fw-semibold">No records found</h2><p>Try another search or create the first record.</p></div>{% endif %}
     </div>
     {% include "partials/pagination.html" with page_obj=page_obj %}
+        </div>
+    </div>
 </section>
 {% endblock %}

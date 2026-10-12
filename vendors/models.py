@@ -79,8 +79,7 @@ class BusinessLicense(models.Model):
         OTHER = "other", "Other regulatory licence"
 
     class Status(models.TextChoices):
-        PENDING = "pending", "Pending lookup"
-        API_MATCHED = "api_matched", "Registry match - review required"
+        PENDING = "pending", "Pending manual review"
         MANUAL_REVIEW = "manual_review", "Manual review required"
         VERIFIED = "verified", "Verified"
         REJECTED = "rejected", "Rejected"
@@ -88,7 +87,6 @@ class BusinessLicense(models.Model):
 
     class VerificationSource(models.TextChoices):
         APPLICANT = "applicant", "Applicant supplied"
-        AUTHORIZED_API = "authorized_api", "Authorized registry API"
         ONDLS = "ondls", "ONDLS manual verification"
         CDSCO_MD = "cdsco_md", "CDSCO medical device portal"
 
@@ -115,9 +113,6 @@ class BusinessLicense(models.Model):
         choices=VerificationSource.choices,
         default=VerificationSource.APPLICANT,
     )
-    registry_reference = models.CharField(max_length=255, blank=True)
-    registry_payload = models.JSONField(default=dict, blank=True)
-    registry_checked_at = models.DateTimeField(blank=True, null=True)
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

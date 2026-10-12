@@ -12,6 +12,9 @@
 </section>
 
 <section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
     {% if items %}
         <div class="row g-3">
             {% for item in items %}
@@ -57,5 +60,7 @@
             <a class="btn btn-success" href="{% url 'products:product_list' %}">Browse Products</a>
         </div>
     {% endif %}
+        </div>
+    </div>
 </section>
 {% endblock %}

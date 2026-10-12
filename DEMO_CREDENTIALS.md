@@ -57,3 +57,51 @@ Images are downloaded from Wikimedia Commons through `Special:FilePath` using th
 If Wikimedia blocks a product-image download, the seeder first uses MediMart's curated local catalog photography. A labeled online placeholder is used only when no matching local asset is available.
 
 Review each Wikimedia Commons file page for exact license and attribution requirements before using the demo images outside local testing.
+
+## Additive Safety and Scope Update
+
+These credentials are for local demonstration only and must never be used in production. The 102-item implementation and launch-readiness scope is maintained in `ONE_MG_GAP_ANALYSIS.md`.
+
+The latest demo-capable workflows include pharmacist review, product and review moderation, lab booking slot management, delivery OTP verification, private delivery proof, and granular capability overrides. Replace every demo password, rotate payment and encryption secrets, create dedicated production users, and apply least privilege before deployment.
+
+## Additive External Readiness Inputs
+
+### Required integrations
+
+- Razorpay live/test keys and webhook secret in `.env`
+- Courier API account, documentation, and credentials
+- Lab partner API or confirmed manual lab workflow
+- Doctor consultation provider or chat/video API
+- AI provider API keys and approved models
+- Private object storage credentials, such as S3
+- SMTP Gmail app password for email notifications
+- Production error monitoring and uptime service
+
+### Business decisions
+
+- Delivery pincodes, delivery fees, SLA, COD rules, and return policy
+- GST/tax rules and invoice requirements
+- Product categories allowed for sale
+- Prescription acceptance, pharmacist approval, substitution, and expiry policies
+- Cold-chain products and temperature rules
+- Refund, cancellation, recall, and reverse-pickup policies
+- Loyalty points and Care Plan rules
+- Languages to support, beginning with Hindi or Gujarati
+
+### Compliance documents
+
+- Pharmacy and vendor licences
+- Pharmacist registrations
+- Doctor and lab accreditation records
+- Legal review for Drugs and Cosmetics rules, DPDP, GST, consumer protection, and telemedicine
+- Privacy policy, consent wording, retention policy, grievance process, and terms
+
+### Production setup
+
+- Domain name and hosting provider
+- Dedicated MySQL production user; do not use `root` in production
+- Backup destination and restore schedule
+- Admin, pharmacist, compliance, delivery, lab, and doctor operational accounts
+- Approved production product, vendor, lab, and doctor data
+
+Never place real credentials in this demo-credential document. Store them only in `.env` or the deployment secret manager. MediMart's AI provider is Groq (`groq.com`); the API key is intentionally omitted here.

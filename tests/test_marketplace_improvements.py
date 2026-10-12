@@ -11,9 +11,10 @@ from django.utils import timezone
 
 from accounts.models import Address, UserProfile
 from cart.models import Cart, CartItem
-from extras.models import BlogCategory, BlogPost, SupportMessage, SupportTicket
-from orders.models import Order, OrderItem, Payment
-from products.models import Brand, Category, Product
+from extras.models import BlogCategory, BlogPost, Notification, SupportMessage, SupportTicket
+from orders.models import InventoryBatch, Order, OrderItem, OrderStatusHistory, Payment, Shipment, ShipmentEvent, Warehouse
+from products.models import Brand, Category, Product, ProductClinicalProfile, StockAlert
+from prescriptions.forms import PrescriptionUploadForm
 from vendors.models import BusinessLicense, Vendor, VendorProduct
 
 
@@ -110,8 +111,140 @@ class MarketplaceImprovementTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("orders:checkout"))
+        self.assertRedirects(response, reverse("cart:cart_detail"))
         self.assertFalse(Order.objects.filter(customer=self.customer).exists())
+
+    def test_cart_combines_items_delivery_coupon_and_payment(self):
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, vendor_product=self.offer, quantity=1)
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.get(reverse("cart:cart_detail"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="cartCheckoutForm"')
+        self.assertContains(response, "Coupon code")
+        self.assertContains(response, ">Apply</button>")
+        self.assertContains(response, "Razorpay Online Payment")
+        self.assertNotContains(response, "Proceed to Checkout")
+
+    def test_checkout_get_redirects_to_unified_cart(self):
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.get(reverse("orders:checkout"))
+
+        self.assertRedirects(response, reverse("cart:cart_detail"))
+
+    def test_prescription_upload_requires_patient_and_consent(self):
+        form = PrescriptionUploadForm(data={"patient_name": "Test Patient"})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("customer_consent", form.errors)
+
+    def test_prohibited_product_cannot_be_activated(self):
+        product = Product.objects.create(
+            name="Restricted Test Medicine",
+            sku="RESTRICTED-001",
+            category=self.category,
+            product_type=Product.ProductType.MEDICINE,
+            description="Restricted product used by the compliance test.",
+            mrp=Decimal("100.00"),
+            selling_price=Decimal("100.00"),
+            stock_quantity=1,
+            safety_classification=Product.SafetyClassification.SCHEDULE_X,
+            is_active=True,
+        )
+
+        self.assertFalse(product.is_active)
+
+    def test_recalled_product_is_blocked_at_checkout(self):
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, vendor_product=self.offer, quantity=1)
+        self.product.recall_status = Product.RecallStatus.RECALLED
+        self.product.recall_reference = "RECALL-2026-001"
+        self.product.save(update_fields=["recall_status", "recall_reference"])
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "address": self.address.pk,
+                "coupon_code": "",
+                "payment_method": Order.PaymentMethod.COD,
+            },
+        )
+
+        self.assertRedirects(response, reverse("cart:cart_detail"))
+        self.assertFalse(Order.objects.filter(customer=self.customer).exists())
+
+    def test_product_quantity_limit_is_enforced_at_checkout(self):
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, vendor_product=self.offer, quantity=2)
+        self.product.quantity_limit_per_order = 1
+        self.product.save(update_fields=["quantity_limit_per_order"])
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "address": self.address.pk,
+                "coupon_code": "",
+                "payment_method": Order.PaymentMethod.COD,
+            },
+        )
+
+        self.assertRedirects(response, reverse("cart:cart_detail"))
+        self.assertFalse(Order.objects.filter(customer=self.customer).exists())
+
+    def test_near_expiry_batch_is_not_eligible_for_sale(self):
+        warehouse = Warehouse.objects.create(
+            code="TEST-WH",
+            name="Test Warehouse",
+            address="Test address",
+            pincode="560001",
+        )
+        InventoryBatch.objects.create(
+            vendor_product=self.offer,
+            warehouse=warehouse,
+            batch_number="BATCH-EXPIRING",
+            expires_on=timezone.localdate() + timedelta(days=2),
+            quantity=10,
+            reserved_quantity=0,
+        )
+        self.product.minimum_shelf_life_days = 30
+        self.product.save(update_fields=["minimum_shelf_life_days"])
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, vendor_product=self.offer, quantity=1)
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "address": self.address.pk,
+                "coupon_code": "",
+                "payment_method": Order.PaymentMethod.COD,
+            },
+        )
+
+        self.assertRedirects(response, reverse("cart:cart_detail"))
+        self.assertFalse(Order.objects.filter(customer=self.customer).exists())
+
+    def test_reviewed_clinical_profile_provenance_is_visible(self):
+        ProductClinicalProfile.objects.create(
+            product=self.product,
+            uses="Home monitoring support.",
+            allergy_warnings="Check the ingredients before use.",
+            content_sources="Reviewed manufacturer monograph",
+            source_url="https://example.com/clinical-source",
+            review_status=ProductClinicalProfile.ReviewStatus.PUBLISHED,
+            last_reviewed_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("products:product_detail", args=[self.product.slug]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reviewed manufacturer monograph")
+        self.assertContains(response, "Allergy warnings")
 
     def test_vendor_can_submit_new_catalog_product_for_approval(self):
         self.client.login(username="vendor", password="Testpass123!")
@@ -178,6 +311,17 @@ class MarketplaceImprovementTests(TestCase):
 
         self.assertContains(response, assigned_order.order_number)
         self.assertNotContains(response, unassigned_order.order_number)
+
+    def test_delivery_dashboard_shows_assigned_orders_waiting_for_dispatch(self):
+        order = self.create_order(Order.OrderStatus.CONFIRMED)
+        order.delivery_staff = self.delivery_user
+        order.save(update_fields=["delivery_staff"])
+        self.client.login(username="delivery", password="Testpass123!")
+
+        response = self.client.get(reverse("dashboards:delivery_dashboard"))
+
+        self.assertContains(response, order.order_number)
+        self.assertContains(response, "Waiting for warehouse dispatch")
 
     def test_blog_list_shows_published_article(self):
         post = BlogPost.objects.create(
@@ -283,6 +427,51 @@ class MarketplaceImprovementTests(TestCase):
         self.assertRedirects(response, reverse("dashboards:delivery_dashboard"))
         self.assertEqual(order.order_status, Order.OrderStatus.SHIPPED)
 
+    def test_delivery_requires_customer_otp_and_records_proof_metadata(self):
+        order = self.create_order(Order.OrderStatus.SHIPPED)
+        order.delivery_staff = self.delivery_user
+        order.save(update_fields=["delivery_staff"])
+        self.client.login(username="delivery", password="Testpass123!")
+
+        self.client.post(
+            reverse("dashboards:update_delivery_order_status", args=[order.pk]),
+            {"status": Order.OrderStatus.OUT_FOR_DELIVERY},
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("dashboards:update_delivery_order_status", args=[order.pk]),
+                {"status": Order.OrderStatus.DELIVERED, "delivery_otp": "000000"},
+            ).status_code,
+            302,
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.order_status, Order.OrderStatus.OUT_FOR_DELIVERY)
+        shipment = Shipment.objects.get(order=order)
+        notification = Notification.objects.filter(user=self.customer, title="Delivery verification code").latest("created_at")
+        otp = notification.message.rsplit(" is ", 1)[-1].split(".", 1)[0]
+
+        self.client.post(
+            reverse("dashboards:update_delivery_order_status", args=[order.pk]),
+            {"status": Order.OrderStatus.DELIVERED, "delivery_otp": otp, "recipient_name": "Health Customer"},
+        )
+        order.refresh_from_db()
+        shipment.refresh_from_db()
+        self.assertEqual(order.order_status, Order.OrderStatus.DELIVERED)
+        self.assertTrue(shipment.delivery_otp_verified_at)
+        self.assertEqual(shipment.delivery_recipient_name, "Health Customer")
+        self.assertTrue(
+            ShipmentEvent.objects.filter(
+                shipment=shipment,
+                status=Shipment.Status.OUT_FOR_DELIVERY,
+            ).exists()
+        )
+        self.assertTrue(
+            ShipmentEvent.objects.filter(
+                shipment=shipment,
+                status=Shipment.Status.DELIVERED,
+            ).exists()
+        )
+
     def test_detected_address_components_are_persisted(self):
         self.client.login(username="customer", password="Testpass123!")
         response = self.client.post(
@@ -358,23 +547,6 @@ class MarketplaceImprovementTests(TestCase):
         self.assertRedirects(response, reverse("vendors:vendor_dashboard"))
         self.assertEqual(license_record.status, BusinessLicense.Status.PENDING)
         self.assertEqual(license_record.form_number, "MD-5")
-
-    @override_settings(LICENSE_VERIFICATION_API_URL="")
-    def test_license_lookup_falls_back_to_official_registry(self):
-        license_record = BusinessLicense.objects.create(
-            vendor=self.vendor,
-            license_type=BusinessLicense.LicenseType.DEVICE_SALE,
-            license_number="MD-42-TEST",
-        )
-        self.client.login(username="vendor", password="Testpass123!")
-
-        response = self.client.post(
-            reverse("vendors:business_license_lookup", args=[license_record.pk])
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["available"])
-        self.assertIn("cdscomdonline.gov.in", response.json()["official_url"])
 
     def test_regulated_offer_requires_compatible_verified_license(self):
         self.product.requires_business_license = True
@@ -616,6 +788,95 @@ class MarketplaceImprovementTests(TestCase):
         self.assertContains(blog_response, "Managing blood pressure safely")
         self.assertContains(blog_response, "blog-search")
         self.assertContains(product_response, "catalog-product-grid")
+
+    def test_product_detail_tracks_recently_viewed_products_in_session(self):
+        second_product = Product.objects.create(
+            name="Digital Thermometer",
+            slug="digital-thermometer",
+            sku="THERMO-001",
+            category=self.category,
+            brand=self.brand,
+            product_type=Product.ProductType.MEDICAL_EQUIPMENT,
+            description="A fast digital thermometer.",
+            mrp=Decimal("500.00"),
+            selling_price=Decimal("350.00"),
+            stock_quantity=4,
+            is_active=True,
+        )
+
+        self.client.get(self.product.get_absolute_url())
+        response = self.client.get(second_product.get_absolute_url())
+
+        self.assertEqual(self.client.session["recently_viewed_product_ids"][:2], [second_product.pk, self.product.pk])
+        self.assertContains(response, "Recently viewed products")
+        self.assertContains(response, self.product.name)
+
+    def test_out_of_stock_alert_notifies_customer_when_offer_returns(self):
+        self.offer.stock_quantity = 0
+        self.offer.save(update_fields=["stock_quantity"])
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.post(
+            reverse("products:stock_alert_create", args=[self.product.pk]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(StockAlert.objects.filter(user=self.customer, product=self.product, is_active=True).exists())
+
+        self.offer.stock_quantity = 3
+        self.offer.save(update_fields=["stock_quantity"])
+
+        alert = StockAlert.objects.get(user=self.customer, product=self.product)
+        self.assertFalse(alert.is_active)
+        self.assertIsNotNone(alert.notified_at)
+        self.assertTrue(Notification.objects.filter(user=self.customer, title="Back in stock").exists())
+
+    def test_quick_reorder_adds_order_items_to_cart(self):
+        order = self.create_order(Order.OrderStatus.DELIVERED)
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.post(
+            reverse("orders:quick_reorder", args=[order.pk]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(CartItem.objects.get(cart__user=self.customer, vendor_product=self.offer).quantity, 1)
+
+    def test_search_suggestions_returns_product_matches(self):
+        response = self.client.get(reverse("products:search_suggestions"), {"q": "blood"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["results"][0]["name"], self.product.name)
+
+    def test_catalog_shows_removable_active_filter_chips(self):
+        response = self.client.get(
+            reverse("products:product_list"),
+            {"q": "blood", "min_price": "100", "sort": "price_low"},
+        )
+
+        self.assertContains(response, "Active filters")
+        self.assertContains(response, "Search: blood")
+        self.assertContains(response, "Min ₹100")
+        self.assertContains(response, "Sort: Price Low to High")
+        self.assertContains(response, "products/?min_price=100&amp;sort=price_low")
+
+    def test_order_detail_highlights_current_status_history_step(self):
+        order = self.create_order(Order.OrderStatus.CONFIRMED)
+        OrderStatusHistory.objects.create(
+            order=order,
+            status=Order.OrderStatus.CONFIRMED,
+            note="Seller confirmed your order.",
+        )
+        self.client.login(username="customer", password="Testpass123!")
+
+        response = self.client.get(reverse("orders:order_detail", args=[order.pk]))
+
+        self.assertContains(response, "Tracking Timeline")
+        self.assertContains(response, "Current status")
+        self.assertContains(response, "Seller confirmed your order.")
 
     def create_order(self, status):
         order = Order.objects.create(

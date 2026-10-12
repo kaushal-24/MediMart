@@ -5,26 +5,75 @@
 {% block meta_description %}Order medicines, upload prescriptions, compare medical equipment sellers, and manage healthcare purchases with MediMart.{% endblock %}
 
 {% block content %}
-<section class="commerce-hero" style="--hero-image: url('{% static 'images/medimart-healthcare-hero.webp' %}')">
-    <div class="container commerce-hero-inner">
-        <div class="commerce-hero-copy">
-            <p class="eyebrow mb-3">Medicines, equipment, and everyday care</p>
-            <h1>MediMart</h1>
-            <p class="commerce-hero-lead">Healthcare shopping with verified sellers, prescription safeguards, transparent prices, and dependable order tracking.</p>
-            <form class="hero-search" action="{% url 'products:search' %}" method="get" role="search">
-                <i class="bi bi-search"></i>
-                <input name="q" type="search" placeholder="Search medicines, devices, wellness products" aria-label="Search MediMart">
-                <button type="submit">Search</button>
+<section class="marketplace-hero" data-reveal>
+    <div class="marketplace-hero-backdrop" aria-hidden="true"><img src="{% static 'images/medimart-healthcare-hero.webp' %}" alt="" width="1600" height="720" fetchpriority="high"><span></span></div>
+    <div class="container marketplace-hero-grid">
+        <div class="marketplace-hero-copy">
+            <p class="eyebrow mb-2">Verified healthcare, delivered</p>
+            <h1>Medicines, lab tests and healthcare essentials.</h1>
+            <p class="marketplace-hero-lead">Compare approved sellers, upload prescriptions securely, book home diagnostics, and track every order from one account.</p>
+            <form class="hero-search" data-ai-search-form data-ai-endpoint="{% url 'products:ai_search' %}" data-suggestion-endpoint="{% url 'products:search_suggestions' %}" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input id="heroAiSearchInput" name="q" type="search" placeholder="Search medicines, tests, symptoms or devices" aria-label="Search medicines, tests, symptoms or devices" autocomplete="off" aria-controls="heroAiSearchResults" aria-expanded="false">
+                <button class="hero-search-button" type="submit"><i class="bi bi-stars me-2" aria-hidden="true"></i>AI search</button>
+                <div class="search-suggestions hero-ai-results" id="heroAiSearchResults" data-ai-search-results role="listbox" aria-label="AI product and lab test results"></div>
             </form>
             <div class="hero-actions">
-                <a href="{% url 'products:product_list' %}" class="btn btn-success btn-lg"><i class="bi bi-bag-check me-2"></i>Shop healthcare</a>
-                <a href="{% url 'prescriptions:prescription_upload' %}" class="btn btn-light btn-lg"><i class="bi bi-file-earmark-medical me-2"></i>Upload prescription</a>
+                <a href="{% url 'products:product_list' %}" class="btn btn-success"><i class="bi bi-bag-check me-2"></i>Shop medicines</a>
+                <a href="{% url 'prescriptions:prescription_upload' %}" class="btn btn-outline-success"><i class="bi bi-file-earmark-medical me-2"></i>Upload prescription</a>
             </div>
             <button class="hero-location" type="button" data-bs-toggle="modal" data-bs-target="#locationModal">
-                <i class="bi bi-geo-alt-fill"></i>
-                <span><small>Delivery location</small><strong data-site-location-label>{{ site_location_label }}</strong></span>
-                <i class="bi bi-chevron-right"></i>
+                <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                <span><small>Delivering to</small><strong data-site-location-label>{{ site_location_label }}</strong></span>
+                <i class="bi bi-chevron-right ms-auto" aria-hidden="true"></i>
             </button>
+            <div class="hero-confidence"><span><i class="bi bi-patch-check-fill"></i> Approved sellers</span><span><i class="bi bi-shield-lock-fill"></i> Private prescriptions</span><span><i class="bi bi-credit-card-fill"></i> Secure payments</span></div>
+        </div>
+    </div>
+</section>
+
+<section class="home-service-nav border-bottom" aria-label="MediMart services" data-reveal>
+    <div class="container home-service-grid">
+        <a class="home-service-card" href="{% url 'products:product_list' %}"><span><i class="bi bi-capsule"></i></span><strong>Medicines</strong><small>Shop trusted products</small></a>
+        <a class="home-service-card" href="{% url 'healthcare:labs' %}"><span><i class="bi bi-eyedropper"></i></span><strong>Lab tests</strong><small>Home sample collection</small></a>
+        <a class="home-service-card" href="{% url 'extras:doctor_list' %}"><span><i class="bi bi-person-vcard"></i></span><strong>Consult doctors</strong><small>Find verified specialists</small></a>
+        <a class="home-service-card" href="{% url 'prescriptions:prescription_upload' %}"><span><i class="bi bi-file-earmark-medical"></i></span><strong>Prescriptions</strong><small>Upload and track reviews</small></a>
+    </div>
+</section>
+
+<section class="home-concern-section" aria-labelledby="homeConcernHeading" data-reveal>
+    <div class="container home-concern-wrap">
+        <div class="home-concern-heading">
+            <div>
+                <p class="eyebrow mb-2">Shop by health need</p>
+                <h2 id="homeConcernHeading">Find care for what matters today</h2>
+            </div>
+            <a href="{% url 'products:product_list' %}">Explore all <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </div>
+        <div class="home-concern-rail">
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=diabetes"><i class="bi bi-droplet-half" aria-hidden="true"></i><span>Diabetes care</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=cold+cough+fever"><i class="bi bi-thermometer-half" aria-hidden="true"></i><span>Cold, cough &amp; fever</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=pain+relief"><i class="bi bi-bandaid" aria-hidden="true"></i><span>Pain relief</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=first+aid"><i class="bi bi-plus-square" aria-hidden="true"></i><span>First aid</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=vitamins"><i class="bi bi-capsule" aria-hidden="true"></i><span>Vitamins &amp; nutrition</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a class="home-concern-link" href="{% url 'products:product_list' %}?q=baby+care"><i class="bi bi-person-hearts" aria-hidden="true"></i><span>Mother &amp; baby</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        </div>
+    </div>
+</section>
+
+<section class="container prescription-home-wrap" data-reveal>
+    <div class="prescription-home-band">
+        <span class="prescription-home-icon"><i class="bi bi-file-earmark-medical"></i></span>
+        <div class="prescription-home-copy">
+            {% if request.user.is_authenticated and prescription_snapshot.latest %}
+                <p>Prescription centre</p><h2>{{ prescription_snapshot.active_count }} active prescription{{ prescription_snapshot.active_count|pluralize }}</h2><small>Latest upload #{{ prescription_snapshot.latest.pk }} is {{ prescription_snapshot.latest.get_status_display|lower }}{% if prescription_snapshot.action_count %}. {{ prescription_snapshot.action_count }} need{{ prescription_snapshot.action_count|pluralize:"s," }} your attention{% endif %}.</small>
+            {% else %}
+                <p>Prescription medicines</p><h2>Upload once, track review, shop eligible products</h2><small>Your document stays private and is checked by an authorised reviewer.</small>
+            {% endif %}
+        </div>
+        <div class="prescription-home-actions">
+            {% if request.user.is_authenticated %}<a class="btn btn-outline-success" href="{% url 'prescriptions:prescription_list' %}">View status</a>{% endif %}
+            <a class="btn btn-success" href="{% url 'prescriptions:prescription_upload' %}"><i class="bi bi-cloud-arrow-up me-2"></i>Upload prescription</a>
         </div>
     </div>
 </section>
@@ -55,6 +104,30 @@
                 <small>Explore category</small>
             </a>
         {% endfor %}
+    </div>
+</section>
+
+<section class="section-band" data-reveal>
+    <div class="container section-space">
+        <div class="section-heading">
+            <div><p class="eyebrow mb-2">Diagnostics at home</p><h2>Popular lab tests and packages</h2></div>
+            <a href="{% url 'healthcare:labs' %}">View all tests <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="lab-test-rail">
+            {% for test in featured_lab_tests %}
+                <article class="lab-test-card" data-reveal style="--reveal-delay: {{ forloop.counter0 }}0ms">
+                    <div class="lab-test-card-image">
+                        {% if test.image %}<img src="{{ test.image.url }}" alt="{{ test.name }}" loading="lazy" decoding="async" width="480" height="220">{% else %}<i class="bi bi-eyedropper" aria-hidden="true"></i>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between gap-2"><span class="badge text-bg-light">{{ test.get_category_display }}</span><i class="bi bi-house-check text-success" title="Home collection"></i></div>
+                    <h3>{{ test.name }}</h3>
+                    <p>{{ test.partner.name }} · {{ test.report_sla_hours }}h reports</p>
+                    <div class="lab-test-card-footer"><strong>₹{{ test.price }}</strong><a href="{% url 'healthcare:lab_booking_for_test' test.pk %}" aria-label="Book {{ test.name }}">Book <i class="bi bi-arrow-right"></i></a></div>
+                </article>
+            {% empty %}
+                <div class="empty-state w-100"><i class="bi bi-eyedropper"></i><h3 class="h5">Diagnostics are coming soon</h3><p class="mb-0">Lab partners and home collection tests will appear here after onboarding.</p></div>
+            {% endfor %}
+        </div>
     </div>
 </section>
 
@@ -100,7 +173,7 @@
             <div class="col-lg-5">
                 <div class="section-heading compact"><div><p class="eyebrow mb-2">Care network</p><h2>Verified doctors</h2></div><a href="{% url 'extras:doctor_list' %}">View all</a></div>
                 <div class="care-list">
-                    {% for doctor in verified_doctors %}<div class="care-list-item"><span class="care-icon"><i class="bi bi-person-vcard"></i></span><span><strong>{{ doctor.full_name }}</strong><small>{{ doctor.specialization }}</small></span><i class="bi bi-patch-check-fill text-success ms-auto"></i></div>{% empty %}<p class="text-secondary">Verified doctors will appear here after approval.</p>{% endfor %}
+                    {% for doctor in verified_doctors %}<div class="care-list-item"><span class="care-icon"><i class="bi bi-person-vcard"></i></span><span><strong>{{ doctor.full_name }}</strong><small>{{ doctor.specialization }}</small></span><i class="bi bi-patch-check-fill text-success ms-auto"></i></div>{% empty %}<div class="care-empty-state"><span class="care-empty-icon"><i class="bi bi-person-vcard"></i></span><strong>Verified doctors will appear here after approval.</strong><a href="{% url 'healthcare:consultation_create' %}">Explore consultations <i class="bi bi-arrow-right"></i></a></div>{% endfor %}
                 </div>
             </div>
             <div class="col-lg-7">

@@ -20,6 +20,24 @@
             {% if post.image %}<figure class="blog-hero-image"><img src="{{ post.image.url }}" alt="{{ post.title }}" decoding="async" fetchpriority="high" width="1200" height="675"></figure>{% endif %}
             <div class="article-advisory"><i class="bi bi-info-circle"></i><p><strong>Health information notice</strong><span>This guide is educational and does not replace diagnosis or advice from a qualified healthcare professional.</span></p></div>
             <div class="article-body">{{ post.content|linebreaks }}</div>
+            <div class="content-panel mt-4">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-flag text-success fs-4" aria-hidden="true"></i>
+                    <div class="flex-grow-1">
+                        <h2 class="h6 fw-bold">See something that needs correction?</h2>
+                        <p class="small text-secondary">Report outdated, incorrect, or unsafe information. Our content team will review it.</p>
+                        <form method="post" action="{% url 'extras:content_issue_create' 'blog' post.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4"><label class="form-label small" for="id_issue_type">Issue type</label>{{ content_issue_form.issue_type }}</div>
+                                <div class="col-md-8"><label class="form-label small" for="id_details">Details</label>{{ content_issue_form.details }}</div>
+                            </div>
+                            <button class="btn btn-outline-success btn-sm mt-2" type="submit"><i class="bi bi-send me-1"></i>Report for review</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </main>
         <aside class="article-sidebar">
             <div><p class="eyebrow mb-2">Need a product?</p><h2>Shop related healthcare essentials</h2><p>Compare reviewed sellers, prices, and availability in the MediMart catalogue.</p><a class="btn btn-outline-success w-100" href="{% url 'products:product_list' %}">Browse products</a></div>

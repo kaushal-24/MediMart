@@ -14,6 +14,44 @@ from .models import Address, UserProfile
 User = get_user_model()
 
 
+def _normalise_phone(value):
+    """Return a comparable phone value while accepting common Indian formats."""
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if digits.startswith("91") and len(digits) == 12:
+        digits = digits[2:]
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+def _resolve_login_identifier(identifier):
+    """Resolve a login identifier without exposing whether an account exists."""
+    value = str(identifier or "").strip()
+    if not value:
+        return None
+
+    user = User.objects.filter(username__iexact=value).first()
+    if user:
+        return user
+
+    user = User.objects.filter(email__iexact=value).first()
+    if user:
+        return user
+
+    normalised_phone = _normalise_phone(value)
+    if len(normalised_phone) < 10:
+        return None
+
+    phone_matches = [
+        profile.user
+        for profile in UserProfile.objects.select_related("user").filter(
+            user__is_active=True,
+            phone_number__isnull=False,
+        )
+        if _normalise_phone(profile.phone_number) == normalised_phone
+    ]
+    # Never guess when more than one account has the same phone number.
+    return phone_matches[0] if len(phone_matches) == 1 else None
+
+
 class BootstrapFormMixin:
     """Apply Bootstrap classes without adding a template dependency."""
 
@@ -228,13 +266,23 @@ class AddressForm(BootstrapFormMixin, forms.ModelForm):
 class StyledAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Username, email, or phone number"
         self.fields["username"].widget.attrs.update(
-            {"autocomplete": "username", "placeholder": "Username"}
+            {
+                "autocomplete": "username",
+                "placeholder": "Enter username, email, or phone number",
+                "inputmode": "text",
+            }
         )
         self.fields["password"].widget.attrs.update(
             {"autocomplete": "current-password", "placeholder": "Password"}
         )
         self.apply_bootstrap_classes()
+
+    def clean_username(self):
+        identifier = self.cleaned_data["username"].strip()
+        user = _resolve_login_identifier(identifier)
+        return user.username if user else identifier
 
 
 class StyledPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):

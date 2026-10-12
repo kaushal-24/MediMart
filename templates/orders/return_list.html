@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}My Returns | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div><p class="eyebrow">Order support</p><h1 class="h3 fw-bold mb-0">My returns</h1></div>
+                <a class="btn btn-outline-success" href="{% url 'orders:order_list' %}">View orders</a>
+            </div>
+            {% for return_request in returns %}
+                <article class="content-panel mb-3 return-request-card">
+                    <div class="d-flex justify-content-between gap-3 flex-wrap">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">{{ return_request.order_item.product_name }}</h2>
+                            <p class="text-secondary mb-1">Order {{ return_request.order_item.order.order_number }} · {{ return_request.get_reason_display }} · {{ return_request.quantity }} unit{{ return_request.quantity|pluralize }}</p>
+                            <small class="text-secondary">Requested {{ return_request.requested_at|date:"d M Y, g:i A" }}</small>
+                        </div>
+                        <span class="badge align-self-start {% if return_request.status == 'completed' %}text-bg-success{% elif return_request.status == 'rejected' or return_request.status == 'cancelled' %}text-bg-danger{% elif return_request.status == 'refund_pending' %}text-bg-warning{% else %}text-bg-primary{% endif %}">{{ return_request.get_status_display }}</span>
+                    </div>
+                    <div class="return-request-meta mt-3">
+                        <span><strong>Refund estimate</strong> ₹{{ return_request.refund_amount }}</span>
+                        <span><strong>Inspection</strong> {{ return_request.get_inspection_decision_display }}</span>
+                        {% if return_request.pickup_reference %}<span><strong>Pickup</strong> {{ return_request.pickup_reference }}</span>{% endif %}
+                        {% if return_request.refund %}<span><strong>Refund</strong> {{ return_request.refund.get_status_display }}</span>{% endif %}
+                    </div>
+                    {% if return_request.description %}<p class="small text-secondary mt-3 mb-0">{{ return_request.description }}</p>{% endif %}
+                    {% if return_request.resolution_note %}<p class="small text-secondary mt-2 mb-0">{{ return_request.resolution_note }}</p>{% endif %}
+                    {% if return_request.status == "requested" or return_request.status == "under_review" or return_request.status == "approved" %}
+                        <form method="post" action="{% url 'orders:return_cancel' return_request.pk %}" class="mt-3">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Cancel return request</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% empty %}
+                <div class="empty-state"><h2 class="h5">No return requests</h2><p>Eligible delivered items can be returned from their order page.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

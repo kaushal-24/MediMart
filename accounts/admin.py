@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
 
-from .models import Address, UserProfile
+from .models import Address, UserCapabilityOverride, UserProfile
 
 
 User = get_user_model()
@@ -46,6 +46,14 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "role", "phone_number", "gender", "preferred_pincode")
     list_filter = ("role", "gender")
     search_fields = ("user__username", "user__email", "phone_number")
+
+
+@admin.register(UserCapabilityOverride)
+class UserCapabilityOverrideAdmin(admin.ModelAdmin):
+    list_display = ("user", "capability", "is_granted", "granted_by", "updated_at")
+    list_filter = ("is_granted", "capability", "updated_at")
+    search_fields = ("user__username", "user__email", "capability", "reason")
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(Address)

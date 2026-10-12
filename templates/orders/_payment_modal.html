@@ -1,0 +1,40 @@
+{% load static %}
+<div class="modal fade" id="razorpayPaymentModal" tabindex="-1" aria-labelledby="razorpayPaymentModalLabel" aria-hidden="true" data-payment-modal data-create-url="{% url 'orders:payment_create_order' order.pk %}" data-verify-url="{% url 'orders:payment_verify' order.pk %}" data-failure-url="{% url 'orders:payment_failure' order.pk %}" data-key-id="{{ razorpay_key_id|escapejs }}" data-customer-name="{{ order.customer.get_full_name|default:order.customer.username|escapejs }}" data-customer-email="{{ payment_contact_email|escapejs }}" data-order-label="{{ order.order_number|escapejs }}">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content payment-modal-content">
+            <div class="modal-header">
+                <div>
+                    <p class="eyebrow mb-1">Secure checkout</p>
+                    <h2 class="modal-title h5 fw-bold mb-0" id="razorpayPaymentModalLabel">Pay ₹{{ order.total_amount }}</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close payment window"></button>
+            </div>
+            <div class="modal-body">
+                <div class="payment-trust-note mb-4">
+                    <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                    <span>Payment details are securely handled by Razorpay. MediMart never stores card or UPI credentials.</span>
+                </div>
+                <form id="razorpayContactForm" data-payment-contact-form novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label" for="razorpayContactEmail">Receipt email</label>
+                        <input class="form-control" id="razorpayContactEmail" name="contact_email" type="email" value="{{ payment_contact_email }}" autocomplete="email" required>
+                        <div class="form-text">We will use this for the payment receipt and order updates.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="razorpayContactPhone">Payment contact number</label>
+                        <input class="form-control" id="razorpayContactPhone" name="contact_phone" type="tel" value="{{ payment_contact_phone }}" inputmode="tel" autocomplete="tel" minlength="10" maxlength="20" required>
+                    </div>
+                    <div class="small text-danger mb-3" data-payment-contact-error role="alert"></div>
+                    <button class="btn btn-success w-100" id="razorpayProceedButton" type="submit">
+                        <i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Continue to secure payment
+                    </button>
+                </form>
+                <div class="small text-secondary mt-3" data-payment-status role="status" aria-live="polite"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<!-- Razorpay event handlers for payment.failed and ondismiss live in the external payment controller. -->
+<script src="{% static 'js/razorpay.js' %}?v=20261010-1" defer></script>

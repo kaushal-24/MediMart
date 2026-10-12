@@ -1,45 +1,57 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Prescription | MediMart{% endblock %}
+{% block title %}{% if replacement_for %}Replace{% else %}Upload{% endif %} Prescription | MediMart{% endblock %}
 
 {% block content %}
+<section class="product-header prescription-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Secure pharmacy review</p>
+        <h1 class="h2 fw-bold mb-2">{% if replacement_for %}Replace prescription #{{ replacement_for.pk }}{% else %}Upload a prescription{% endif %}</h1>
+        <p class="text-secondary mb-0">Add enough context for a pharmacist to verify the document and map eligible medicines to your account.</p>
+    </div>
+</section>
+
 <section class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="content-panel">
-                <p class="eyebrow mb-2">Prescription upload</p>
-                <h1 class="h3 fw-bold mb-3">Upload Prescription</h1>
-                <p class="text-secondary">Supported files: JPG, JPEG, PNG, and PDF. Prescriptions must be reviewed before prescription-required products can be added to cart.</p>
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            {% if replacement_for and replacement_for.clarification_message %}<div class="alert alert-warning"><strong>Reviewer request:</strong> {{ replacement_for.clarification_message }}</div>{% endif %}
+            <form class="prescription-upload-form" method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% include "accounts/form_errors.html" with form=form %}
 
-                <form method="post" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
-                    {% include "accounts/form_errors.html" with form=form %}
-
+                <section class="content-panel prescription-form-section">
+                    <div class="prescription-section-heading"><span><i class="bi bi-person"></i></span><div><h2>Patient details</h2><p>Confirm who the prescription was issued for.</p></div></div>
                     <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label" for="{{ form.file.id_for_label }}">Prescription file</label>
-                            {{ form.file }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="{{ form.doctor_name.id_for_label }}">Doctor name</label>
-                            {{ form.doctor_name }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="{{ form.prescription_date.id_for_label }}">Prescription date</label>
-                            {{ form.prescription_date }}
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label" for="{{ form.notes.id_for_label }}">Notes</label>
-                            {{ form.notes }}
-                        </div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.patient_name.id_for_label }}">Patient name</label>{{ form.patient_name }}</div>
+                        <div class="col-md-3"><label class="form-label" for="{{ form.patient_date_of_birth.id_for_label }}">Date of birth</label>{{ form.patient_date_of_birth }}</div>
+                        <div class="col-md-3"><label class="form-label" for="{{ form.patient_gender.id_for_label }}">Gender</label>{{ form.patient_gender }}</div>
                     </div>
+                </section>
 
-                    <div class="d-flex gap-2 mt-4">
-                        <button class="btn btn-success" type="submit">Upload Prescription</button>
-                        <a class="btn btn-outline-secondary" href="{% url 'prescriptions:prescription_list' %}">Cancel</a>
+                <section class="content-panel prescription-form-section mt-3">
+                    <div class="prescription-section-heading"><span><i class="bi bi-file-earmark-medical"></i></span><div><h2>Prescription document</h2><p>Upload a clear JPG, PNG, or PDF up to 5 MB.</p></div></div>
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label" for="{{ form.file.id_for_label }}">Prescription file</label>{{ form.file }}<div class="form-text">Include the complete page with doctor details, date, medicine names, strength, and dosage visible.</div></div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.doctor_name.id_for_label }}">Doctor name</label>{{ form.doctor_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.doctor_registration_number.id_for_label }}">Registration number</label>{{ form.doctor_registration_number }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.clinic_name.id_for_label }}">Clinic or hospital</label>{{ form.clinic_name }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.clinic_contact.id_for_label }}">Clinic contact</label>{{ form.clinic_contact }}</div>
+                        <div class="col-md-6"><label class="form-label" for="{{ form.prescription_date.id_for_label }}">Prescription date</label>{{ form.prescription_date }}</div>
                     </div>
-                </form>
-            </div>
+                </section>
+
+                <section class="content-panel prescription-form-section mt-3">
+                    <div class="prescription-section-heading"><span><i class="bi bi-capsule-pill"></i></span><div><h2>Items requested</h2><p>This helps the reviewer match your document to MediMart products. It does not change the prescription.</p></div></div>
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label" for="{{ form.requested_medicines.id_for_label }}">Medicines or supplies</label>{{ form.requested_medicines }}</div>
+                        <div class="col-12"><label class="form-label" for="{{ form.notes.id_for_label }}">Notes for the pharmacist</label>{{ form.notes }}</div>
+                        <div class="col-12"><div class="form-check prescription-consent">{{ form.customer_consent }}<label class="form-check-label" for="{{ form.customer_consent.id_for_label }}">{{ form.customer_consent.label }}</label></div>{% for error in form.customer_consent.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>
+                    </div>
+                </section>
+
+                <div class="prescription-submit-bar mt-3"><span><i class="bi bi-shield-lock me-2"></i>Your document is private and only available to authorised reviewers.</span><div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% if replacement_for %}{{ replacement_for.get_absolute_url }}{% else %}{% url 'prescriptions:prescription_list' %}{% endif %}">Cancel</a><button class="btn btn-success" type="submit"><i class="bi bi-cloud-arrow-up me-2"></i>{% if replacement_for %}Submit replacement{% else %}Submit for review{% endif %}</button></div></div>
+            </form>
         </div>
     </div>
 </section>

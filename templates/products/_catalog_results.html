@@ -1,0 +1,32 @@
+<div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+    <p class="text-secondary mb-0"><strong>{{ page_obj.paginator.count }}</strong> product{{ page_obj.paginator.count|pluralize }} found</p>
+</div>
+
+{% if active_filter_chips %}
+    <div class="active-filter-bar mb-4" aria-label="Active filters">
+        <div class="active-filter-label"><i class="bi bi-funnel me-2" aria-hidden="true"></i>Active filters</div>
+        <div class="active-filter-chips">
+            {% for chip in active_filter_chips %}
+                <a class="active-filter-chip" href="{{ chip.remove_url }}" title="Remove {{ chip.label }}">
+                    <span>{{ chip.label }}</span><i class="bi bi-x-lg" aria-hidden="true"></i>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+{% if products %}
+    <div class="catalog-product-grid">
+        {% for product in products %}
+            <div>{% include "products/product_card.html" with product=product %}</div>
+        {% endfor %}
+    </div>
+    {% include "partials/pagination.html" with page_obj=page_obj filter_query=filter_query %}
+{% else %}
+    <div class="empty-state">
+        <i class="bi bi-search"></i>
+        <h2 class="h5 fw-semibold">No products found</h2>
+        <p>Try a different search term or remove a filter.</p>
+        <a class="btn btn-success" href="{% url 'products:product_list' %}">View All Products</a>
+    </div>
+{% endif %}

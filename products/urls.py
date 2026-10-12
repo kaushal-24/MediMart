@@ -12,6 +12,9 @@ urlpatterns = [
     path("compare/remove/<int:pk>/", views.compare_remove, name="compare_remove"),
     path("compare/clear/", views.compare_clear, name="compare_clear"),
     path("products/<slug:slug>/", views.product_detail, name="product_detail"),
+    path("products/<int:pk>/stock-alert/", views.stock_alert_create, name="stock_alert_create"),
+    path("products/<int:pk>/price-alert/", views.price_alert_create, name="price_alert_create"),
+    path("products/<int:pk>/question/", views.product_question_create, name="product_question_create"),
     path(
         "price-comparison/<slug:slug>/",
         views.price_comparison,
@@ -42,5 +45,6 @@ urlpatterns = [
         name="diagnostic_equipment",
     ),
     path("search/suggestions/", views.search_suggestions, name="search_suggestions"),
+    path("search/ai/", views.ai_search, name="ai_search"),
     path("search/", views.product_list, name="search"),
 ]

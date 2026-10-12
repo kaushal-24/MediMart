@@ -104,7 +104,7 @@
                                         <td>{{ offer.stock_status }}</td>
                                         <td>
                                             {% if offer.stock_quantity %}
-                                                <form method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
+                                                <form data-ajax-form="cart" method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
                                                     {% csrf_token %}
                                                     <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
                                                     <button class="btn btn-sm btn-success" type="submit">

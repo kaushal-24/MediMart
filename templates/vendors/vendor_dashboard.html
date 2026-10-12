@@ -20,6 +20,9 @@
 </section>
 
 <section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
     {% if not vendor.is_approved %}<div class="alert alert-warning d-flex gap-3 align-items-start"><i class="bi bi-hourglass-split fs-4"></i><div><strong>Business review in progress</strong><div>Products and offers can be prepared now, but they remain hidden from customers until MediMart approves the business and catalog records.</div></div></div>{% endif %}
 
     <div class="compliance-strip mb-4">
@@ -57,6 +60,8 @@
                     </div>
                 {% else %}<div class="empty-compact"><i class="bi bi-box-seam"></i><span>No product offers yet.</span></div>{% endif %}
             </div>
+        </div>
+    </div>
         </div>
     </div>
 </section>

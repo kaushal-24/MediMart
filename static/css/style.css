@@ -1,5 +1,6 @@
 :root {
     --medimart-primary: #00a859;
+    --medimart-brand: #e31837;
     --medimart-secondary: #0b5ed7;
     --medimart-dark: #1f2933;
     --medimart-muted: #667085;
@@ -12,6 +13,930 @@
     --medimart-shadow: rgba(31, 41, 51, 0.07);
     --medimart-shadow-soft: rgba(31, 41, 51, 0.06);
     --medimart-rating-track: #e9ecef;
+    --medimart-chatbot-header: #132b26;
+    --medimart-chatbot-header-text: #ffffff;
+}
+
+/* Unified storefront, checkout, and prescription workflow */
+.marketplace-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+    background: var(--medimart-surface);
+}
+
+.marketplace-hero-backdrop {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    overflow: hidden;
+}
+
+.marketplace-hero-backdrop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 70% center;
+}
+
+.marketplace-hero-backdrop span {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--medimart-surface) 5%, color-mix(in srgb, var(--medimart-surface) 94%, transparent) 42%, color-mix(in srgb, var(--medimart-surface) 30%, transparent) 72%, transparent 100%);
+}
+
+.marketplace-hero-grid {
+    display: block;
+    min-height: 28rem;
+    padding-top: 3.25rem;
+    padding-bottom: 3.25rem;
+}
+
+.marketplace-hero-copy {
+    position: relative;
+    z-index: 3;
+    max-width: 49rem;
+}
+
+.marketplace-hero h1 {
+    max-width: 16ch;
+    font-size: 3.65rem;
+    line-height: 1.08;
+}
+
+.marketplace-hero-lead {
+    max-width: 42rem;
+    margin-bottom: 1.25rem;
+    color: color-mix(in srgb, var(--medimart-dark) 78%, var(--medimart-muted));
+}
+
+.marketplace-hero .hero-search {
+    z-index: 20;
+    max-width: 45rem;
+    border: 1px solid var(--medimart-border-strong);
+    box-shadow: 0 0.8rem 2rem rgba(15, 23, 32, 0.13);
+}
+
+.marketplace-hero .search-suggestions {
+    z-index: 1100;
+}
+
+.hero-popular-searches {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.75rem;
+    max-width: 45rem;
+    margin: -0.35rem 0 1rem;
+    color: var(--medimart-muted);
+    font-size: 0.78rem;
+}
+
+.hero-popular-searches a {
+    color: var(--medimart-dark);
+    text-decoration: none;
+}
+
+.hero-popular-searches a:hover {
+    color: var(--medimart-primary);
+    text-decoration: underline;
+}
+
+.hero-confidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.15rem;
+    margin-top: 1.1rem;
+    color: var(--medimart-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.hero-confidence span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.hero-confidence i {
+    color: var(--medimart-primary);
+}
+
+.prescription-home-wrap {
+    position: relative;
+    z-index: auto;
+    margin-top: 0;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.prescription-home-band {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--medimart-border);
+    border-left: 0.25rem solid var(--medimart-primary);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface);
+    box-shadow: 0 0.7rem 1.8rem var(--medimart-shadow-soft);
+}
+
+.prescription-home-icon,
+.prescription-record-icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+    font-size: 1.25rem;
+}
+
+.prescription-home-copy p,
+.prescription-home-copy h2,
+.prescription-home-copy small {
+    margin: 0;
+}
+
+.prescription-home-copy p {
+    color: var(--medimart-primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.prescription-home-copy h2 {
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+}
+
+.prescription-home-copy small {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--medimart-muted);
+}
+
+.prescription-home-actions {
+    display: flex;
+    gap: 0.55rem;
+}
+
+.cart-page-shell {
+    max-width: 1440px;
+}
+
+.cart-checkout-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.cart-lines-column {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.cart-items-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.cart-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--medimart-border);
+}
+
+.cart-panel-heading h2,
+.cart-panel-heading p {
+    margin: 0;
+}
+
+.cart-panel-heading h2 {
+    font-size: 1.05rem;
+}
+
+.cart-panel-heading p {
+    margin-top: 0.18rem;
+    color: var(--medimart-muted);
+    font-size: 0.78rem;
+}
+
+.cart-panel-heading > a {
+    color: var(--medimart-primary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.cart-items-panel .table-responsive {
+    padding: 0 1rem 0.35rem;
+}
+
+.cart-remove-button {
+    display: grid;
+    width: 2.2rem;
+    height: 2.2rem;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    color: #c92a3b;
+    background: transparent;
+}
+
+.cart-remove-button:hover {
+    background: color-mix(in srgb, #dc3545 10%, transparent);
+}
+
+.cart-delivery-panel {
+    padding: 0 1.15rem 1.15rem;
+}
+
+.cart-delivery-panel .cart-panel-heading {
+    margin: 0 -1.15rem 1rem;
+}
+
+.checkout-secure-label {
+    color: var(--medimart-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.cart-checkout-summary {
+    position: sticky;
+    top: 5.5rem;
+}
+
+.cart-coupon-form {
+    padding: 0.85rem;
+    border: 1px dashed var(--medimart-border-strong);
+    border-radius: 0.45rem;
+    background: var(--medimart-surface-muted);
+}
+
+.cart-coupon-success {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+    color: var(--medimart-primary);
+    font-size: 0.8rem;
+}
+
+.cart-coupon-success button {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font-size: 1.15rem;
+}
+
+.summary-divider {
+    margin: 1rem 0;
+    border-top: 1px solid var(--medimart-border);
+}
+
+.cart-payment-note {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.85rem 0 0;
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.prescription-form-section {
+    padding: 1.25rem;
+}
+
+.prescription-section-heading {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--medimart-border);
+}
+
+.prescription-section-heading > span {
+    display: grid;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 2.4rem;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
+.prescription-section-heading h2,
+.prescription-section-heading p {
+    margin: 0;
+}
+
+.prescription-section-heading h2 {
+    font-size: 1.05rem;
+}
+
+.prescription-section-heading p {
+    margin-top: 0.18rem;
+    color: var(--medimart-muted);
+    font-size: 0.8rem;
+}
+
+.prescription-consent {
+    padding: 0.85rem 0.85rem 0.85rem 2.5rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.45rem;
+    background: var(--medimart-surface-muted);
+}
+
+.prescription-submit-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    color: var(--medimart-muted);
+    background: var(--medimart-surface);
+    font-size: 0.8rem;
+}
+
+.prescription-record-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.prescription-record-card {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1.2fr) minmax(18rem, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+}
+
+.prescription-record-main {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.prescription-record-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.prescription-record-facts small,
+.prescription-record-facts strong {
+    display: block;
+}
+
+.prescription-record-facts small {
+    color: var(--medimart-muted);
+    font-size: 0.7rem;
+}
+
+.prescription-record-facts strong {
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+}
+
+.prescription-status-needs_information {
+    color: #5f3d00;
+    background: #ffd76a;
+}
+
+.prescription-status-cancelled {
+    color: var(--medimart-muted);
+    background: var(--medimart-surface-muted);
+    border: 1px solid var(--medimart-border);
+}
+
+.prescription-action-alert {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+}
+
+.prescription-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.8fr);
+    gap: 1rem;
+}
+
+.prescription-progress {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.prescription-progress li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.7rem;
+    min-height: 3.5rem;
+}
+
+.prescription-progress li:not(:last-child)::before {
+    position: absolute;
+    top: 1.8rem;
+    bottom: 0;
+    left: 0.94rem;
+    width: 2px;
+    background: var(--medimart-border-strong);
+    content: "";
+}
+
+.prescription-progress li > span {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 1.9rem;
+    height: 1.9rem;
+    place-items: center;
+    border: 1px solid var(--medimart-border-strong);
+    border-radius: 50%;
+    color: var(--medimart-muted);
+    background: var(--medimart-surface);
+}
+
+.prescription-progress li.is-complete > span {
+    border-color: var(--medimart-primary);
+    color: #fff;
+    background: var(--medimart-primary);
+}
+
+.prescription-progress strong,
+.prescription-progress small {
+    display: block;
+}
+
+.prescription-progress small {
+    margin-top: 0.15rem;
+    color: var(--medimart-muted);
+}
+
+.prescription-empty-scope {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px dashed var(--medimart-border-strong);
+    border-radius: 0.45rem;
+    color: var(--medimart-muted);
+    background: var(--medimart-surface-muted);
+}
+
+.prescription-empty-scope i {
+    color: var(--medimart-primary);
+    font-size: 1.35rem;
+}
+
+.prescription-empty-scope strong,
+.prescription-empty-scope small {
+    display: block;
+}
+
+.prescription-requested-list {
+    padding: 0.8rem;
+    border-radius: 0.4rem;
+    background: var(--medimart-surface-muted);
+    line-height: 1.6;
+}
+
+.prescription-revision-link {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--medimart-border);
+    color: var(--medimart-dark);
+    text-decoration: none;
+}
+
+.prescription-review-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface);
+}
+
+.prescription-review-summary small,
+.prescription-review-summary strong {
+    display: block;
+}
+
+.prescription-review-summary small {
+    color: var(--medimart-muted);
+}
+
+.prescription-item-formset {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.prescription-item-form {
+    padding: 1rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.45rem;
+    background: var(--medimart-surface-muted);
+}
+
+@media (max-width: 991.98px) {
+    .marketplace-hero-backdrop span {
+        background: linear-gradient(90deg, var(--medimart-surface) 3%, color-mix(in srgb, var(--medimart-surface) 90%, transparent) 68%, color-mix(in srgb, var(--medimart-surface) 55%, transparent));
+    }
+
+    .cart-checkout-layout,
+    .prescription-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cart-checkout-summary {
+        position: static;
+    }
+
+    .prescription-record-card,
+    .prescription-review-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .marketplace-hero-grid {
+        min-height: 30rem;
+    }
+
+    .marketplace-hero-backdrop img {
+        object-position: 62% center;
+        opacity: 0.38;
+    }
+
+    .marketplace-hero-backdrop span {
+        background: color-mix(in srgb, var(--medimart-surface) 82%, transparent);
+    }
+
+    .prescription-home-band {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .prescription-home-actions {
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+    }
+
+    .prescription-submit-bar,
+    .prescription-action-alert {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .marketplace-hero h1 {
+        font-size: 2.25rem;
+    }
+
+    .hero-confidence {
+        display: grid;
+    }
+
+    .hero-popular-searches {
+        gap: 0.35rem 0.6rem;
+        margin-top: -0.25rem;
+    }
+
+    .mobile-bottom-nav {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1040;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        min-height: 4rem;
+        padding: 0.4rem max(0.5rem, env(safe-area-inset-left)) max(0.4rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-right));
+        border-top: 1px solid var(--medimart-border-strong);
+        background: color-mix(in srgb, var(--medimart-surface) 94%, transparent);
+        box-shadow: 0 -0.5rem 1.25rem var(--medimart-shadow-soft);
+        backdrop-filter: blur(12px);
+    }
+
+    .mobile-bottom-nav a {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: 0.18rem;
+        flex-direction: column;
+        color: var(--medimart-muted);
+        font-size: 0.68rem;
+        font-weight: 650;
+        text-decoration: none;
+    }
+
+    .mobile-bottom-nav a:first-child,
+    .mobile-bottom-nav a:hover {
+        color: var(--medimart-primary);
+    }
+
+    .mobile-bottom-nav i {
+        font-size: 1.15rem;
+        line-height: 1;
+    }
+
+    .mobile-bottom-nav b {
+        position: absolute;
+        top: 0.05rem;
+        margin-left: 1.25rem;
+        min-width: 1.05rem;
+        padding: 0.08rem 0.22rem;
+        border-radius: 999px;
+        color: #ffffff;
+        background: var(--medimart-primary);
+        font-size: 0.62rem;
+        text-align: center;
+    }
+
+    body {
+        padding-bottom: 4rem;
+    }
+
+    .medimart-chatbot {
+        bottom: 4.75rem;
+    }
+
+    .prescription-record-facts {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.medimart-chatbot {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 1050;
+}
+
+.medimart-chatbot-toggle {
+    width: 3.5rem;
+    height: 3.5rem;
+    display: grid;
+    place-items: center;
+    padding: 0.45rem;
+    border: 2px solid var(--medimart-primary);
+    border-radius: 50%;
+    color: var(--medimart-primary);
+    background: var(--medimart-surface);
+    box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 32, 0.24);
+}
+
+.medimart-chatbot-toggle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.clinical-use-panel {
+    padding: 1rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface-muted);
+}
+
+.medimart-chatbot-panel {
+    position: absolute;
+    right: 0;
+    bottom: 4.25rem;
+    display: flex;
+    flex-direction: column;
+    width: min(22rem, calc(100vw - 2rem));
+    height: min(32rem, calc(100vh - 7rem));
+    overflow: hidden;
+    border: 1px solid var(--medimart-border-strong);
+    border-radius: 0.75rem;
+    background: var(--medimart-surface);
+    box-shadow: 0 1rem 3rem rgba(15, 23, 32, 0.25);
+}
+
+.medimart-chatbot-panel,
+.medimart-chatbot-panel button,
+.medimart-chatbot-panel input {
+    color: var(--medimart-dark);
+}
+
+.medimart-chatbot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    color: var(--medimart-chatbot-header-text);
+    background: var(--medimart-chatbot-header);
+}
+
+.medimart-chatbot-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.medimart-chatbot-brand img {
+    width: 2rem;
+    height: 2rem;
+    padding: 0.2rem;
+    border-radius: 0.45rem;
+    background: transparent;
+    object-fit: contain;
+}
+
+.medimart-chatbot-brand strong,
+.medimart-chatbot-brand small {
+    display: block;
+}
+
+.medimart-chatbot-header small {
+    display: block;
+    margin-top: 0.15rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.medimart-chatbot-messages {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.65rem;
+    overflow-y: auto;
+    padding: 1rem;
+    background: var(--medimart-surface-muted);
+}
+
+.medimart-chatbot-message {
+    max-width: 88%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.65rem;
+    color: var(--medimart-dark);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.medimart-chatbot-message.is-assistant {
+    align-self: flex-start;
+    border: 1px solid var(--medimart-border);
+    background: var(--medimart-surface);
+}
+
+.medimart-chatbot-message.is-assistant,
+.medimart-chatbot-form .form-control {
+    color: var(--medimart-dark);
+}
+
+.medimart-chatbot-message.is-user {
+    align-self: flex-end;
+    color: #fff;
+    background: var(--medimart-primary);
+}
+
+.medimart-chatbot-form {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--medimart-border);
+    background: var(--medimart-surface);
+}
+
+.medimart-chatbot-form .form-control {
+    min-width: 0;
+    border-color: var(--medimart-border-strong);
+    background: var(--medimart-surface-muted);
+}
+
+.medimart-chatbot-form .form-control::placeholder {
+    color: var(--medimart-muted);
+    opacity: 1;
+}
+
+.site-toast-region {
+    position: fixed;
+    top: 5.5rem;
+    right: 1.25rem;
+    z-index: 1100;
+    display: grid;
+    gap: 0.65rem;
+    width: min(24rem, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.site-toast {
+    pointer-events: auto;
+    border: 1px solid var(--medimart-border-strong);
+    border-left: 0.25rem solid var(--medimart-primary);
+    border-radius: 0.5rem;
+    color: var(--medimart-dark);
+    background: var(--medimart-surface);
+    box-shadow: 0 0.75rem 1.75rem var(--medimart-shadow);
+    animation: toast-in 180ms ease-out;
+}
+
+.site-toast.is-danger { border-left-color: #dc3545; }
+.site-toast.is-warning { border-left-color: #d99a00; }
+
+.site-in-app-notification-region {
+    position: fixed;
+    top: 5.5rem;
+    left: 1.25rem;
+    z-index: 1090;
+    display: grid;
+    gap: 0.65rem;
+    width: min(25rem, calc(100vw - 2rem));
+}
+
+.site-in-app-notification {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--medimart-border-strong);
+    border-left: 0.25rem solid var(--medimart-primary);
+    border-radius: 0.5rem;
+    color: var(--medimart-dark);
+    background: var(--medimart-surface);
+    box-shadow: 0 0.75rem 1.75rem var(--medimart-shadow);
+    animation: toast-in 220ms ease-out;
+}
+
+.site-in-app-notification.is-leaving {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+    transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.site-in-app-notification p {
+    margin: 0.2rem 0;
+    color: var(--medimart-muted);
+    font-size: 0.85rem;
+}
+
+.site-in-app-notification small {
+    color: var(--medimart-muted);
+}
+
+.site-in-app-notification-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.site-in-app-notification-actions a {
+    color: var(--medimart-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.site-in-app-notification-actions button {
+    padding: 0;
+    border: 0;
+    color: var(--medimart-muted);
+    background: transparent;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(-0.5rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 575.98px) {
+    .medimart-chatbot {
+        right: 0.75rem;
+        bottom: 0.75rem;
+    }
+
+    .site-in-app-notification-region {
+        right: 0.75rem;
+        left: 0.75rem;
+        width: auto;
+    }
 }
 
 [data-bs-theme="dark"] {
@@ -26,6 +951,8 @@
     --medimart-shadow: rgba(0, 0, 0, 0.28);
     --medimart-shadow-soft: rgba(0, 0, 0, 0.22);
     --medimart-rating-track: #334155;
+    --medimart-chatbot-header: #0b5d3f;
+    --medimart-chatbot-header-text: #ffffff;
 }
 
 body {
@@ -42,6 +969,108 @@ body {
     border-radius: 0.5rem;
     color: #ffffff;
     background: var(--medimart-primary);
+}
+
+.brand-logo {
+    display: block;
+    width: 3.55rem;
+    height: 3.55rem;
+    object-fit: contain;
+}
+
+.site-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 10.5rem;
+    color: var(--medimart-primary);
+    text-decoration: none;
+}
+
+.brand-wordmark,
+.footer-wordmark {
+    color: var(--medimart-brand);
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.brand-wordmark {
+    font-size: 1.35rem;
+}
+
+.splash-seen .site-splash {
+    display: none;
+}
+
+.site-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    color: var(--medimart-dark);
+    background: var(--medimart-body-bg);
+    opacity: 1;
+    transition: opacity 420ms ease, visibility 420ms ease;
+}
+
+.site-splash.is-hidden {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.site-splash-inner {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 0.8rem;
+    text-align: center;
+    animation: splash-rise 520ms ease-out both;
+}
+
+.site-splash-logo {
+    width: min(24rem, 84vw);
+    height: 14rem;
+    object-fit: contain;
+    animation: splash-pulse 1.3s ease-in-out infinite;
+}
+
+.site-splash-inner small {
+    color: var(--medimart-muted);
+    font-size: 0.78rem;
+}
+
+.site-splash-loader {
+    display: inline-flex;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+}
+
+.site-splash-loader span {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--medimart-primary);
+    animation: splash-loader 900ms ease-in-out infinite;
+}
+
+.site-splash-loader span:nth-child(2) { animation-delay: 120ms; }
+.site-splash-loader span:nth-child(3) { animation-delay: 240ms; }
+
+@keyframes splash-rise {
+    from { opacity: 0; transform: translateY(0.7rem) scale(0.98); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes splash-pulse {
+    0%, 100% { transform: scale(0.96); }
+    50% { transform: scale(1.04); }
+}
+
+@keyframes splash-loader {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-0.2rem); }
 }
 
 .hero-section {
@@ -185,6 +1214,114 @@ body {
 .search-suggestion-item small {
     color: var(--medimart-muted);
 }
+
+.ai-search-button {
+    display: inline-grid;
+    width: 2.6rem;
+    place-items: center;
+    border: 1px solid var(--medimart-border-strong);
+    border-left: 0;
+    color: var(--medimart-secondary);
+    background: var(--medimart-surface-muted);
+}
+
+.ai-search-button:hover,
+.ai-search-button:focus-visible {
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
+.search-ai-heading {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--medimart-border);
+    color: var(--medimart-secondary);
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.search-ai-loading,
+.search-ai-empty {
+    padding: 0.85rem 1rem;
+    color: var(--medimart-muted);
+    font-size: 0.85rem;
+}
+
+.search-ai-section-label {
+    padding: 0.55rem 1rem 0.35rem;
+    border-top: 1px solid var(--medimart-border);
+    color: var(--medimart-muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.search-ai-safety {
+    padding: 0.65rem 1rem;
+    border-top: 1px solid var(--medimart-border);
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.search-ai-result small {
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-autocomplete-hint {
+    padding: 0.55rem 1rem;
+    border-top: 1px solid var(--medimart-border);
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+}
+
+.payment-modal-content {
+    border: 1px solid var(--medimart-border-strong);
+    color: var(--medimart-dark);
+    background: var(--medimart-surface);
+}
+
+.payment-trust-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--medimart-primary) 25%, transparent);
+    border-radius: 0.5rem;
+    color: var(--medimart-dark);
+    background: var(--medimart-soft);
+    font-size: 0.82rem;
+}
+
+.payment-trust-note i,
+.prescription-ai-icon {
+    color: var(--medimart-primary);
+}
+
+.prescription-ai-icon {
+    display: grid;
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: 0.5rem;
+    background: var(--medimart-soft);
+}
+
+.prescription-ai-answer {
+    padding: 0.8rem;
+    border-left: 0.25rem solid var(--medimart-primary);
+    border-radius: 0.35rem;
+    color: var(--medimart-dark);
+    background: var(--medimart-surface-muted);
+    line-height: 1.5;
+}
+
+.prescription-ai-answer.is-loading { color: var(--medimart-muted); }
+.prescription-ai-answer.is-error { border-left-color: #dc3545; }
 
 .hero-panel {
     padding: 1.25rem;
@@ -371,14 +1508,57 @@ body {
     gap: 0.5rem;
 }
 
+.dashboard-nav {
+    position: sticky;
+    top: 5.75rem;
+    z-index: 5;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface);
+    box-shadow: 0 0.75rem 1.75rem var(--medimart-shadow-soft);
+}
+
+.dashboard-nav-heading {
+    display: grid;
+    gap: 0.2rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--medimart-border);
+    background: var(--medimart-surface-muted);
+}
+
+.dashboard-nav-heading .eyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+}
+
+.dashboard-nav-heading strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .dashboard-nav .list-group-item {
     border-color: var(--medimart-border);
     padding: 0.85rem 1rem;
 }
 
+.dashboard-nav .list-group-item.active {
+    color: var(--medimart-primary);
+    font-weight: 700;
+    border-left: 3px solid var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
 .dashboard-nav .list-group-item:not(.disabled):hover {
     color: var(--medimart-primary);
     background: var(--medimart-soft);
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-nav {
+        position: static;
+    }
 }
 
 .empty-state {
@@ -578,15 +1758,152 @@ body {
     vertical-align: middle;
 }
 
-.quantity-form {
+.cart-product-cell {
     display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    max-width: 10rem;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-width: min(30rem, 52vw);
 }
 
-.quantity-form input {
-    min-width: 4rem;
+.cart-product-thumb {
+    display: grid;
+    flex: 0 0 4.5rem;
+    width: 4.5rem;
+    height: 4.5rem;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    color: var(--medimart-primary);
+    background: var(--medimart-surface-muted);
+    text-decoration: none;
+}
+
+.cart-product-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 0.35rem;
+}
+
+.cart-product-thumb i {
+    font-size: 1.75rem;
+}
+
+.cart-product-copy {
+    min-width: 0;
+}
+
+.cart-product-name {
+    display: block;
+    color: var(--medimart-dark);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.cart-product-name:hover {
+    color: var(--medimart-primary);
+}
+
+.cart-product-description {
+    max-width: 28rem;
+    color: var(--medimart-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.cart-product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.6rem;
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+}
+
+.cart-product-meta span + span {
+    position: relative;
+}
+
+.cart-product-meta span + span::before {
+    position: absolute;
+    left: -0.4rem;
+    content: "·";
+}
+
+.cart-product-details {
+    margin-top: 0.35rem;
+    color: var(--medimart-muted);
+    font-size: 0.75rem;
+}
+
+.cart-product-details summary {
+    width: fit-content;
+    color: var(--medimart-secondary);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.cart-product-details p {
+    max-width: 30rem;
+    margin: 0.35rem 0 0.25rem;
+    line-height: 1.45;
+}
+
+.quantity-form {
+    display: flex;
+    align-items: center;
+}
+
+.quantity-stepper {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border-strong);
+    border-radius: 0.45rem;
+    background: var(--medimart-surface);
+}
+
+.quantity-stepper-button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 0;
+    color: var(--medimart-primary);
+    background: transparent;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.quantity-stepper-button:hover:not(:disabled) {
+    background: var(--medimart-soft);
+}
+
+.quantity-stepper-button:disabled {
+    color: var(--medimart-muted);
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.quantity-input {
+    width: 2.5rem;
+    padding: 0.3rem 0;
+    border: 0;
+    color: var(--medimart-dark);
+    background: transparent;
+    text-align: center;
+    font-weight: 800;
+}
+
+.quantity-input:focus {
+    outline: 2px solid color-mix(in srgb, var(--medimart-primary) 40%, transparent);
+    outline-offset: -2px;
+}
+
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
 }
 
 .order-summary {
@@ -704,6 +2021,136 @@ body {
 .timeline-item p {
     color: var(--medimart-muted);
     margin: 0.25rem 0 0;
+}
+
+.order-stepper {
+    display: grid;
+    gap: 0;
+}
+
+.order-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.85rem;
+    min-height: 5.2rem;
+}
+
+.order-step:not(:last-child)::after {
+    position: absolute;
+    top: 2.25rem;
+    bottom: 0;
+    left: 1.05rem;
+    width: 2px;
+    background: var(--medimart-border-strong);
+    content: "";
+}
+
+.order-step-marker {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    place-items: center;
+    border: 2px solid var(--medimart-border-strong);
+    border-radius: 50%;
+    color: var(--medimart-muted);
+    background: var(--medimart-surface);
+}
+
+.order-step.is-complete .order-step-marker {
+    border-color: color-mix(in srgb, var(--medimart-primary) 48%, var(--medimart-border-strong));
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
+.order-step.is-current .order-step-marker {
+    border-color: var(--medimart-primary);
+    color: #fff;
+    background: var(--medimart-primary);
+    box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--medimart-primary) 16%, transparent);
+}
+
+.order-step-content {
+    padding-bottom: 1.25rem;
+}
+
+.order-step-content strong {
+    color: var(--medimart-dark);
+}
+
+.order-step-content time {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--medimart-muted);
+    font-size: 0.82rem;
+}
+
+.order-step-content p {
+    margin: 0.35rem 0 0;
+    color: var(--medimart-muted);
+    font-size: 0.88rem;
+}
+
+.order-step-current {
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.active-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface-muted);
+}
+
+.active-filter-label {
+    color: var(--medimart-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.active-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.active-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.38rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--medimart-primary) 30%, var(--medimart-border));
+    border-radius: 999px;
+    color: var(--medimart-dark);
+    background: var(--medimart-surface);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.active-filter-chip:hover,
+.active-filter-chip:focus-visible {
+    color: var(--medimart-primary);
+    border-color: var(--medimart-primary);
+}
+
+.active-filter-chip i {
+    color: var(--medimart-muted);
+    font-size: 0.68rem;
 }
 
 .invoice-panel {
@@ -1008,6 +2455,37 @@ body {
     padding-left: 2.5rem;
 }
 
+.password-input-wrap {
+    position: relative;
+}
+
+.password-input-wrap .form-control {
+    padding-right: 3rem;
+}
+
+.password-toggle {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    right: 0.45rem;
+    display: inline-grid;
+    width: 2.2rem;
+    height: 2.2rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0.35rem;
+    color: var(--medimart-muted);
+    background: transparent;
+    transform: translateY(-50%);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
 .auth-divider {
     display: flex;
     align-items: center;
@@ -1145,7 +2623,6 @@ body {
     font-weight: 600;
 }
 
-.status-api_matched,
 .status-verified {
     color: #08783e;
     background: #dff7ea;
@@ -1219,6 +2696,24 @@ body {
     font-size: 1.5rem;
     font-weight: 800;
     text-decoration: none;
+}
+
+.footer-logo {
+    width: 4.75rem;
+    height: 4.75rem;
+    object-fit: contain;
+}
+
+.footer-brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.footer-wordmark {
+    font-size: 1.65rem;
 }
 
 .footer-brand > p,
@@ -1586,6 +3081,7 @@ body {
 /* Storefront and operational UI */
 .site-navbar {
     min-height: 4.5rem;
+    z-index: 1035;
     box-shadow: 0 0.25rem 1rem var(--medimart-shadow-soft);
 }
 
@@ -1669,6 +3165,24 @@ body {
     text-decoration: none;
 }
 
+.nav-count {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.15rem;
+    display: inline-grid;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    place-items: center;
+    padding: 0 0.22rem;
+    border: 2px solid var(--medimart-surface);
+    border-radius: 999px;
+    color: #fff;
+    background: var(--medimart-primary);
+    font-size: 0.64rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
 .nav-icon-link:hover {
     border-color: var(--medimart-border);
     color: var(--medimart-primary);
@@ -1727,6 +3241,7 @@ body {
 }
 
 .hero-search {
+    position: relative;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -1760,6 +3275,12 @@ body {
     color: #ffffff;
     background: var(--medimart-primary);
     font-weight: 700;
+}
+
+.hero-search .search-suggestions {
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
 }
 
 .hero-actions {
@@ -1852,6 +3373,12 @@ body {
     background: var(--medimart-surface-muted);
 }
 
+/* Bootstrap rows use negative gutters; keep the final home band inside the viewport. */
+.care-band .container > .row {
+    margin-right: 0;
+    margin-left: 0;
+}
+
 .section-heading {
     display: flex;
     align-items: flex-end;
@@ -1871,6 +3398,18 @@ body {
     font-weight: 700;
     text-decoration: none;
     white-space: nowrap;
+}
+
+.site-navbar a:focus-visible,
+.site-navbar button:focus-visible,
+.hero-popular-searches a:focus-visible,
+.mobile-bottom-nav a:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--medimart-primary) 55%, #ffffff);
+    outline-offset: 3px;
+}
+
+.mobile-bottom-nav {
+    display: none;
 }
 
 .section-heading.compact {
@@ -2171,10 +3710,6 @@ body {
 }
 
 @media (max-width: 575.98px) {
-    .site-navbar .navbar-brand span:last-child {
-        display: none;
-    }
-
     .location-trigger.d-xl-none {
         max-width: 10rem;
         margin-left: auto;
@@ -2252,10 +3787,13 @@ body {
 /* Catalogue density, account identity, editorial, and custom management */
 .account-avatar-menu {
     display: flex;
-    min-width: 3.25rem;
+    min-width: 8.7rem;
     align-items: center;
-    flex-direction: column;
-    gap: 0.15rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.25rem 0.35rem;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
     color: var(--medimart-dark);
     text-decoration: none;
 }
@@ -2282,18 +3820,41 @@ body {
     object-fit: cover;
 }
 
-.account-display-name {
-    max-width: 5.5rem;
+.account-identity {
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.account-display-name,
+.account-identity small {
+    display: block;
+    max-width: 6.5rem;
     overflow: hidden;
-    font-size: 0.68rem;
-    font-weight: 700;
-    line-height: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.account-display-name {
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.account-identity small {
+    margin-top: 0.12rem;
+    color: var(--medimart-muted);
+    font-size: 0.67rem;
+}
+
+.account-chevron {
+    margin-left: auto;
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+}
+
 .account-avatar-menu:hover,
 .account-avatar-menu:focus-visible {
+    border-color: var(--medimart-border);
+    background: var(--medimart-surface-muted);
     color: var(--medimart-primary);
 }
 
@@ -2690,6 +4251,438 @@ body {
     margin: 0 auto;
 }
 
+/* Marketplace motion and retail layout */
+.site-navbar {
+    box-shadow: 0 1px 0 var(--medimart-border), 0 0.35rem 1rem rgba(15, 23, 32, 0.03);
+}
+
+.marketplace-hero {
+    position: relative;
+    z-index: 2;
+    border-bottom: 1px solid var(--medimart-border);
+    background: var(--medimart-surface-muted);
+}
+
+.marketplace-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 0.8fr);
+    gap: 3rem;
+    min-height: 31rem;
+    align-items: center;
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
+}
+
+.marketplace-hero-copy {
+    max-width: 42rem;
+}
+
+.marketplace-hero h1 {
+    max-width: 12ch;
+    margin: 0 0 1rem;
+    color: var(--medimart-dark);
+    font-size: clamp(2.25rem, 4vw, 4rem);
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.marketplace-hero-lead {
+    max-width: 38rem;
+    margin-bottom: 1.5rem;
+    color: var(--medimart-muted);
+    font-size: 1.08rem;
+    line-height: 1.65;
+}
+
+.marketplace-hero-media {
+    position: relative;
+    overflow: hidden;
+    min-height: 20rem;
+    border-radius: 0.5rem;
+    background: var(--medimart-soft);
+}
+
+.marketplace-hero-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 20rem;
+    object-fit: cover;
+}
+
+.hero-media-badge {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: calc(100% - 2rem);
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 0.4rem;
+    color: #fff;
+    background: rgba(15, 35, 30, 0.82);
+    backdrop-filter: blur(0.5rem);
+}
+
+.hero-media-badge i {
+    color: #60e39b;
+    font-size: 1.35rem;
+}
+
+.hero-media-badge strong,
+.hero-media-badge small {
+    display: block;
+}
+
+.hero-media-badge small {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.75rem;
+}
+
+.home-service-nav {
+    position: relative;
+    z-index: 1;
+    background: var(--medimart-surface);
+}
+
+.home-service-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.home-service-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 0.7rem;
+    align-items: center;
+    min-height: 5.75rem;
+    padding: 1rem 1.1rem;
+    border-right: 1px solid var(--medimart-border);
+    color: var(--medimart-dark);
+    text-decoration: none;
+    transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.home-service-card:first-child {
+    border-left: 1px solid var(--medimart-border);
+}
+
+.home-service-card:hover {
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+    transform: translateY(-2px);
+}
+
+.home-service-card > span {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+    font-size: 1.15rem;
+}
+
+.home-service-card strong,
+.home-service-card small {
+    display: block;
+}
+
+.home-service-card strong {
+    font-size: 0.9rem;
+}
+
+.home-service-card small {
+    color: var(--medimart-muted);
+    font-size: 0.75rem;
+}
+
+.lab-test-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.lab-test-card {
+    display: flex;
+    min-height: 11rem;
+    flex-direction: column;
+    padding: 1.15rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.5rem;
+    background: var(--medimart-surface);
+    box-shadow: 0 0.5rem 1.25rem var(--medimart-shadow-soft);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.lab-test-card-image,
+.lab-list-card-image {
+    display: grid;
+    overflow: hidden;
+    place-items: center;
+    margin: -1.15rem -1.15rem 1rem;
+    min-height: 7.25rem;
+    background: var(--medimart-soft);
+    color: var(--medimart-primary);
+}
+
+.lab-test-card-image img,
+.lab-list-card-image img {
+    display: block;
+    width: 100%;
+    height: 7.25rem;
+    object-fit: cover;
+}
+
+.lab-test-card-image i,
+.lab-list-card-image i {
+    font-size: 2rem;
+}
+
+.lab-list-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.lab-list-card-image {
+    margin: -1rem -1rem 1rem;
+    min-height: 10rem;
+}
+
+.lab-list-card-image img {
+    height: 10rem;
+}
+
+.lab-test-card:hover {
+    border-color: rgba(0, 168, 89, 0.4);
+    box-shadow: 0 0.8rem 1.5rem var(--medimart-shadow);
+    transform: translateY(-3px);
+}
+
+.lab-test-card h3 {
+    margin: 1rem 0 0.35rem;
+    font-size: 1.05rem;
+}
+
+.lab-test-card p {
+    margin-bottom: 1rem;
+    color: var(--medimart-muted);
+    font-size: 0.82rem;
+}
+
+.lab-test-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.lab-test-card-footer a {
+    color: var(--medimart-primary);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.js-reveal [data-reveal] {
+    opacity: 0;
+    transform: translateY(1rem);
+    transition: opacity 420ms ease, transform 420ms ease;
+    transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js-reveal [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+.product-card,
+.content-panel,
+.auth-card,
+.metric-card,
+.address-card,
+.btn,
+.nav-icon-link,
+.account-avatar-menu {
+    transition: box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.product-card:hover {
+    border-color: rgba(0, 168, 89, 0.35);
+    box-shadow: 0 1rem 2rem var(--medimart-shadow);
+    transform: translateY(-3px);
+}
+
+main > *:not(#siteToastRegion) {
+    animation: medimart-page-enter 320ms ease-out both;
+}
+
+.btn:hover,
+.nav-icon-link:hover {
+    transform: translateY(-1px);
+}
+
+@keyframes medimart-page-enter {
+    from { opacity: 0.01; transform: translateY(0.35rem); }
+    to { opacity: 1; transform: none; }
+}
+
+.content-panel:hover {
+    border-color: rgba(0, 168, 89, 0.25);
+}
+
+.medimart-chatbot-message.is-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 3.4rem;
+}
+
+.typing-dot {
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 50%;
+    background: var(--medimart-primary);
+    animation: chatbot-typing 1s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 120ms; }
+.typing-dot:nth-child(3) { animation-delay: 240ms; }
+
+@keyframes chatbot-typing {
+    0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-0.2rem); }
+}
+
+@media (max-width: 991.98px) {
+    .marketplace-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        min-height: auto;
+    }
+
+    .marketplace-hero-media {
+        min-height: 15rem;
+    }
+
+    .marketplace-hero-media img {
+        min-height: 15rem;
+    }
+
+    .home-service-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .home-service-card:nth-child(4) {
+        border-left: 1px solid var(--medimart-border);
+    }
+
+    .home-service-card:nth-child(-n + 3) {
+        border-bottom: 1px solid var(--medimart-border);
+    }
+
+    .lab-test-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .marketplace-hero-grid {
+        padding-top: 2.25rem;
+        padding-bottom: 2.25rem;
+    }
+
+    .marketplace-hero h1 {
+        font-size: 2.35rem;
+    }
+
+    .marketplace-hero-media {
+        min-height: 12rem;
+    }
+
+    .marketplace-hero-media img {
+        min-height: 12rem;
+    }
+
+    .home-service-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-service-card {
+        border-left: 1px solid var(--medimart-border);
+        border-bottom: 1px solid var(--medimart-border);
+    }
+
+    .lab-test-rail {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Shared loading and keyboard states for catalogue, checkout, and dashboards. */
+.skeleton {
+    display: block;
+    min-height: 1rem;
+    border-radius: 0.35rem;
+    background: linear-gradient(90deg, rgba(148, 163, 184, .14), rgba(148, 163, 184, .28), rgba(148, 163, 184, .14));
+    background-size: 200% 100%;
+    animation: medimart-skeleton 1.35s ease-in-out infinite;
+}
+
+.skeleton-block { min-height: 7rem; }
+
+.search-query-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: .3rem .55rem;
+    margin: 0 .25rem .25rem 0;
+    border: 1px solid rgba(0, 190, 118, .35);
+    border-radius: 999px;
+    color: var(--medimart-text);
+    background: rgba(0, 190, 118, .08);
+    font-size: .82rem;
+}
+
+@keyframes medimart-skeleton {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+}
+
+@media (max-width: 767.98px) {
+    .cart-checkout-layout,
+    .checkout-item,
+    .summary-row { gap: .75rem; }
+
+    .checkout-secure-label { font-size: .78rem; }
+
+    .cart-checkout-summary {
+        position: sticky;
+        bottom: .5rem;
+        z-index: 5;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+    }
+}
+
 @media (max-width: 1199.98px) {
     .catalog-product-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2698,13 +4691,11 @@ body {
 
 @media (max-width: 991.98px) {
     .account-avatar-menu {
-        align-items: flex-start;
         flex-direction: row;
     }
 
     .account-display-name {
         max-width: none;
-        align-self: center;
         font-size: 0.85rem;
     }
 
@@ -2777,4 +4768,1815 @@ body {
         align-items: flex-start;
         flex-direction: column;
     }
+}
+
+/* Keep the image-led marketplace hero authoritative over legacy hero rules. */
+.marketplace-hero {
+    overflow: visible;
+    background: var(--medimart-surface);
+}
+
+.marketplace-hero .marketplace-hero-grid {
+    display: block;
+    min-height: 28rem;
+    padding-top: 3.25rem;
+    padding-bottom: 3.25rem;
+}
+
+.marketplace-hero .marketplace-hero-copy {
+    position: relative;
+    z-index: 3;
+    max-width: 49rem;
+}
+
+.home-service-nav,
+.home-concern-section,
+.prescription-home-wrap,
+.trust-strip {
+    position: relative;
+    z-index: 0;
+}
+
+.marketplace-hero h1 {
+    max-width: 16ch;
+    font-size: 3.65rem;
+    line-height: 1.08;
+}
+
+.marketplace-hero .marketplace-hero-lead {
+    max-width: 42rem;
+    margin-bottom: 1.25rem;
+    color: color-mix(in srgb, var(--medimart-dark) 78%, var(--medimart-muted));
+}
+
+.marketplace-hero .btn-outline-success {
+    border-color: color-mix(in srgb, var(--medimart-primary) 55%, var(--medimart-border-strong));
+    color: var(--medimart-dark);
+    background: color-mix(in srgb, var(--medimart-surface) 90%, transparent);
+}
+
+.marketplace-hero .btn-outline-success:hover {
+    border-color: var(--medimart-primary);
+    color: #ffffff;
+    background: var(--medimart-primary);
+}
+
+.cart-page-shell {
+    overflow-x: clip;
+}
+
+@media (max-width: 767.98px) {
+    .marketplace-hero .marketplace-hero-grid {
+        min-height: 30rem;
+    }
+
+    .marketplace-hero h1 {
+        font-size: 2.25rem;
+    }
+}
+
+@media (max-width: 1399.98px) {
+    .site-navbar .navbar-collapse {
+        padding: 1rem 0;
+    }
+
+    .site-navbar .navbar-nav {
+        gap: 0.25rem;
+    }
+
+    .site-navbar .nav-icon-link {
+        justify-content: flex-start;
+        width: 100%;
+        height: auto;
+        padding: 0.65rem 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .medimart-chatbot {
+        bottom: 4.75rem;
+    }
+}
+
+/* Retail visual refinement: calmer hierarchy, clearer need-based discovery, and lighter product actions. */
+.home-concern-section {
+    border-bottom: 1px solid var(--medimart-border);
+    background: var(--medimart-surface);
+}
+
+.home-concern-wrap {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+}
+
+.home-concern-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.home-concern-heading h2 {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 750;
+}
+
+.home-concern-heading > a {
+    color: var(--medimart-primary);
+    font-size: 0.85rem;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.home-concern-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.home-concern-link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.7rem;
+    align-items: center;
+    min-height: 3.7rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--medimart-border);
+    border-radius: 0.45rem;
+    color: var(--medimart-dark);
+    background: var(--medimart-surface-muted);
+    text-decoration: none;
+    transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.home-concern-link > i:first-child {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
+.home-concern-link > span {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-concern-link > i:last-child {
+    color: var(--medimart-muted);
+    font-size: 0.8rem;
+}
+
+.home-concern-link:hover {
+    border-color: color-mix(in srgb, var(--medimart-primary) 45%, var(--medimart-border));
+    color: var(--medimart-primary);
+    background: color-mix(in srgb, var(--medimart-soft) 68%, var(--medimart-surface-muted));
+    transform: translateY(-2px);
+}
+
+.product-card {
+    border-radius: 0.6rem;
+    box-shadow: 0 0.45rem 1.25rem var(--medimart-shadow-soft);
+}
+
+.product-card .badge {
+    border: 1px solid var(--medimart-border);
+    color: var(--medimart-muted) !important;
+    background: var(--medimart-surface-muted) !important;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.product-card .badge.text-bg-warning {
+    border-color: color-mix(in srgb, #d99000 38%, var(--medimart-border));
+    color: #8a5a00 !important;
+    background: color-mix(in srgb, #f4b942 18%, var(--medimart-surface)) !important;
+}
+
+.product-card-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 0.85rem;
+}
+
+.product-card-actions form {
+    display: contents;
+}
+
+.product-card-primary {
+    min-height: 2.35rem;
+    flex: 1 1 auto;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+/* MediMart 2.0 visual system: calm clinical surfaces, strong hierarchy, and a single responsive rhythm. */
+:root {
+    --medimart-primary: #00a86b;
+    --medimart-primary-dark: #087b55;
+    --medimart-brand: #e9364f;
+    --medimart-dark: #172735;
+    --medimart-muted: #667681;
+    --medimart-body-bg: #f4f7f8;
+    --medimart-surface: #ffffff;
+    --medimart-surface-muted: #edf3f3;
+    --medimart-soft: #e8f7f0;
+    --medimart-border: #dce6e7;
+    --medimart-border-strong: #c8d5d7;
+    --medimart-shadow: rgba(20, 43, 54, .12);
+    --medimart-shadow-soft: rgba(20, 43, 54, .07);
+    --medimart-rating-track: #e4ebec;
+    --medimart-chatbot-header: #102b2b;
+    --medimart-chatbot-header-text: #ffffff;
+    --mm-ink: #172735;
+    --mm-ink-soft: #52646d;
+    --mm-line: #dce6e7;
+    --mm-panel: #ffffff;
+    --mm-panel-soft: #f8fbfb;
+    --mm-green: #00a86b;
+    --mm-red: #e9364f;
+    --mm-teal: #0e716b;
+    --mm-navy: #102431;
+}
+
+[data-bs-theme="dark"] {
+    --medimart-dark: #eef6f5;
+    --medimart-muted: #9dafb5;
+    --medimart-body-bg: #09131b;
+    --medimart-surface: #101f2a;
+    --medimart-surface-muted: #0d1a24;
+    --medimart-soft: #12352f;
+    --medimart-border: #263b45;
+    --medimart-border-strong: #3b535e;
+    --medimart-shadow: rgba(0, 0, 0, .32);
+    --medimart-shadow-soft: rgba(0, 0, 0, .22);
+    --mm-ink: #eef6f5;
+    --mm-ink-soft: #a9bcc1;
+    --mm-line: #263b45;
+    --mm-panel: #101f2a;
+    --mm-panel-soft: #132633;
+    --mm-navy: #07151e;
+}
+
+html {
+    background: var(--medimart-body-bg);
+    scroll-behavior: smooth;
+}
+
+body {
+    color: var(--mm-ink);
+    background: var(--medimart-body-bg);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: .95rem;
+    letter-spacing: 0;
+    line-height: 1.55;
+    overflow-x: clip;
+}
+
+main {
+    min-height: 60vh;
+    overflow: clip;
+}
+
+a {
+    color: var(--mm-green);
+}
+
+a:hover {
+    color: var(--medimart-primary-dark);
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand, .btn, strong, th {
+    letter-spacing: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--mm-ink);
+    line-height: 1.17;
+}
+
+.container {
+    max-width: 1280px;
+}
+
+.text-secondary {
+    color: var(--mm-ink-soft) !important;
+}
+
+.eyebrow {
+    color: var(--mm-green);
+    font-size: .69rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 750;
+    min-height: 2.55rem;
+    padding: .62rem 1rem;
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+}
+
+.btn:hover {
+    box-shadow: 0 8px 18px var(--medimart-shadow-soft);
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    --bs-btn-bg: var(--mm-green);
+    --bs-btn-border-color: var(--mm-green);
+    --bs-btn-hover-bg: #078a5c;
+    --bs-btn-hover-border-color: #078a5c;
+    --bs-btn-active-bg: #06744f;
+    --bs-btn-active-border-color: #06744f;
+    color: #fff;
+}
+
+.btn-outline-success {
+    --bs-btn-color: var(--mm-green);
+    --bs-btn-border-color: var(--mm-green);
+    --bs-btn-hover-bg: var(--mm-green);
+    --bs-btn-hover-border-color: var(--mm-green);
+}
+
+/* Keep pagination readable instead of collapsing it into one segmented strip. */
+.medimart-pagination .pagination {
+    gap: .42rem;
+    margin-bottom: 0;
+}
+
+.medimart-pagination .page-item .page-link {
+    display: inline-flex;
+    min-width: 2.55rem;
+    min-height: 2.55rem;
+    align-items: center;
+    justify-content: center;
+    gap: .42rem;
+    padding: .55rem .78rem;
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border: 1px solid var(--medimart-border);
+    border-radius: 7px;
+    font-size: .86rem;
+    font-weight: 650;
+    line-height: 1;
+    box-shadow: 0 2px 7px var(--medimart-shadow-soft);
+}
+
+.medimart-pagination .page-item:not(:first-child) .page-link {
+    margin-left: 0;
+}
+
+.medimart-pagination .page-item:not(.active):not(.disabled) .page-link:hover,
+.medimart-pagination .page-item:not(.active):not(.disabled) .page-link:focus-visible {
+    color: var(--mm-green);
+    background: var(--medimart-panel-soft);
+    border-color: var(--mm-green);
+    box-shadow: 0 0 0 .18rem rgba(0, 168, 107, .12);
+}
+
+.medimart-pagination .page-item.active .page-link {
+    color: #fff;
+    background: var(--mm-green);
+    border-color: var(--mm-green);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, .2);
+}
+
+.medimart-pagination .page-item.disabled .page-link {
+    color: var(--mm-ink-soft);
+    background: var(--medimart-surface-muted);
+    border-color: var(--medimart-border);
+    opacity: .62;
+    box-shadow: none;
+}
+
+.medimart-pagination .page-link-wide {
+    min-width: 6.25rem !important;
+}
+
+.medimart-pagination .pagination-gap {
+    color: var(--mm-ink-soft);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.medimart-pagination .pagination-gap:hover,
+.medimart-pagination .pagination-gap:focus-visible {
+    color: var(--mm-green);
+    background: var(--medimart-panel-soft);
+    border-color: var(--mm-green);
+    box-shadow: 0 0 0 .18rem rgba(0, 168, 107, .12);
+}
+
+.pagination-jump-dialog {
+    width: min(22rem, calc(100vw - 2rem));
+    padding: 0;
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border: 1px solid var(--medimart-border-strong);
+    border-radius: 10px;
+    box-shadow: 0 24px 70px var(--medimart-shadow);
+}
+
+.pagination-jump-dialog::backdrop {
+    background: rgba(3, 12, 18, .62);
+    backdrop-filter: blur(2px);
+}
+
+.pagination-jump-dialog form {
+    display: grid;
+    gap: .7rem;
+    padding: 1.35rem;
+}
+
+.pagination-jump-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .35rem;
+}
+
+.pagination-jump-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.pagination-jump-close {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    color: var(--mm-ink-soft);
+    background: transparent;
+    border: 1px solid var(--medimart-border);
+    border-radius: 6px;
+}
+
+.pagination-jump-close:hover,
+.pagination-jump-close:focus-visible {
+    color: var(--mm-green);
+    border-color: var(--mm-green);
+}
+
+.pagination-jump-dialog label {
+    color: var(--mm-ink);
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.pagination-jump-hint {
+    color: var(--mm-ink-soft);
+    font-size: .76rem;
+}
+
+.pagination-jump-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .55rem;
+    margin-top: .35rem;
+}
+
+@media (max-width: 480px) {
+    .medimart-pagination .page-link-wide {
+        min-width: 2.55rem !important;
+        padding-inline: .65rem;
+    }
+
+    .medimart-pagination .page-link-wide span {
+        display: none;
+    }
+
+    .medimart-pagination .pagination-gap {
+        min-width: 2.15rem;
+    }
+}
+
+.form-control, .form-select, .input-group-text {
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border-color: var(--mm-line);
+    border-radius: 6px;
+    min-height: 2.65rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--mm-green);
+    box-shadow: 0 0 0 .2rem rgba(0, 168, 107, .14);
+}
+
+.form-label {
+    color: var(--mm-ink);
+    font-size: .82rem;
+    font-weight: 750;
+}
+
+.required-indicator {
+    color: #dc3545;
+    font-weight: 800;
+    margin-left: .2rem;
+}
+
+/* Header */
+.site-navbar {
+    display: block !important;
+    z-index: 1035;
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border-bottom: 1px solid var(--mm-line);
+    box-shadow: 0 4px 16px rgba(20, 43, 54, .04);
+}
+
+.site-utility-bar {
+    min-height: 29px;
+    color: #d8e9e6;
+    background: var(--mm-navy);
+    font-size: .69rem;
+    letter-spacing: .02em;
+}
+
+.site-utility-bar a {
+    color: #d8e9e6;
+    text-decoration: none;
+}
+
+.site-utility-bar a:hover {
+    color: #fff;
+}
+
+.site-utility-status {
+    color: #82e3b9;
+}
+
+.site-utility-status i {
+    margin-right: .25rem;
+    font-size: .42rem;
+}
+
+.site-utility-actions {
+    margin-left: auto;
+}
+
+.site-utility-dismiss {
+    display: inline-grid;
+    width: 1.35rem;
+    height: 1.35rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    color: currentColor;
+    background: transparent;
+    opacity: .78;
+    cursor: pointer;
+}
+
+.site-utility-dismiss:hover,
+.site-utility-dismiss:focus-visible {
+    color: var(--mm-green);
+    opacity: 1;
+}
+
+.site-utility-dismiss:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.site-utility-bar.is-dismissed {
+    overflow: hidden;
+    min-height: 0;
+    max-height: 0;
+    opacity: 0;
+    transition: min-height .18s ease, max-height .18s ease, opacity .18s ease;
+}
+
+.site-navbar-container {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 1280px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    min-height: 78px;
+    padding-top: .65rem;
+    padding-bottom: .65rem;
+}
+
+.site-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: .62rem;
+    flex-shrink: 0;
+    color: var(--mm-red) !important;
+    text-decoration: none;
+}
+
+.site-brand:hover, .site-brand:focus {
+    color: var(--mm-red) !important;
+}
+
+.brand-mark {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    overflow: hidden;
+    background: transparent !important;
+}
+
+.brand-logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    background: transparent !important;
+    border-radius: 0 !important;
+}
+
+.brand-lockup {
+    display: grid;
+    gap: .04rem;
+}
+
+.brand-wordmark {
+    color: var(--mm-red);
+    font-size: 1.18rem;
+    font-weight: 850;
+    line-height: 1;
+}
+
+.brand-lockup small {
+    color: var(--mm-ink-soft);
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.location-trigger {
+    color: var(--mm-ink);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    font-size: .78rem;
+    text-align: left;
+}
+
+.location-trigger:hover {
+    color: var(--mm-green);
+    background: var(--mm-panel-soft);
+}
+
+.location-trigger > i:first-child {
+    color: var(--mm-green);
+}
+
+.location-trigger-copy small, .location-trigger-copy strong {
+    display: block;
+}
+
+.location-trigger-copy small {
+    color: var(--mm-ink-soft);
+    font-size: .62rem;
+}
+
+.location-trigger-copy strong {
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.site-navbar .search-form {
+    position: relative;
+    min-width: 16rem;
+}
+
+.site-navbar .search-form .input-group {
+    overflow: visible;
+    border: 1px solid var(--mm-line);
+    border-radius: 7px;
+    background: var(--mm-panel-soft);
+}
+
+.site-navbar .search-form .input-group:focus-within {
+    border-color: var(--mm-green);
+    box-shadow: 0 0 0 .2rem rgba(0, 168, 107, .12);
+}
+
+.site-navbar .search-form .input-group-text,
+.site-navbar .search-form .form-control,
+.site-navbar .search-form .ai-search-button {
+    border: 0;
+    background: transparent;
+}
+
+.site-navbar .search-form .input-group-text {
+    color: var(--mm-ink-soft);
+}
+
+.site-navbar .search-form .form-control {
+    min-height: 2.55rem;
+    padding-left: .25rem;
+}
+
+.site-navbar .search-form .ai-search-button {
+    display: grid;
+    width: 2.75rem;
+    place-items: center;
+    color: var(--mm-green);
+}
+
+.site-nav-links .nav-link, .site-navbar .nav-icon-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.4rem;
+    color: var(--mm-ink-soft);
+    border-radius: 6px;
+    font-size: .82rem;
+    font-weight: 650;
+    padding: .45rem .55rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.site-nav-links .nav-link:hover, .site-navbar .nav-icon-link:hover {
+    color: var(--mm-green);
+    background: var(--mm-panel-soft);
+}
+
+.site-navbar .nav-icon-link {
+    border: 0;
+    background: transparent;
+}
+
+.site-navbar .nav-icon-link i {
+    font-size: 1.02rem;
+}
+
+.nav-count {
+    top: 0 !important;
+    right: 0 !important;
+    display: grid;
+    min-width: 1rem;
+    height: 1rem;
+    place-items: center;
+    color: #fff;
+    background: var(--mm-red);
+    border: 2px solid var(--mm-panel);
+    border-radius: 50%;
+    font-size: .58rem;
+    font-weight: 800;
+}
+
+.nav-login-link, .nav-register-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.35rem;
+    border-radius: 6px;
+    font-size: .8rem;
+    font-weight: 800;
+    padding: .42rem .72rem;
+    text-decoration: none;
+}
+
+.nav-login-link { color: var(--mm-ink); }
+.nav-login-link:hover { color: var(--mm-green); background: var(--mm-panel-soft); }
+.nav-register-link { color: #fff; background: var(--mm-green); }
+.nav-register-link:hover { color: #fff; background: var(--medimart-primary-dark); }
+
+.account-avatar-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    color: var(--mm-ink);
+    text-decoration: none;
+}
+
+.account-avatar {
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    overflow: hidden;
+    color: #fff;
+    background: var(--mm-green);
+    border: 2px solid color-mix(in srgb, var(--mm-green) 55%, #fff);
+    border-radius: 50%;
+}
+
+.account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-identity { display: grid; gap: .05rem; }
+.account-identity strong { font-size: .76rem; line-height: 1.05; }
+.account-identity small { color: var(--mm-ink-soft); font-size: .62rem; }
+.account-chevron { color: var(--mm-ink-soft); font-size: .7rem; }
+
+.dropdown-menu {
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border: 1px solid var(--mm-line);
+    border-radius: 7px;
+    box-shadow: 0 18px 42px var(--medimart-shadow);
+    padding: .35rem;
+}
+
+.dropdown-item { border-radius: 5px; color: var(--mm-ink); font-size: .82rem; padding: .55rem .65rem; }
+.dropdown-item:hover, .dropdown-item:focus { color: var(--mm-green); background: var(--mm-panel-soft); }
+
+/* Home */
+.marketplace-hero {
+    color: #fff;
+    background: #122632;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.marketplace-hero-backdrop img {
+    filter: saturate(.86) contrast(.96);
+    object-position: 66% center;
+}
+
+.marketplace-hero-backdrop span {
+    background: rgba(7, 22, 31, .76);
+}
+
+.marketplace-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, .72fr);
+    align-items: center;
+    min-height: 32rem;
+    padding-top: 4.2rem;
+    padding-bottom: 4.2rem;
+}
+
+.marketplace-hero-copy { max-width: 39rem; }
+.marketplace-hero .eyebrow { color: #65dfae; }
+.marketplace-hero h1 { max-width: 12ch; color: #fff; font-size: clamp(2.55rem, 5vw, 4.35rem); font-weight: 850; letter-spacing: -.035em; }
+.marketplace-hero-lead { max-width: 36rem; color: #d5e3e4 !important; font-size: 1rem; }
+.marketplace-hero .hero-search { max-width: 43rem; border: 0; border-radius: 8px; box-shadow: 0 16px 34px rgba(0,0,0,.22); }
+.marketplace-hero .hero-search input { min-height: 3.55rem; }
+.marketplace-hero .hero-search-button { min-width: 8.2rem; margin: .28rem; border-radius: 6px; }
+.hero-popular-searches { color: #b9ccce; }
+.hero-popular-searches a { color: #e8f4f0; }
+.hero-actions .btn-outline-success { color: #fff; border-color: rgba(255,255,255,.5); }
+.hero-actions .btn-outline-success:hover { color: #fff; border-color: var(--mm-green); }
+.hero-location { color: #e9f6f3; background: transparent; border-color: transparent; }
+.hero-location:hover { background: rgba(255,255,255,.08); }
+.hero-location i:first-child, .hero-confidence i { color: #55dba6; }
+.hero-confidence { color: #e0efed; }
+
+.home-service-nav, .trust-strip { background: var(--mm-panel); border-color: var(--mm-line) !important; }
+.home-service-grid, .trust-strip-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.home-service-card, .trust-strip-grid > div { min-height: 6.7rem; padding: 1.25rem 1rem; border-right: 1px solid var(--mm-line); text-decoration: none; }
+.home-service-card:first-child, .trust-strip-grid > div:first-child { border-left: 1px solid var(--mm-line); }
+.home-service-card span, .trust-strip-grid i { color: var(--mm-green); }
+.home-service-card span { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; margin-bottom: .65rem; color: var(--mm-green); background: var(--mm-soft); border-radius: 50%; font-size: 1.1rem; }
+.home-service-card strong, .trust-strip-grid strong { display: block; color: var(--mm-ink); font-size: .86rem; }
+.home-service-card small, .trust-strip-grid small { display: block; margin-top: .2rem; color: var(--mm-ink-soft); font-size: .72rem; }
+.home-service-card:hover { background: var(--mm-panel-soft); }
+
+.home-concern-section, .section-band, .care-band { background: var(--mm-panel-soft); }
+.section-space { padding-top: 4.5rem; padding-bottom: 4.5rem; }
+.section-heading { margin-bottom: 1.55rem; }
+.section-heading h2 { font-size: clamp(1.45rem, 2.4vw, 2rem); font-weight: 820; }
+.section-heading > a { color: var(--mm-green); font-size: .82rem; font-weight: 800; text-decoration: none; }
+.home-concern-wrap { padding-top: 4rem; padding-bottom: 4rem; }
+.home-concern-link { min-height: 4.8rem; background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 7px; box-shadow: none; }
+.home-concern-link:hover { border-color: var(--mm-green); box-shadow: 0 10px 24px var(--medimart-shadow-soft); }
+.prescription-home-band, .equipment-showcase { background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; box-shadow: 0 10px 28px var(--medimart-shadow-soft); }
+.prescription-home-wrap { padding-top: 2rem; padding-bottom: 2rem; }
+.trust-strip-grid > div { display: flex; align-items: center; gap: .75rem; }
+.trust-strip-grid i { font-size: 1.45rem; }
+
+.category-card, .lab-test-card { background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; box-shadow: none; }
+.category-card:hover, .lab-test-card:hover { border-color: var(--mm-green); box-shadow: 0 12px 26px var(--medimart-shadow-soft); transform: translateY(-3px); }
+.category-image { background: var(--mm-panel-soft); }
+.equipment-showcase { overflow: hidden; }
+.equipment-showcase-copy { background: var(--mm-navy); color: #e8f5f2; }
+.equipment-showcase-copy h2 { color: #fff; }
+.equipment-showcase-copy p { color: #b9ccce; }
+.equipment-row { border-bottom-color: var(--mm-line); }
+.equipment-row:hover { background: var(--mm-panel-soft); }
+.care-list, .article-list { background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; overflow: hidden; }
+.care-list-item, .article-list > a { border-bottom-color: var(--mm-line); }
+
+/* Catalogue and product surfaces */
+.product-header { padding: 3.4rem 0 2.6rem; background: var(--mm-navy); }
+.product-header h1, .product-header p { color: #fff; }
+.product-header .eyebrow { color: #65dfae; }
+.catalog-container { max-width: 1380px; margin: 0 auto; }
+.catalog-layout { grid-template-columns: 238px minmax(0, 1fr); gap: 2rem; align-items: start; }
+.filter-panel { top: 6.5rem; background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; box-shadow: 0 8px 24px var(--medimart-shadow-soft); }
+.filter-panel h2 { font-size: 1rem; }
+.catalog-product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.product-card { overflow: hidden; background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; box-shadow: none; }
+.product-card:hover { border-color: var(--mm-green); box-shadow: 0 14px 28px var(--medimart-shadow-soft); transform: translateY(-3px); }
+.product-image { height: 12.5rem; padding: 1.25rem; background: var(--mm-panel-soft); border-bottom: 1px solid var(--mm-line); }
+.product-image img { mix-blend-mode: multiply; }
+[data-bs-theme="dark"] .product-image img { mix-blend-mode: normal; }
+.product-card-body { padding: 1rem; }
+.product-title { min-height: 2.4rem; margin-bottom: .25rem; font-size: .9rem; line-height: 1.3; }
+.product-title a { color: var(--mm-ink); text-decoration: none; }
+.product-title a:hover { color: var(--mm-green); }
+.product-card .badge { background: var(--mm-soft) !important; color: var(--mm-teal) !important; border-radius: 4px; font-size: .63rem; font-weight: 800; }
+.product-card-actions { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--mm-line); }
+.product-card-primary { font-size: .75rem; }
+.product-quick-action { color: var(--mm-ink-soft); }
+.active-filter-bar { background: var(--mm-panel); border-color: var(--mm-line); border-radius: 7px; }
+.active-filter-chip { color: var(--mm-teal); background: var(--mm-soft); border-color: transparent; }
+
+/* Account, operations, checkout, and content panels inherit one surface language. */
+.content-panel, .metric-card, .dashboard-nav, .address-card, .auth-card, .filter-panel, .invoice-panel, .checkout-panel, .order-card, .support-card, .care-panel, .content-card {
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border: 1px solid var(--mm-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px var(--medimart-shadow-soft);
+}
+
+.metric-card { min-height: 7.4rem; display: flex; flex-direction: column; justify-content: space-between; padding: 1rem; }
+.metric-card span { color: var(--mm-ink-soft); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+.metric-card strong { color: var(--mm-ink); font-size: 1.4rem; }
+.dashboard-nav { position: sticky; top: 6.5rem; overflow: hidden; padding: .7rem; }
+.dashboard-nav-heading { padding: .8rem .7rem 1rem; border-bottom: 1px solid var(--mm-line); }
+.dashboard-nav-heading strong { display: block; margin-top: .3rem; color: var(--mm-ink); }
+.dashboard-nav .list-group-item { color: var(--mm-ink-soft); background: transparent; border: 0; border-radius: 6px; font-size: .81rem; margin-top: .15rem; padding: .7rem .75rem; }
+.dashboard-nav .list-group-item:hover, .dashboard-nav .list-group-item.active { color: var(--mm-green); background: var(--mm-soft); }
+.table { --bs-table-color: var(--mm-ink); --bs-table-bg: transparent; --bs-table-border-color: var(--mm-line); }
+.table thead th { color: var(--mm-ink-soft); font-size: .7rem; letter-spacing: .04em; text-transform: uppercase; }
+.table tbody tr:hover { background: var(--mm-panel-soft); }
+
+.auth-section { min-height: calc(100vh - 110px); display: grid; place-items: center; padding: 4.5rem 0; background: var(--mm-panel-soft); }
+.auth-shell { grid-template-columns: minmax(0, .9fr) minmax(26rem, .78fr); gap: 3.5rem; align-items: center; }
+.auth-intro { color: #dcebea; background: var(--mm-navy); border-radius: 8px; padding: 2.75rem; }
+.auth-intro h1 { color: #fff; font-size: clamp(2rem, 4vw, 3.3rem); }
+.auth-intro > p:not(.eyebrow) { color: #b9ccce; }
+.auth-brand { display: inline-flex; align-items: center; gap: .55rem; color: #fff; font-size: 1.3rem; font-weight: 850; text-decoration: none; }
+.auth-brand img { width: 2rem; height: 2rem; object-fit: contain; }
+.auth-assurance-list li { border-top-color: rgba(255,255,255,.12); }
+.auth-card { padding: 2rem; }
+
+/* Footer */
+.site-footer { margin-top: 0 !important; color: #d9e8e7; background: var(--mm-navy); border-top: 1px solid rgba(255,255,255,.1); }
+.footer-trust { background: #0b3540; border-bottom-color: rgba(255,255,255,.1); }
+.footer-trust .container { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.footer-trust > .container > div { border-right-color: rgba(255,255,255,.12); }
+.footer-trust i { color: #65dfae; }
+.footer-main { padding-top: 3.8rem; padding-bottom: 3rem; }
+.footer-brand-link { color: #fff; }
+.footer-wordmark { color: #fff; }
+.footer-main h2 { color: #fff; font-size: .77rem; letter-spacing: .08em; text-transform: uppercase; }
+.footer-main a, .footer-contact span, .footer-brand p, .footer-clinical-note { color: #aac0c2; }
+.footer-main a:hover { color: #65dfae; }
+.footer-bottom { color: #91aaad; background: #07151e; border-top-color: rgba(255,255,255,.1); }
+
+/* Search, chat, toast, modal, and loading states */
+.search-suggestions { z-index: 2000; color: var(--mm-ink); background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 7px; box-shadow: 0 16px 36px var(--medimart-shadow); }
+.site-toast { color: var(--mm-ink); background: var(--mm-panel); border: 1px solid var(--mm-line); border-left: 3px solid var(--mm-green); border-radius: 6px; box-shadow: 0 14px 34px var(--medimart-shadow); }
+.modal-content { color: var(--mm-ink); background: var(--mm-panel); border: 1px solid var(--mm-line); border-radius: 8px; }
+.modal-header, .modal-footer { border-color: var(--mm-line); }
+.site-splash { background: var(--mm-navy); }
+.site-splash-logo { width: 10rem; height: 10rem; object-fit: contain; }
+.site-splash-inner small { color: #aac0c2; }
+.medimart-chatbot-panel { background: var(--mm-panel); border: 1px solid var(--mm-line); box-shadow: 0 20px 50px var(--medimart-shadow); }
+.medimart-chatbot-header { background: var(--mm-navy); }
+.medimart-chatbot-message.is-assistant, .medimart-chatbot-form .form-control { color: var(--mm-ink); background: var(--mm-panel-soft); }
+.medimart-chatbot-message.is-user { color: #fff; background: var(--mm-green); }
+
+/* Keep family cards contained on narrow dashboard layouts. */
+.family-members-layout > [class*="col-"],
+.family-members-layout .row > [class*="col-"] {
+    min-width: 0;
+}
+
+.family-member-card,
+.family-member-form {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.family-member-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.family-member-card-copy {
+    min-width: 0;
+}
+
+.family-member-card-copy h2 {
+    overflow-wrap: anywhere;
+}
+
+.family-member-status {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.invoice-seller-section {
+    padding: 1rem;
+    border: 1px solid var(--mm-line);
+    border-radius: 8px;
+    background: var(--mm-panel-soft);
+}
+
+.invoice-seller-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: .75rem;
+}
+
+.invoice-seller-card {
+    min-width: 0;
+    padding: .85rem;
+    border: 1px solid var(--mm-line);
+    border-radius: 6px;
+    background: var(--mm-panel);
+}
+
+.invoice-seller-card p {
+    overflow-wrap: anywhere;
+}
+
+/* Prevent the catalog grid from pushing the sidebar off-screen at medium widths. */
+.catalog-layout,
+.catalog-results,
+.catalog-product-grid {
+    min-width: 0;
+}
+
+.product-card ::selection {
+    color: var(--mm-ink);
+    background: color-mix(in srgb, var(--mm-green) 32%, transparent);
+}
+
+@media (max-width: 1199.98px) and (min-width: 992px) {
+    .catalog-layout {
+        grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+        gap: 1.25rem;
+    }
+
+    .catalog-product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+[data-bs-theme="dark"] .bg-white,
+[data-bs-theme="dark"] .bg-light,
+[data-bs-theme="dark"] .text-bg-light { color: var(--mm-ink) !important; background: var(--mm-panel) !important; }
+
+@media (max-width: 1399.98px) {
+    .site-navbar .navbar-collapse { min-width: 0; }
+    .site-navbar .search-form { min-width: 10rem; }
+    .site-nav-links { gap: 0 !important; min-width: 0; }
+    .site-nav-links .nav-link, .site-navbar .nav-icon-link { padding-left: .38rem; padding-right: .38rem; }
+    .account-identity { max-width: 5rem; }
+}
+
+@media (max-width: 1199.98px) {
+    .site-navbar-container { gap: .5rem; }
+    .site-navbar .navbar-collapse { padding-top: .8rem; }
+    .site-navbar .search-form { max-width: none; margin: .5rem 0 !important; }
+    .site-nav-links { padding-top: .35rem; border-top: 1px solid var(--mm-line); }
+    .site-nav-links .nav-link, .site-navbar .nav-icon-link { width: 100%; justify-content: flex-start; }
+    .account-avatar-menu { margin-top: .45rem; padding-top: .55rem; border-top: 1px solid var(--mm-line); }
+    .marketplace-hero-grid { grid-template-columns: minmax(0, 1fr); min-height: 30rem; }
+    .marketplace-hero-copy { max-width: 42rem; }
+    .catalog-product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 991.98px) {
+    .home-service-grid, .trust-strip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .home-service-card:nth-child(odd), .trust-strip-grid > div:nth-child(odd) { border-left: 1px solid var(--mm-line); }
+    .home-service-card:nth-child(n+3), .trust-strip-grid > div:nth-child(n+3) { border-top: 1px solid var(--mm-line); }
+    .catalog-layout { grid-template-columns: 1fr; }
+    .filter-panel { position: static; }
+    .auth-shell { grid-template-columns: 1fr; max-width: 640px; }
+    .auth-intro { padding: 2rem; }
+    .dashboard-nav { position: static; }
+    .footer-trust .container { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+@media (max-width: 767.98px) {
+    .site-utility-bar { font-size: .62rem; }
+    .site-navbar-container { min-height: 68px; }
+    .brand-mark, .brand-logo { width: 36px; height: 36px; }
+    .brand-wordmark { font-size: 1rem; }
+    .brand-lockup small { font-size: .5rem; }
+    .marketplace-hero-grid { min-height: 35rem; padding-top: 3rem; padding-bottom: 3rem; }
+    .marketplace-hero h1 { font-size: 2.6rem; }
+    .marketplace-hero-backdrop img { object-position: 70% center; }
+    .marketplace-hero-backdrop span { background: rgba(7, 22, 31, .84); }
+    .hero-search { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); padding: .65rem; }
+    .hero-search input { grid-column: 2; }
+    .hero-search-button { grid-column: 1 / -1; width: 100%; margin: .35rem 0 0 !important; }
+    .section-space, .home-concern-wrap { padding-top: 3rem; padding-bottom: 3rem; }
+    .section-heading { align-items: flex-start; flex-direction: column; gap: .45rem; }
+    .catalog-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+    .product-image { height: 10rem; padding: .8rem; }
+    .product-card-body { padding: .75rem; }
+    .product-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 2rem); gap: .35rem; }
+    .product-card-primary { padding-left: .5rem; padding-right: .5rem; }
+    .prescription-home-band { grid-template-columns: auto minmax(0, 1fr); }
+    .prescription-home-actions { grid-column: 1 / -1; }
+    .prescription-home-actions .btn { flex: 1; }
+    .footer-trust .container { grid-template-columns: 1fr; }
+    .footer-trust > .container > div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .footer-main { padding-top: 2.5rem; padding-bottom: 2rem; }
+    .auth-section { padding: 2rem 0; }
+    .auth-card { padding: 1.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+.product-quick-action {
+    display: inline-grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    flex: 0 0 2.35rem;
+    place-items: center;
+    border: 1px solid var(--medimart-border-strong);
+    border-radius: 0.4rem;
+    color: var(--medimart-muted);
+    background: var(--medimart-surface);
+    text-decoration: none;
+}
+
+.product-quick-action:hover,
+.product-quick-action:focus-visible {
+    border-color: var(--medimart-primary);
+    color: var(--medimart-primary);
+    background: var(--medimart-soft);
+}
+
+@media (max-width: 767.98px) {
+    .home-concern-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .home-concern-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Registration pages: keep the two-column onboarding layout stable across themes and widths. */
+.registration-page {
+    overflow: hidden;
+}
+
+.registration-page > .auth-shell {
+    width: min(100% - 2rem, 78rem);
+    margin-inline: auto;
+}
+
+.registration-page .auth-intro,
+.registration-page .registration-card {
+    min-width: 0;
+}
+
+.registration-page .auth-intro {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--mm-green) 22%, var(--mm-line));
+    box-shadow: 0 1rem 2.5rem var(--medimart-shadow-soft);
+}
+
+.registration-card {
+    width: 100%;
+    overflow: hidden;
+}
+
+.registration-card form,
+.registration-card .row,
+.registration-card [class*="col-"] {
+    min-width: 0;
+}
+
+.registration-card .form-control,
+.registration-card .form-select {
+    width: 100%;
+    min-width: 0;
+}
+
+.registration-card .form-text {
+    color: var(--mm-ink-soft);
+    line-height: 1.45;
+}
+
+.registration-card .password-input-wrap {
+    min-width: 0;
+}
+
+.registration-card .password-toggle {
+    color: var(--mm-ink-soft);
+}
+
+.registration-card .password-toggle:hover,
+.registration-card .password-toggle:focus-visible {
+    color: var(--mm-green);
+    background: var(--mm-soft);
+}
+
+.registration-card .auth-switch {
+    display: grid;
+    gap: .35rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--mm-line);
+    color: var(--mm-ink-soft);
+    line-height: 1.45;
+}
+
+.registration-card .auth-switch a,
+.registration-card > p a {
+    color: var(--mm-green);
+    font-weight: 750;
+}
+
+@media (max-width: 1099.98px) and (min-width: 992px) {
+    .registration-page > .auth-shell,
+    .registration-page > .auth-shell.auth-shell-wide {
+        grid-template-columns: minmax(16rem, .75fr) minmax(25rem, 1fr);
+        gap: 1.75rem;
+    }
+
+    .registration-page .auth-intro,
+    .registration-page .registration-card {
+        padding: 1.75rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .registration-page > .auth-shell {
+        width: min(100% - 1rem, 40rem);
+    }
+
+    .registration-page .auth-intro,
+    .registration-page .registration-card {
+        padding: 1.15rem;
+    }
+
+    .registration-page .auth-intro h1 {
+        max-width: 16ch;
+        font-size: 2rem;
+    }
+
+    .registration-card .btn-lg {
+        min-height: 3rem;
+    }
+}
+
+/* Keep guest account actions readable when the navbar is space-constrained. */
+.site-nav-links > .guest-auth-item {
+    flex: 0 0 auto;
+}
+
+.site-nav-links .nav-login-link,
+.site-nav-links .nav-register-link {
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    min-width: max-content;
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+.site-nav-links .nav-register-link::after {
+    flex: 0 0 auto;
+    margin-left: .15rem;
+}
+
+@media (max-width: 1199.98px) {
+    .site-nav-links .nav-login-link,
+    .site-nav-links .nav-register-link {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .home-concern-wrap {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    .home-concern-rail {
+        grid-template-columns: 1fr;
+    }
+
+    .product-card-primary {
+        font-size: 0.74rem;
+    }
+}
+
+/* Final catalogue theme and search corrections. Keep these overrides last so
+   legacy page styles cannot force dark text or surfaces in light mode. */
+.product-header {
+    padding: 3rem 0 2.35rem;
+    background: var(--mm-panel);
+    border-bottom: 1px solid var(--mm-line);
+}
+
+.product-header h1,
+.product-header p:not(.eyebrow) {
+    color: var(--mm-ink);
+}
+
+.product-header .eyebrow {
+    color: var(--mm-green);
+}
+
+[data-bs-theme="dark"] .product-header {
+    background: var(--mm-navy);
+}
+
+[data-bs-theme="dark"] .product-header h1,
+[data-bs-theme="dark"] .product-header p:not(.eyebrow) {
+    color: #fff;
+}
+
+.catalog-commandbar {
+    position: relative;
+    max-width: 760px;
+    margin-top: 1.35rem;
+}
+
+.catalog-page-search {
+    margin: 0 auto 2rem;
+}
+
+.catalog-commandbar-input {
+    min-height: 3.35rem;
+    overflow: hidden;
+    background: var(--mm-panel);
+    border: 1px solid var(--mm-line-strong);
+    border-radius: 8px;
+    box-shadow: 0 10px 24px var(--medimart-shadow-soft);
+}
+
+.catalog-commandbar-input .input-group-text,
+.catalog-commandbar-input .form-control {
+    color: var(--mm-ink);
+    background: transparent;
+    border: 0;
+}
+
+.catalog-commandbar-input .input-group-text {
+    padding-left: 1rem;
+    color: var(--mm-ink-soft);
+}
+
+.catalog-commandbar-input .form-control {
+    min-width: 0;
+    box-shadow: none;
+}
+
+.catalog-commandbar-input .form-control::placeholder {
+    color: var(--mm-ink-soft);
+    opacity: .82;
+}
+
+.catalog-commandbar-submit {
+    min-width: 10.5rem;
+    margin: .3rem;
+    border-radius: 6px;
+}
+
+.catalog-commandbar .search-suggestions {
+    position: absolute;
+    z-index: 2500;
+    top: calc(100% + .45rem);
+    right: 0;
+    left: 0;
+}
+
+[data-bs-theme="light"] .catalog-container,
+[data-bs-theme="light"] .catalog-container .catalog-results,
+[data-bs-theme="light"] .catalog-container .catalog-results > * {
+    color: var(--mm-ink);
+}
+
+[data-bs-theme="light"] .catalog-container .text-white,
+[data-bs-theme="light"] .catalog-container .text-light {
+    color: var(--mm-ink) !important;
+}
+
+[data-bs-theme="light"] .catalog-container .bg-dark,
+[data-bs-theme="light"] .catalog-container .text-bg-dark {
+    color: var(--mm-ink) !important;
+    background: var(--mm-panel) !important;
+}
+
+[data-bs-theme="light"] .catalog-container .form-control,
+[data-bs-theme="light"] .catalog-container .form-select {
+    color: var(--mm-ink);
+    background-color: var(--mm-panel);
+    border-color: var(--mm-line-strong);
+}
+
+[data-bs-theme="light"] .catalog-container .form-control::placeholder {
+    color: var(--mm-ink-soft);
+}
+
+@media (max-width: 767.98px) {
+    .product-header {
+        padding-top: 2.25rem;
+        padding-bottom: 1.75rem;
+    }
+
+    .catalog-commandbar-input {
+        display: grid;
+        grid-template-columns: 2.2rem minmax(0, 1fr);
+        padding: .35rem;
+    }
+
+    .catalog-commandbar-input .input-group-text {
+        padding-left: .55rem;
+    }
+
+    .catalog-commandbar-submit {
+        grid-column: 1 / -1;
+        width: calc(100% - .6rem);
+        margin: .3rem;
+    }
+}
+
+/* Keep the utility navigation and footer in the active colour theme too. */
+[data-bs-theme="light"] .site-utility-bar {
+    color: var(--mm-ink-soft);
+    background: var(--mm-panel-soft);
+    border-bottom: 1px solid var(--mm-line);
+}
+
+[data-bs-theme="light"] .site-utility-bar a {
+    color: var(--mm-ink-soft);
+}
+
+[data-bs-theme="light"] .site-utility-bar a:hover {
+    color: var(--mm-green);
+}
+
+[data-bs-theme="light"] .site-footer {
+    color: var(--mm-ink);
+    background: var(--mm-panel-soft);
+    border-top-color: var(--mm-line);
+}
+
+[data-bs-theme="light"] .footer-trust {
+    background: #e2f1ed;
+    border-bottom-color: var(--mm-line);
+}
+
+[data-bs-theme="light"] .footer-trust > .container > div {
+    border-right-color: var(--mm-line);
+}
+
+[data-bs-theme="light"] .footer-trust i,
+[data-bs-theme="light"] .footer-main a:hover {
+    color: var(--mm-green);
+}
+
+[data-bs-theme="light"] .footer-brand-link,
+[data-bs-theme="light"] .footer-wordmark,
+[data-bs-theme="light"] .footer-main h2 {
+    color: var(--mm-red);
+}
+
+[data-bs-theme="light"] .footer-main a,
+[data-bs-theme="light"] .footer-contact span,
+[data-bs-theme="light"] .footer-brand p,
+[data-bs-theme="light"] .footer-clinical-note {
+    color: var(--mm-ink-soft);
+}
+
+[data-bs-theme="light"] .footer-bottom {
+    color: var(--mm-ink-soft);
+    background: #dce8e7;
+    border-top-color: var(--mm-line);
+}
+
+[data-bs-theme="light"] .footer-trust > .container > div {
+    border-bottom-color: var(--mm-line);
+}
+
+/* Align the equipment showcase as one composed panel instead of vertically
+   centering the shorter copy column beside the product list. */
+.equipment-showcase {
+    align-items: stretch;
+    gap: 0;
+}
+
+.equipment-showcase-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2.5rem;
+    border-right: 1px solid var(--mm-line);
+}
+
+.equipment-showcase-list {
+    padding: 0 1rem;
+}
+
+[data-bs-theme="light"] .equipment-showcase-copy {
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+}
+
+[data-bs-theme="light"] .equipment-showcase-copy h2 {
+    color: var(--mm-ink);
+}
+
+[data-bs-theme="light"] .equipment-showcase-copy p:not(.eyebrow) {
+    color: var(--mm-ink-soft);
+}
+
+[data-bs-theme="dark"] .equipment-showcase-copy {
+    color: #e8f5f2;
+    background: var(--mm-navy);
+}
+
+[data-bs-theme="dark"] .equipment-showcase-copy h2 {
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .equipment-showcase-copy p:not(.eyebrow) {
+    color: #b9ccce;
+}
+
+@media (max-width: 991.98px) {
+    .equipment-showcase-copy {
+        border-right: 0;
+        border-bottom: 1px solid var(--mm-line);
+        padding: 2rem;
+    }
+
+    .equipment-showcase-list {
+        padding: 0 1rem;
+    }
+}
+
+/* Keep the care-network and health-guide panels visually balanced when the
+   verified-doctor queue is empty. */
+.care-band .row > [class*="col-"] {
+    display: flex;
+    flex-direction: column;
+}
+
+.care-band .section-heading {
+    flex: 0 0 auto;
+}
+
+.care-band .care-list,
+.care-band .article-list {
+    display: flex;
+    min-height: 15.75rem;
+    flex-direction: column;
+    flex: 1 1 auto;
+}
+
+.care-band .care-list-item,
+.care-band .article-list > a {
+    flex: 1 1 0;
+    min-height: 5.25rem;
+    padding: .9rem 1rem;
+}
+
+.care-band .care-list-item > span:nth-child(2),
+.care-band .article-list > a > span {
+    min-width: 0;
+}
+
+.care-band .care-list-item strong,
+.care-band .article-list > a strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.care-band .care-list-item small,
+.care-band .article-list > a p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.care-empty-state {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    padding: 2rem 1.25rem;
+    color: var(--mm-ink-soft);
+    text-align: center;
+}
+
+.care-empty-state strong {
+    max-width: 20rem;
+    color: var(--mm-ink);
+    font-size: .9rem;
+    font-weight: 700;
+}
+
+.care-empty-icon {
+    display: grid;
+    width: 2.8rem;
+    height: 2.8rem;
+    place-items: center;
+    color: var(--mm-green);
+    background: var(--mm-soft);
+    border-radius: 50%;
+    font-size: 1.2rem;
+}
+
+.care-empty-state a {
+    color: var(--mm-green);
+    font-size: .8rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.care-empty-state a:hover {
+    color: var(--mm-teal);
+}
+
+/* The trust statements should read as one continuous strip, without divider
+   lines interrupting the visual rhythm. */
+.trust-strip-grid > div,
+.trust-strip-grid > div:first-child,
+.footer-trust > .container > div,
+.home-service-card,
+.home-service-card:first-child {
+    border-right: 0 !important;
+    border-left: 0 !important;
+}
+
+/* Keep the homepage service and trust bands visually continuous like the
+   footer trust band. Their items should be separated by whitespace, not rules. */
+.home-service-card,
+.trust-strip-grid > div {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+}
+
+.care-band .article-list {
+    margin-top: 0;
+}
+
+.care-band .section-heading.compact h2 {
+    white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+    .care-band .care-list,
+    .care-band .article-list {
+        min-height: 0;
+    }
+
+    .care-band .care-list-item,
+    .care-band .article-list > a {
+        flex: 0 0 auto;
+    }
+
+    .care-band .section-heading.compact h2 {
+        white-space: normal;
+    }
+}
+
+/* The hero sits on a photographic dark surface in both themes. Keep its
+   secondary action readable instead of inheriting a pale light-mode fill. */
+.marketplace-hero .hero-actions .btn-outline-success {
+    color: #fff;
+    background: rgba(7, 22, 31, .5);
+    border-color: rgba(255, 255, 255, .72);
+}
+
+.marketplace-hero .hero-actions .btn-outline-success:hover,
+.marketplace-hero .hero-actions .btn-outline-success:focus-visible {
+    color: #fff;
+    background: var(--mm-green);
+    border-color: var(--mm-green);
+}
+
+.return-policy-note {
+    padding: .85rem 1rem;
+    border: 1px solid var(--mm-line);
+    border-radius: 6px;
+    background: var(--mm-panel-soft);
+}
+
+.return-request-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .7rem 1.2rem;
+    color: var(--mm-ink-soft);
+    font-size: .8rem;
+}
+
+.return-request-meta strong {
+    display: block;
+    color: var(--mm-ink);
+    font-size: .68rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+/* Keep product actions inside narrow four-column cards. */
+.product-card-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(3, 2.2rem);
+    gap: .35rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.product-card-actions form {
+    display: contents;
+}
+
+.product-card-primary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-card-actions .product-quick-action {
+    width: 100%;
+    max-width: 2.2rem;
+    min-width: 0;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 767.98px) {
+    .product-card-actions {
+        grid-template-columns: minmax(0, 1fr) repeat(3, 2rem);
+    }
+
+    .product-card-actions .product-quick-action {
+        max-width: 2rem;
+    }
+
+    .product-card-primary {
+        padding-right: .4rem;
+        padding-left: .4rem;
+        font-size: .72rem;
+    }
+}
+
+/* The hero headline should feel confident without overpowering the page. */
+.marketplace-hero h1 {
+    max-width: 15ch;
+    font-size: clamp(2.15rem, 4vw, 3.6rem);
+    font-weight: 600;
+    letter-spacing: -.015em;
+    line-height: 1.08;
+}
+
+@media (max-width: 767.98px) {
+    .marketplace-hero h1 {
+        font-size: 2.2rem;
+    }
+}
+
+/* Keep authentication introductions aligned with the selected colour theme. */
+[data-bs-theme="light"] .auth-intro {
+    color: var(--mm-ink);
+    background: var(--mm-panel);
+    border: 1px solid var(--mm-line);
+}
+
+[data-bs-theme="light"] .auth-intro h1,
+[data-bs-theme="light"] .auth-brand {
+    color: var(--mm-ink);
+}
+
+[data-bs-theme="light"] .auth-intro > p:not(.eyebrow),
+[data-bs-theme="light"] .auth-assurance-list small {
+    color: var(--mm-ink-soft);
+}
+
+[data-bs-theme="light"] .auth-assurance-list li {
+    border-top-color: var(--mm-line);
 }

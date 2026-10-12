@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Prescription, PrescriptionItem
+from .models import Prescription, PrescriptionItem, PrescriptionReview
 
 
 class PrescriptionItemInline(admin.TabularInline):
@@ -14,15 +14,25 @@ class PrescriptionAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "user",
+        "patient_name",
         "doctor_name",
         "prescription_date",
         "status",
+        "scan_status",
         "reviewed_by",
         "created_at",
     )
-    list_filter = ("status", "created_at", "prescription_date")
-    search_fields = ("user__username", "user__email", "doctor_name", "notes")
-    readonly_fields = ("created_at", "updated_at", "reviewed_at")
+    list_filter = ("status", "scan_status", "customer_consent", "created_at", "prescription_date")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "patient_name",
+        "doctor_name",
+        "doctor_registration_number",
+        "requested_medicines",
+        "notes",
+    )
+    readonly_fields = ("created_at", "updated_at", "reviewed_at", "scan_completed_at", "scan_summary", "scan_flags")
     actions = ("mark_under_review", "approve_prescriptions", "reject_prescriptions")
     inlines = (PrescriptionItemInline,)
 
@@ -52,3 +62,11 @@ class PrescriptionAdmin(admin.ModelAdmin):
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
+
+
+@admin.register(PrescriptionReview)
+class PrescriptionReviewAdmin(admin.ModelAdmin):
+    list_display = ("prescription", "reviewer", "decision", "pharmacy_license_number", "created_at")
+    list_filter = ("decision", "created_at")
+    search_fields = ("prescription__patient_name", "prescription__user__username", "reviewer__username", "pharmacy_license_number")
+    readonly_fields = ("prescription", "reviewer", "decision", "pharmacy_license_number", "notes", "validation_snapshot", "created_at")

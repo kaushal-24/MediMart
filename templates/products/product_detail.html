@@ -29,7 +29,15 @@
                     {% if product.requires_prescription %}
                         <span class="badge text-bg-warning">Prescription required</span>
                     {% endif %}
-                    <span class="badge text-bg-success">{{ product.stock_status }}</span>
+                    {% if product.cold_chain_required %}
+                        <span class="badge text-bg-info">Temperature controlled</span>
+                    {% endif %}
+                    {% if product.safety_classification == "controlled" %}
+                        <span class="badge text-bg-danger">Restricted medicine</span>
+                    {% endif %}
+                    <span class="badge {% if not product.available_offer_stock %}text-bg-danger{% elif product.available_offer_stock <= 5 %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                        {% if not product.available_offer_stock %}Out of stock{% elif product.available_offer_stock <= 5 %}Low stock{% else %}In stock{% endif %}
+                    </span>
                     {% if review_summary.total_reviews %}
                         <span class="badge text-bg-primary">
                             {{ review_summary.average_rating|floatformat:1 }} ★ · {{ review_summary.total_reviews }} review{{ review_summary.total_reviews|pluralize }}
@@ -45,13 +53,40 @@
                     {% endif %}
                 </div>
 
+                {% if active_variants %}
+                    <div class="border rounded-3 p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h2 class="h6 fw-bold mb-0">Available variants</h2>
+                            <span class="small text-secondary">Choose pack or strength</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Variant</th><th>Price</th><th>Availability</th></tr></thead>
+                                <tbody>
+                                    {% for variant in active_variants %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ variant.pack_size|default:variant.sku }}</strong>
+                                                {% if variant.strength %}<div class="small text-secondary">{{ variant.strength }}</div>{% endif %}
+                                                {% if variant.dosage_form or variant.flavour %}<div class="small text-secondary">{{ variant.dosage_form }}{% if variant.flavour %} · {{ variant.flavour }}{% endif %}</div>{% endif %}
+                                            </td>
+                                            <td><strong>₹{{ variant.selling_price }}</strong>{% if variant.mrp > variant.selling_price %}<div class="small text-secondary text-decoration-line-through">₹{{ variant.mrp }}</div>{% endif %}</td>
+                                            <td>{% if variant.stock_quantity %}<span class="text-success">Available</span>{% else %}<span class="text-secondary">Unavailable</span>{% endif %}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {% if product.short_description %}
                     <p class="lead text-secondary">{{ product.short_description }}</p>
                 {% endif %}
 
                 <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
-                    {% if lowest_offer %}
-                        <form method="post" action="{% url 'cart:add_to_cart' lowest_offer.pk %}">
+                    {% if lowest_offer and product.available_offer_stock %}
+                        <form data-ajax-form="cart" method="post" action="{% url 'cart:add_to_cart' lowest_offer.pk %}">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
                             <button class="btn btn-success btn-lg w-100" type="submit">
@@ -59,9 +94,18 @@
                             </button>
                         </form>
                     {% else %}
-                        <button class="btn btn-success btn-lg" type="button" disabled>
-                            <i class="bi bi-cart-plus me-2"></i>No Seller Available
-                        </button>
+                        {% if user.is_authenticated %}
+                            <form data-ajax-form="stock-alert" method="post" action="{% url 'products:stock_alert_create' product.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-warning btn-lg" type="submit">
+                                    <i class="bi bi-bell me-2"></i>{% if stock_alert %}Stock alert enabled{% else %}Notify me when available{% endif %}
+                                </button>
+                            </form>
+                        {% else %}
+                            <a class="btn btn-outline-warning btn-lg" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">
+                                <i class="bi bi-bell me-2"></i>Sign in for stock alert
+                            </a>
+                        {% endif %}
                     {% endif %}
                     <a class="btn btn-outline-success btn-lg" href="{% url 'products:price_comparison' product.slug %}">
                         <i class="bi bi-bar-chart me-2"></i>Compare Sellers
@@ -73,7 +117,7 @@
                             <i class="bi bi-columns-gap me-2"></i>Compare Product
                         </button>
                     </form>
-                    <form method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
+                    <form data-ajax-form="wishlist" method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.path }}">
                         <button class="btn btn-outline-primary btn-lg w-100" type="submit">
@@ -81,6 +125,21 @@
                         </button>
                     </form>
                 </div>
+
+                {% if user.is_authenticated and product.selling_price %}
+                    <form class="price-alert-form d-flex flex-wrap align-items-end gap-2 mb-3" data-ajax-form="price-alert" method="post" action="{% url 'products:price_alert_create' product.pk %}">
+                        {% csrf_token %}
+                        <div>
+                            <label class="form-label small mb-1" for="priceAlertTarget">Notify me when price reaches</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">₹</span>
+                                <input id="priceAlertTarget" class="form-control" name="target_price" type="number" min="0" max="{{ product.selling_price|floatformat:2 }}" step="0.01" value="{% if price_alert %}{{ price_alert.target_price }}{% endif %}" placeholder="e.g. {{ product.selling_price|floatformat:0|add:'-1' }}" required>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-warning btn-sm" type="submit"><i class="bi bi-bell me-1"></i>{% if price_alert %}Update price alert{% else %}Track price{% endif %}</button>
+                    </form>
+                    <div class="small text-secondary mb-3" data-price-alert-message>{% if price_alert %}Price alert active for this product.{% endif %}</div>
+                {% endif %}
 
                 <p class="small text-secondary mb-0">
                     Cart uses the selected seller offer so price and stock stay tied to the vendor.
@@ -93,6 +152,80 @@
         </div>
     </div>
 </section>
+
+{% with clinical=product.clinical_profile %}
+    {% if clinical and clinical.review_status == "published" %}
+        <section class="container pb-5">
+            <div class="content-panel">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                    <div>
+                        <p class="eyebrow mb-1">Clinical information</p>
+                        <h2 class="h4 fw-bold mb-1">About this medicine</h2>
+                        <p class="text-secondary mb-0">Reviewed information for safe, informed use.</p>
+                    </div>
+                    <span class="badge text-bg-success align-self-md-start"><i class="bi bi-shield-check me-1"></i>Clinically reviewed</span>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <dl class="product-meta mb-0">
+                            {% if clinical.active_ingredient %}<dt>Active ingredient</dt><dd>{{ clinical.active_ingredient }}</dd>{% endif %}
+                            {% if clinical.strength %}<dt>Strength</dt><dd>{{ clinical.strength }}</dd>{% endif %}
+                            {% if clinical.dosage_form %}<dt>Dosage form</dt><dd>{{ clinical.dosage_form }}</dd>{% endif %}
+                            {% if clinical.route %}<dt>Route</dt><dd>{{ clinical.route }}</dd>{% endif %}
+                            {% if clinical.therapeutic_class %}<dt>Therapeutic class</dt><dd>{{ clinical.therapeutic_class }}</dd>{% endif %}
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        {% if clinical.uses %}<h3 class="h6 fw-bold">Uses</h3><p>{{ clinical.uses|linebreaksbr }}</p>{% endif %}
+                        {% if clinical.benefits %}<h3 class="h6 fw-bold">Benefits</h3><p>{{ clinical.benefits|linebreaksbr }}</p>{% endif %}
+                        {% if clinical.how_it_works %}<h3 class="h6 fw-bold">How it works</h3><p>{{ clinical.how_it_works|linebreaksbr }}</p>{% endif %}
+                    </div>
+                </div>
+                {% if clinical.dosage_information or clinical.onset_information or clinical.duration_information or clinical.quick_tips or clinical.severity_level %}
+                    <div class="clinical-use-panel mt-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div>
+                                <h3 class="h6 fw-bold mb-1">Use information</h3>
+                                <p class="small text-secondary mb-3">General, clinically reviewed information. Follow your prescription or healthcare professional's directions.</p>
+                            </div>
+                            {% if clinical.severity_level %}<span class="badge {% if clinical.severity_level == 'urgent' %}text-bg-danger{% elif clinical.severity_level == 'important' %}text-bg-warning{% else %}text-bg-light{% endif %}">{{ clinical.get_severity_level_display }}</span>{% endif %}
+                        </div>
+                        <div class="row g-3">
+                            {% if clinical.dosage_information %}<div class="col-md-6"><strong class="small d-block">Dosage information</strong><p class="mb-0">{{ clinical.dosage_information|linebreaksbr }}</p></div>{% endif %}
+                            {% if clinical.onset_information %}<div class="col-md-3"><strong class="small d-block">Typical onset</strong><p class="mb-0">{{ clinical.onset_information }}</p></div>{% endif %}
+                            {% if clinical.duration_information %}<div class="col-md-3"><strong class="small d-block">Typical duration</strong><p class="mb-0">{{ clinical.duration_information }}</p></div>{% endif %}
+                            {% if clinical.quick_tips %}<div class="col-12"><strong class="small d-block">Quick tips</strong><p class="mb-0">{{ clinical.quick_tips|linebreaksbr }}</p></div>{% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if clinical.side_effects or clinical.safety_advice or clinical.interaction_summary %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <h3 class="h6 fw-bold">Safety information</h3>
+                        {% if clinical.side_effects %}<p><strong>Possible side effects:</strong> {{ clinical.side_effects|linebreaksbr }}</p>{% endif %}
+                        {% if clinical.safety_advice %}<p><strong>Safety advice:</strong> {{ clinical.safety_advice|linebreaksbr }}</p>{% endif %}
+                        {% if clinical.interaction_summary %}<p class="mb-0"><strong>Interactions:</strong> {{ clinical.interaction_summary|linebreaksbr }}</p>{% endif %}
+                    </div>
+                {% endif %}
+                {% if clinical.contraindications or clinical.allergy_warnings or clinical.missed_dose or clinical.overdose or clinical.child_senior_advice %}
+                    <div class="row g-3 mt-1">
+                        {% if clinical.contraindications %}<div class="col-md-6"><h3 class="h6 fw-bold">Do not use without medical advice</h3><p>{{ clinical.contraindications|linebreaksbr }}</p></div>{% endif %}
+                        {% if clinical.allergy_warnings %}<div class="col-md-6"><h3 class="h6 fw-bold">Allergy warnings</h3><p>{{ clinical.allergy_warnings|linebreaksbr }}</p></div>{% endif %}
+                        {% if clinical.missed_dose %}<div class="col-md-6"><h3 class="h6 fw-bold">Missed dose</h3><p>{{ clinical.missed_dose|linebreaksbr }}</p></div>{% endif %}
+                        {% if clinical.overdose %}<div class="col-md-6"><h3 class="h6 fw-bold">Overdose</h3><p>{{ clinical.overdose|linebreaksbr }}</p></div>{% endif %}
+                        {% if clinical.child_senior_advice %}<div class="col-12"><h3 class="h6 fw-bold">Child and senior guidance</h3><p>{{ clinical.child_senior_advice|linebreaksbr }}</p></div>{% endif %}
+                    </div>
+                {% endif %}
+                {% if clinical.content_sources or clinical.source_url or clinical.last_reviewed_at %}
+                    <p class="small text-secondary mt-3 mb-0">
+                        Reviewed{% if clinical.last_reviewed_at %} {{ clinical.last_reviewed_at|date:"d M Y" }}{% endif %}.
+                        {% if clinical.content_sources %} Sources: {{ clinical.content_sources }}{% endif %}
+                        {% if clinical.source_url %} <a href="{{ clinical.source_url }}" rel="noopener noreferrer" target="_blank">View source</a>{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+{% endwith %}
 
 <section class="container pb-5">
     <div class="content-panel">
@@ -140,7 +273,7 @@
                                 <td>{{ offer.stock_status }}</td>
                                 <td>
                                     {% if offer.stock_quantity %}
-                                        <form method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
+                                        <form data-ajax-form="cart" method="post" action="{% url 'cart:add_to_cart' offer.pk %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
                                             <button class="btn btn-sm btn-outline-success" type="submit">Add</button>
@@ -269,7 +402,27 @@
                                     <span class="small text-secondary">{{ review.created_at|date:"M d, Y" }}</span>
                                 </div>
                                 <p class="text-secondary mt-2 mb-2">{{ review.comment }}</p>
-                                <span class="small text-secondary">By {{ review.user.first_name|default:review.user.username }}</span>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="small text-secondary">By {{ review.user.first_name|default:review.user.username }} · <span class="badge text-bg-success-subtle">Verified buyer</span></span>
+                                    <form method="post" action="{% url 'reviews:helpful_vote' review.pk %}" data-ajax-form="review-helpful" class="ms-auto">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="is_helpful" value="true">
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-hand-thumbs-up me-1"></i>Helpful ({{ review.helpful_count|default:0 }})</button>
+                                    </form>
+                                    {% if user.is_authenticated %}
+                                        <form method="post" action="{% url 'reviews:abuse_report' review.pk %}" data-ajax-form="review-report">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="reason" value="Content needs review">
+                                            <button class="btn btn-sm btn-link text-secondary" type="submit">Report</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                                {% if review.seller_reply and review.seller_reply.is_published %}
+                                    <div class="mt-3 ps-3 border-start border-success">
+                                        <strong class="small">Seller response</strong>
+                                        <p class="small text-secondary mb-0">{{ review.seller_reply.reply }}</p>
+                                    </div>
+                                {% endif %}
                             </article>
                         {% endfor %}
                     </div>
@@ -285,6 +438,53 @@
     </div>
 </section>
 
+<section class="container pb-5">
+    <div class="content-panel">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+            <div>
+                <p class="eyebrow mb-1">Customer questions</p>
+                <h2 class="h4 fw-bold mb-1">Questions & answers</h2>
+                <p class="text-secondary mb-0">Questions are reviewed before answers are published.</p>
+            </div>
+        </div>
+        {% if user.is_authenticated %}
+            <form method="post" action="{% url 'products:product_question_create' product.pk %}" data-ajax-form="product-question" class="row g-2 mb-4">
+                {% csrf_token %}
+                <div class="col-md-9"><label class="visually-hidden" for="productQuestion">Ask a question</label><input id="productQuestion" name="question" class="form-control" maxlength="2000" placeholder="Ask about this product" required></div>
+                <div class="col-md-3"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-chat-left-text me-1"></i>Ask question</button></div>
+            </form>
+        {% endif %}
+        {% if approved_questions %}
+            <div class="vstack gap-3">
+                {% for item in approved_questions %}
+                    <div class="border-bottom pb-3">
+                        <strong><i class="bi bi-question-circle text-success me-2"></i>{{ item.question }}</strong>
+                        <p class="mb-1 mt-2 text-secondary"><strong class="text-body">Answer:</strong> {{ item.answer }}</p>
+                        <span class="small text-secondary">Answered by MediMart care team</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state"><i class="bi bi-chat-left-text"></i><p class="mb-0">No answered questions yet. Ask the first question about this product.</p></div>
+        {% endif %}
+    </div>
+</section>
+
+{% if approved_substitutes %}
+    <section class="container pb-5">
+        <div class="content-panel">
+            <p class="eyebrow mb-1">Pharmacist reviewed</p>
+            <h2 class="h4 fw-bold mb-1">Approved alternatives</h2>
+            <p class="text-secondary">These alternatives are catalogue suggestions only. A pharmacist or prescriber should confirm any substitution.</p>
+            <div class="row g-3">
+                {% for link in approved_substitutes %}
+                    <div class="col-md-6"><a class="text-decoration-none" href="{{ link.substitute.get_absolute_url }}"><div class="border rounded-3 p-3 h-100"><strong>{{ link.substitute.name }}</strong><div class="small text-secondary mt-1">{{ link.rationale|default:"Pharmacist-reviewed alternative" }}</div></div></a></div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+
 {% if related_products %}
     <section class="container pb-5">
         <h2 class="h4 fw-bold mb-3">Related Products</h2>
@@ -292,6 +492,25 @@
             {% for product in related_products %}
                 <div class="col-sm-6 col-lg-3">
                     {% include "products/product_card.html" with product=product %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+{% if recently_viewed_products %}
+    <section class="container pb-5">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow mb-2">Your browsing history</p>
+                <h2>Recently viewed products</h2>
+            </div>
+            <a href="{% url 'products:product_list' %}">Browse all products <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row g-3">
+            {% for recent_product in recently_viewed_products %}
+                <div class="col-sm-6 col-lg-3">
+                    {% include "products/product_card.html" with product=recent_product %}
                 </div>
             {% endfor %}
         </div>

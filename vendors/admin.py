@@ -60,7 +60,7 @@ class BusinessLicenseAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "license_type", "verification_source", "state")
     search_fields = ("license_number", "legal_name", "vendor__business_name")
-    readonly_fields = ("registry_payload", "registry_checked_at", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(VendorProduct)

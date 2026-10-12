@@ -7,11 +7,14 @@
     <div class="container">
         <p class="eyebrow mb-2">Delivery operations</p>
         <h1 class="h2 fw-bold mb-2">Delivery Dashboard</h1>
-        <p class="text-secondary mb-0">Track orders assigned to this delivery account.</p>
+        <p class="text-secondary mb-0">Track assigned orders from warehouse dispatch through verified delivery.</p>
     </div>
 </section>
 
 <section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
     <div class="row g-3 mb-4">
         <div class="col-md-3"><div class="metric-card"><span>Active Orders</span><strong>{{ stats.assigned_orders }}</strong></div></div>
         <div class="col-md-3"><div class="metric-card"><span>Out For Delivery</span><strong>{{ stats.out_for_delivery }}</strong></div></div>
@@ -30,7 +33,7 @@
                             <th>Customer</th>
                             <th>Delivery details</th>
                             <th>Status</th>
-                            <th>Update</th>
+                            <th>Next step</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -48,18 +51,24 @@
                                 <td>{{ order.get_order_status_display }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        {% if order.order_status != "out_for_delivery" %}
+                                        {% if order.order_status == "shipped" %}
                                             <form method="post" action="{% url 'dashboards:update_delivery_order_status' order.pk %}">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="status" value="out_for_delivery">
                                                 <button class="btn btn-sm btn-outline-primary" type="submit">Out for Delivery</button>
                                             </form>
                                         {% endif %}
-                                        {% if order.order_status == "out_for_delivery" %}<form method="post" action="{% url 'dashboards:update_delivery_order_status' order.pk %}">
+                                        {% if order.order_status == "out_for_delivery" %}<form method="post" enctype="multipart/form-data" action="{% url 'dashboards:update_delivery_order_status' order.pk %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="status" value="delivered">
-                                            <button class="btn btn-sm btn-success" type="submit">Delivered</button>
+                                            <input class="form-control form-control-sm mb-1" name="delivery_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Customer OTP" required aria-label="Customer delivery OTP">
+                                            <input class="form-control form-control-sm mb-1" name="recipient_name" maxlength="120" placeholder="Recipient name" aria-label="Recipient name">
+                                            <input class="form-control form-control-sm mb-1" name="delivery_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Delivery proof">
+                                            <button class="btn btn-sm btn-success" type="submit">Verify &amp; deliver</button>
                                         </form>{% endif %}
+                                        {% if order.order_status == "confirmed" or order.order_status == "processing" or order.order_status == "packed" %}
+                                            <span class="small text-secondary">Waiting for warehouse dispatch</span>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -71,9 +80,11 @@
             <div class="empty-state">
                 <i class="bi bi-truck"></i>
                 <h2 class="h5 fw-semibold">No active delivery orders</h2>
-                <p>Orders marked shipped or out for delivery will appear here.</p>
+                <p>Assigned orders will appear here from warehouse dispatch through verified delivery.</p>
             </div>
         {% endif %}
+    </div>
+        </div>
     </div>
 </section>
 {% endblock %}

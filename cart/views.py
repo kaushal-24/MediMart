@@ -1,10 +1,17 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from orders.forms import CheckoutForm
+from orders.models import Coupon, CouponUsage
 from products.models import Product
 from prescriptions.views import user_has_approved_prescription
 from vendors.models import VendorProduct
@@ -20,6 +27,106 @@ def get_or_create_cart(user):
 def get_or_create_wishlist(user):
     wishlist, created = Wishlist.objects.get_or_create(user=user)
     return wishlist
+
+
+def _is_async_request(request):
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", "").lower()
+
+
+def _flash(request, level, message):
+    if not _is_async_request(request):
+        getattr(messages, level)(request, message)
+
+
+def _valid_cart_coupon(code, user, subtotal):
+    if not code:
+        return None, ""
+    try:
+        coupon = Coupon.objects.get(code=code.strip().upper(), is_active=True)
+    except Coupon.DoesNotExist:
+        return None, "Coupon code is not valid."
+    today = timezone.localdate()
+    if coupon.start_date > today or coupon.end_date < today:
+        return None, "Coupon is not active today."
+    if coupon.usages.count() >= coupon.usage_limit:
+        return None, "Coupon usage limit has been reached."
+    if subtotal < coupon.minimum_order:
+        return None, f"Minimum order for this coupon is ₹{coupon.minimum_order}."
+    if CouponUsage.objects.filter(coupon=coupon, user=user).exists():
+        return None, "You have already used this coupon."
+    return coupon, ""
+
+
+def _cart_context(user, coupon_code=""):
+    cart = get_or_create_cart(user)
+    items = list(
+        cart.items.select_related(
+            "vendor_product",
+            "vendor_product__product",
+            "vendor_product__vendor",
+        )
+    )
+    subtotal = sum(item.total_price for item in items)
+    coupon, coupon_error = _valid_cart_coupon(coupon_code, user, subtotal)
+    discount = coupon.calculate_discount(subtotal) if coupon else Decimal("0.00")
+    delivery_fee = (
+        Decimal("0.00")
+        if subtotal == 0 or settings.FREE_DELIVERY
+        else Decimal(str(settings.DELIVERY_FEE))
+    )
+    return {
+        "cart": cart,
+        "items": items,
+        "subtotal": subtotal,
+        "discount": discount,
+        "delivery_fee": delivery_fee,
+        "final_total": subtotal - discount + delivery_fee,
+        "cart_item_count": sum(item.quantity for item in items),
+        "coupon_code": coupon.code if coupon else coupon_code.strip().upper(),
+        "coupon_error": coupon_error,
+        "applied_coupon": coupon,
+        "checkout_form": CheckoutForm(
+            user=user,
+            initial={"coupon_code": coupon.code if coupon else ""},
+        ),
+    }
+
+
+def _navigation_counts(user):
+    cart = Cart.objects.filter(user=user).first()
+    wishlist = Wishlist.objects.filter(user=user).first()
+    return {
+        "cart_item_count": sum(item.quantity for item in cart.items.all()) if cart else 0,
+        "saved_item_count": wishlist.items.count() if wishlist else 0,
+    }
+
+
+def _async_action_response(
+    request,
+    message,
+    *,
+    level="success",
+    status=200,
+    redirect_name="cart:cart_detail",
+    redirect_url=None,
+    include_cart=False,
+):
+    if not _is_async_request(request):
+        return redirect(redirect_url or redirect_name)
+
+    payload = {
+        "ok": status < 400,
+        "message": message,
+        "level": level,
+        **_navigation_counts(request.user),
+    }
+    if redirect_url:
+        payload["redirect_url"] = redirect_url
+    if include_cart:
+        context = _cart_context(request.user, request.session.get("cart_coupon_code", ""))
+        payload["html"] = render_to_string("cart/_cart_content.html", context, request=request)
+        payload["cart_total"] = str(context["final_total"])
+    return JsonResponse(payload, status=status)
 
 
 def get_approved_offer_or_404(offer_id):
@@ -65,29 +172,35 @@ def get_post_quantity(request, default=1):
 
 @login_required
 def cart_detail(request):
-    cart = get_or_create_cart(request.user)
-    items = cart.items.select_related(
-        "vendor_product",
-        "vendor_product__product",
-        "vendor_product__vendor",
+    requested_coupon = request.GET.get("coupon_code")
+    coupon_code = (
+        requested_coupon
+        if requested_coupon is not None
+        else request.session.get("cart_coupon_code", "")
     )
-    subtotal = sum(item.total_price for item in items)
-    discount = Decimal("0.00")
-    delivery_fee = Decimal("0.00") if subtotal == 0 else Decimal("49.00")
-    final_total = subtotal - discount + delivery_fee
-
-    return render(
-        request,
-        "cart/cart_detail.html",
-        {
-            "cart": cart,
-            "items": items,
-            "subtotal": subtotal,
-            "discount": discount,
-            "delivery_fee": delivery_fee,
-            "final_total": final_total,
-        },
-    )
+    context = _cart_context(request.user, coupon_code)
+    if requested_coupon is not None:
+        if context["applied_coupon"]:
+            request.session["cart_coupon_code"] = context["applied_coupon"].code
+        else:
+            request.session.pop("cart_coupon_code", None)
+    if _is_async_request(request):
+        return JsonResponse(
+            {
+                "ok": not bool(context["coupon_error"]),
+                "message": context["coupon_error"] or (
+                    f"Coupon {context['applied_coupon'].code} applied."
+                    if context["applied_coupon"]
+                    else "Coupon removed."
+                ),
+                "level": "danger" if context["coupon_error"] else "success",
+                "html": render_to_string("cart/_cart_content.html", context, request=request),
+                "cart_total": str(context["final_total"]),
+                **_navigation_counts(request.user),
+            },
+            status=400 if context["coupon_error"] else 200,
+        )
+    return render(request, "cart/cart_detail.html", context)
 
 
 @login_required
@@ -97,21 +210,38 @@ def add_to_cart(request, offer_id):
     quantity = get_post_quantity(request)
 
     if offer.stock_quantity == 0:
-        messages.error(request, "This seller offer is currently out of stock.")
+        _flash(request, "error", "This seller offer is currently out of stock.")
+        return _async_action_response(
+            request,
+            "This seller offer is currently out of stock.",
+            level="danger",
+            status=400,
+            redirect_url=request.POST.get("next") or reverse("cart:cart_detail"),
+        )
     elif prescription_is_required_without_approval(request.user, offer, quantity):
-        messages.error(
+        return _async_action_response(
             request,
             "This product requires an approved prescription before it can be added to cart.",
+            level="warning",
+            status=400,
+            redirect_url=reverse("prescriptions:prescription_upload"),
         )
-        return redirect("prescriptions:prescription_upload")
     else:
         item = add_offer_to_user_cart(request.user, offer, quantity)
         if item.quantity == offer.stock_quantity:
-            messages.warning(request, "Cart quantity was limited to available stock.")
+            message = "Cart quantity was limited to available stock."
+            level = "warning"
         else:
-            messages.success(request, "Product added to your cart.")
+            message = "Product added to your cart."
+            level = "success"
+        _flash(request, level, message)
 
-    return redirect(request.POST.get("next") or "cart:cart_detail")
+    return _async_action_response(
+        request,
+        message,
+        level=level,
+        redirect_url=request.POST.get("next") or reverse("cart:cart_detail"),
+    )
 
 
 @login_required
@@ -119,21 +249,24 @@ def add_to_cart(request, offer_id):
 def update_cart_item(request, item_id):
     cart = get_or_create_cart(request.user)
     item = get_object_or_404(CartItem, pk=item_id, cart=cart)
-    quantity = get_post_quantity(request)
+    requested_quantity = get_post_quantity(request)
+    quantity = requested_quantity
 
     if quantity > item.vendor_product.stock_quantity:
         quantity = item.vendor_product.stock_quantity
-        messages.warning(request, "Quantity was limited to available stock.")
 
     if quantity <= 0:
         item.delete()
-        messages.success(request, "Item removed from cart.")
+        message = "Item removed from cart."
+        level = "success"
     else:
         item.quantity = quantity
         item.save()
-        messages.success(request, "Cart updated.")
+        message = "Quantity was limited to available stock." if quantity != requested_quantity else "Cart updated."
+        level = "warning" if quantity != requested_quantity else "success"
+    _flash(request, level, message)
 
-    return redirect("cart:cart_detail")
+    return _async_action_response(request, message, level=level, include_cart=True)
 
 
 @login_required
@@ -142,8 +275,8 @@ def remove_cart_item(request, item_id):
     cart = get_or_create_cart(request.user)
     item = get_object_or_404(CartItem, pk=item_id, cart=cart)
     item.delete()
-    messages.success(request, "Item removed from cart.")
-    return redirect("cart:cart_detail")
+    _flash(request, "success", "Item removed from cart.")
+    return _async_action_response(request, "Item removed from cart.", include_cart=True)
 
 
 @login_required
@@ -168,11 +301,19 @@ def add_to_wishlist(request, product_id):
     item, created = WishlistItem.objects.get_or_create(wishlist=wishlist, product=product)
 
     if created:
-        messages.success(request, "Product saved for later.")
+        message = "Product saved for later."
+        level = "success"
     else:
-        messages.info(request, "Product is already saved for later.")
+        message = "Product is already saved for later."
+        level = "info"
+    _flash(request, level, message)
 
-    return redirect(request.POST.get("next") or "cart:wishlist_detail")
+    return _async_action_response(
+        request,
+        message,
+        level=level,
+        redirect_url=request.POST.get("next") or reverse("cart:wishlist_detail"),
+    )
 
 
 @login_required

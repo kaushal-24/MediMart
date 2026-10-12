@@ -53,8 +53,9 @@ class Command(BaseCommand):
             "/blog/",
             f"/blog/{data['post'].slug}/",
             "/doctors/",
-            f"/doctors/{data['doctor'].pk}/",
         ]
+        if data.get("doctor"):
+            public_paths.append(f"/doctors/{data['doctor'].pk}/")
         self.check_paths(client, "public", public_paths, failures)
 
         self.login(client, usernames["customer"], password)
@@ -73,8 +74,11 @@ class Command(BaseCommand):
             "/notifications/",
             "/support/",
             "/support/create/",
+            "/healthcare/",
+            "/labs/",
+            "/consultations/",
         ]
-        self.check_paths(client, "customer", customer_paths, failures)
+        self.check_paths(client, "customer", customer_paths, failures, accepted_statuses={"/checkout/": {200, 302}})
         client.logout()
 
         self.login(client, usernames["vendor"], password)
@@ -82,9 +86,12 @@ class Command(BaseCommand):
         self.check_paths(client, "vendor", vendor_paths, failures)
         client.logout()
 
-        self.login(client, usernames["doctor"], password)
-        self.check_paths(client, "doctor", ["/doctor-dashboard/"], failures)
-        client.logout()
+        if data.get("doctor") and get_user_model().objects.filter(username=usernames["doctor"], is_active=True).exists():
+            self.login(client, usernames["doctor"], password)
+            self.check_paths(client, "doctor", ["/doctor-dashboard/"], failures)
+            client.logout()
+        else:
+            self.stdout.write(self.style.WARNING("doctor    skipped: no existing verified doctor demo account"))
 
         self.login(client, usernames["staff"], password)
         staff_paths = [
@@ -116,11 +123,12 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("MediMart smoke check passed."))
 
-    def check_paths(self, client, label, paths, failures):
+    def check_paths(self, client, label, paths, failures, accepted_statuses=None):
+        accepted_statuses = accepted_statuses or {}
         for path in paths:
             response = client.get(path)
             self.stdout.write(f"{label:8} {path:55} {response.status_code}")
-            if response.status_code != 200:
+            if response.status_code not in accepted_statuses.get(path, {200}):
                 failures.append((label, path, response.status_code))
 
     def login(self, client, username, password):
@@ -297,7 +305,10 @@ class Command(BaseCommand):
             "doctor": DoctorProfile.objects.filter(is_verified=True).first(),
             "post": BlogPost.objects.filter(status=BlogPost.Status.PUBLISHED).first(),
         }
-        missing = [name for name, value in data.items() if value is None]
+        # Existing installations may have real customer/vendor data without a
+        # seeded doctor. Keep the smoke check useful while still testing every
+        # role that is actually present.
+        missing = [name for name, value in data.items() if value is None and name != "doctor"]
         if missing:
             raise CommandError(
                 "Missing existing demo data for: "

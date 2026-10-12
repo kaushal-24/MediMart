@@ -4,8 +4,11 @@
 
 {% block content %}
 <section class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
             <div class="content-panel">
                 <p class="eyebrow mb-2">Vendor inventory</p>
                 <h1 class="h3 fw-bold mb-4">{{ page_title }}</h1>
@@ -49,6 +52,8 @@
                         <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}">Cancel</a>
                     </div>
                 </form>
+            </div>
+                </div>
             </div>
         </div>
     </div>

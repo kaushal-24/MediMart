@@ -1,0 +1,23 @@
+{% if latest_unread_notifications %}
+<div class="site-in-app-notification-region" aria-live="polite" aria-atomic="true">
+    {% for notification in latest_unread_notifications %}
+        <article class="site-in-app-notification" data-notification-toast>
+            <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-bell-fill text-success mt-1" aria-hidden="true"></i>
+                <div class="min-w-0">
+                    <strong>{{ notification.title }}</strong>
+                    <p>{{ notification.message }}</p>
+                    <small>{{ notification.created_at|date:"M d, Y h:i A" }} · <span data-notification-countdown="24">24s</span></small>
+                </div>
+            </div>
+            <div class="site-in-app-notification-actions">
+                {% if notification.link %}<a href="{{ notification.link }}">Open</a>{% endif %}
+                <a href="{% url 'extras:notification_list' %}">View all</a>
+                <button type="button" data-notification-dismiss aria-label="Dismiss notification">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </article>
+    {% endfor %}
+</div>
+{% endif %}

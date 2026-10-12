@@ -30,22 +30,33 @@
         <p class="small mb-0 {% if product.available_offer_stock == 0 %}text-danger{% elif product.available_offer_stock <= 5 %}text-warning{% else %}text-success{% endif %}">
             {% if product.available_offer_stock == 0 %}Out of Stock{% elif product.available_offer_stock <= 5 %}Low Stock{% else %}In Stock{% endif %}
         </p>
-        <a class="btn btn-sm btn-outline-success w-100 mt-3" href="{% url 'products:price_comparison' product.slug %}">
-            Compare Sellers
-        </a>
-        <form method="post" action="{% url 'products:compare_add' product.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button class="btn btn-sm btn-outline-secondary w-100 mt-2" type="submit">
-                <i class="bi bi-columns-gap me-1"></i>Compare Product
-            </button>
-        </form>
-        <form method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button class="btn btn-sm btn-outline-primary w-100 mt-2" type="submit">
-                <i class="bi bi-bookmark-heart me-1"></i>Save for Later
-            </button>
-        </form>
+        {% if product.available_offer_stock == 0 %}
+            {% if user.is_authenticated %}
+                <form data-ajax-form="stock-alert" method="post" action="{% url 'products:stock_alert_create' product.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-warning w-100 mt-3" type="submit">
+                        <i class="bi bi-bell me-1"></i>Notify me when available
+                    </button>
+                </form>
+            {% else %}
+                <a class="btn btn-sm btn-outline-warning w-100 mt-3" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">
+                    <i class="bi bi-bell me-1"></i>Sign in for stock alert
+                </a>
+            {% endif %}
+        {% endif %}
+        <div class="product-card-actions">
+            <a class="btn btn-success product-card-primary" href="{{ product.get_absolute_url }}">View details <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+            <a class="product-quick-action" href="{% url 'products:price_comparison' product.slug %}" aria-label="Compare sellers for {{ product.name }}" title="Compare sellers"><i class="bi bi-shop-window" aria-hidden="true"></i></a>
+            <form method="post" action="{% url 'products:compare_add' product.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button class="product-quick-action" type="submit" aria-label="Compare {{ product.name }}" title="Compare product"><i class="bi bi-columns-gap" aria-hidden="true"></i></button>
+            </form>
+            <form data-ajax-form="wishlist" method="post" action="{% url 'cart:add_to_wishlist' product.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button class="product-quick-action" type="submit" aria-label="Save {{ product.name }} for later" title="Save for later"><i class="bi bi-bookmark-heart" aria-hidden="true"></i></button>
+            </form>
+        </div>
     </div>
 </article>

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Reschedule Lab Booking | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5"><div class="row g-4"><aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside><div class="col-lg-9"><div class="management-form-shell"><p class="eyebrow">Diagnostics</p><h1 class="h3 fw-bold mb-2">Reschedule collection</h1><p class="text-secondary mb-4">{{ booking.lab_test.name }} · {{ booking.lab_test.partner.name }}</p><div class="content-panel"><form method="post">{% csrf_token %}{% include "accounts/form_errors.html" with form=form %}<div class="mb-3"><label class="form-label" for="{{ form.slot.id_for_label }}">New collection slot</label>{{ form.slot }}{% for error in form.slot.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div><button class="btn btn-success" type="submit"><i class="bi bi-calendar2-check me-2"></i>Confirm new slot</button><a class="btn btn-outline-secondary ms-2" href="{% url 'healthcare:lab_bookings' %}">Cancel</a></form></div></div></div></div></section>
+{% endblock %}

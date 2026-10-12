@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Review Prescription #{{ prescription.pk }} | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header"><div class="container"><a class="management-back" href="{% url 'dashboards:management_records' 'prescriptions' %}"><i class="bi bi-arrow-left"></i> Prescription queue</a><p class="eyebrow mt-3 mb-2">Clinical operations</p><h1 class="h2 fw-bold mb-2">Review prescription #{{ prescription.pk }}</h1><p class="text-secondary mb-0">Verify the document, map only authorised products, and record a clear customer-facing decision.</p></div></section>
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="prescription-review-summary mb-4">
+                <div><small>Customer</small><strong>{{ prescription.patient_name|default:prescription.user.username }}</strong></div>
+                <div><small>Doctor</small><strong>{{ prescription.doctor_name|default:"Not provided" }}</strong></div>
+                <div><small>Prescription date</small><strong>{{ prescription.prescription_date|date:"d M Y"|default:"Not provided" }}</strong></div>
+                <a class="btn btn-outline-success" href="{% url 'core:prescription_file' prescription.pk %}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-lock me-2"></i>Open document</a>
+            </div>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "accounts/form_errors.html" with form=form %}
+                <section class="content-panel">
+                    <h2 class="h5 fw-bold mb-3">Decision and validity</h2>
+                    <div class="row g-3">
+                        {% for field in form %}<div class="{% if field.name == 'clarification_message' or field.name == 'rejection_reason' or field.name == 'review_notes' %}col-12{% elif field.name == 'original_required_on_delivery' %}col-12{% else %}col-md-6{% endif %}">{% if field.name == 'original_required_on_delivery' %}<div class="form-check mt-2">{{ field }}<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>{% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}{% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>{% endfor %}
+                    </div>
+                </section>
+
+                <section class="content-panel mt-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 fw-bold mb-1">Authorised products</h2><p class="text-secondary small mb-0">These limits are enforced when the customer adds prescription products to cart.</p></div><span class="status-pill status-pending">Manual mapping</span></div>
+                    {{ formset.management_form }}
+                    {% for error in formset.non_form_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+                    <div class="prescription-item-formset">
+                        {% for item_form in formset %}
+                            <div class="prescription-item-form">
+                                {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label" for="{{ item_form.product.id_for_label }}">Catalogue product</label>{{ item_form.product }}</div>
+                                    <div class="col-md-6"><label class="form-label" for="{{ item_form.prescribed_name.id_for_label }}">Name written on prescription</label>{{ item_form.prescribed_name }}</div>
+                                    <div class="col-md-4"><label class="form-label" for="{{ item_form.dosage.id_for_label }}">Dosage</label>{{ item_form.dosage }}</div>
+                                    <div class="col-md-4"><label class="form-label" for="{{ item_form.quantity.id_for_label }}">Approved quantity</label>{{ item_form.quantity }}</div>
+                                    <div class="col-md-4"><label class="form-label" for="{{ item_form.fulfilled_quantity.id_for_label }}">Already fulfilled</label>{{ item_form.fulfilled_quantity }}</div>
+                                    <div class="col-md-10"><label class="form-label" for="{{ item_form.instructions.id_for_label }}">Instructions</label>{{ item_form.instructions }}</div>
+                                    <div class="col-md-6"><label class="form-label" for="{{ item_form.approval_status.id_for_label }}">Pharmacist decision</label>{{ item_form.approval_status }}</div>
+                                    <div class="col-md-6"><label class="form-label" for="{{ item_form.review_note.id_for_label }}">Item review note</label>{{ item_form.review_note }}</div>
+                                    <div class="col-md-2 d-flex align-items-end">{% if item_form.instance.pk %}<div class="form-check mb-2">{{ item_form.DELETE }}<label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">Remove</label></div>{% endif %}</div>
+                                </div>
+                                {% for error in item_form.non_field_errors %}<div class="text-danger small mt-2">{{ error }}</div>{% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary" href="{% url 'dashboards:management_records' 'prescriptions' %}">Cancel</a><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-2"></i>Save review</button></div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

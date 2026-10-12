@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from orders.models import Order, OrderItem
 from products.models import Product
 
-from .forms import ReviewForm
-from .models import Review
+from .forms import ReviewAbuseReportForm, ReviewForm, SellerReplyForm
+from .models import Review, ReviewAbuseReport, ReviewHelpfulVote, ReviewSellerReply
 
 
 def get_reviewable_order_item(user, product):
@@ -69,3 +71,50 @@ def review_create(request, slug):
             "product": product,
         },
     )
+
+
+@login_required
+@require_POST
+def helpful_vote(request, pk):
+    review = get_object_or_404(Review, pk=pk, is_approved=True)
+    is_helpful = str(request.POST.get("is_helpful", "true")).lower() not in {"0", "false", "no"}
+    ReviewHelpfulVote.objects.update_or_create(review=review, user=request.user, defaults={"is_helpful": is_helpful})
+    return JsonResponse({"ok": True, "message": "Thanks for your feedback."})
+
+
+@login_required
+@require_POST
+def abuse_report(request, pk):
+    review = get_object_or_404(Review, pk=pk, is_approved=True)
+    form = ReviewAbuseReportForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"ok": False, "message": "Please provide a valid report reason."}, status=400)
+    _, created = ReviewAbuseReport.objects.get_or_create(
+        review=review,
+        user=request.user,
+        defaults={"reason": form.cleaned_data["reason"]},
+    )
+    message = "Report submitted for moderation." if created else "You have already reported this review."
+    return JsonResponse({"ok": True, "message": message})
+
+
+@login_required
+@require_POST
+def seller_reply(request, pk):
+    review = get_object_or_404(Review, pk=pk, is_approved=True)
+    vendor = getattr(request.user, "vendor_profile", None)
+    if (
+        not vendor
+        or not vendor.is_approved
+        or not vendor.is_active
+        or not vendor.vendor_products.filter(product=review.product, is_active=True, is_approved=True).exists()
+    ):
+        return JsonResponse({"ok": False, "message": "Only the product seller can reply to this review."}, status=403)
+    form = SellerReplyForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"ok": False, "message": "Reply must be between 5 and 2,000 characters."}, status=400)
+    ReviewSellerReply.objects.update_or_create(
+        review=review,
+        defaults={"seller": request.user, "reply": form.cleaned_data["reply"], "is_published": False},
+    )
+    return JsonResponse({"ok": True, "message": "Reply submitted for moderation."})

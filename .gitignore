@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 *.sqlite3
+*.sqlite
 .coverage
 htmlcov/
 .pytest_cache/
@@ -11,7 +12,9 @@ media/
 private_media/
 test_private_media/
 staticfiles/
+backups/mysql/
+ROLE_ACCOUNT_CREDENTIALS.md
 *.log
 .idea/
 .vscode/
-
+*.md

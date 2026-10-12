@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}My Lab Bookings | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div><p class="eyebrow">Diagnostics</p><h1 class="h3 fw-bold mb-0">My lab bookings</h1></div>
+                <a class="btn btn-success" href="{% url 'healthcare:labs' %}">Book another test</a>
+            </div>
+            {% for booking in bookings %}
+                <article class="content-panel mb-3">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">{{ booking.lab_test.name }}</h2>
+                            <p class="text-secondary mb-1">{{ booking.lab_test.partner.name }} · {{ booking.lab_test.partner.city }}</p>
+                            <small class="text-secondary">For {{ booking.dependent|default:"myself" }}{% if booking.scheduled_start %} · {{ booking.scheduled_start|date:"d M Y, g:i A" }}{% endif %}</small>
+                            {% if booking.accession_number %}<div class="small text-secondary mt-1">Accession: {{ booking.accession_number }}</div>{% endif %}
+                            {% if booking.invoice %}<div class="small text-secondary mt-1">Invoice {{ booking.invoice.invoice_number }} · ₹{{ booking.invoice.total_amount }} · {{ booking.invoice.get_status_display }}</div>{% endif %}
+                        </div>
+                        <span class="badge text-bg-success align-self-start">{{ booking.get_status_display }}</span>
+                    </div>
+                    {% if booking.report_file %}<a class="btn btn-sm btn-outline-success mt-3" href="{% url 'core:lab_report_file' booking.pk %}"><i class="bi bi-file-earmark-pdf me-1"></i>View report</a>{% endif %}
+                    {% if booking.status == "requested" or booking.status == "confirmed" %}
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'healthcare:lab_booking_reschedule' booking.pk %}"><i class="bi bi-calendar2-week me-1"></i>Reschedule</a>
+                            <form method="post" action="{% url 'healthcare:lab_booking_cancel' booking.pk %}" onsubmit="return confirm('Cancel this lab booking?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-x-circle me-1"></i>Cancel booking</button></form>
+                        </div>
+                    {% endif %}
+                </article>
+            {% empty %}
+                <div class="empty-state"><h2 class="h5">No lab bookings</h2><p>Book a test or health package for home collection.</p><a class="btn btn-success" href="{% url 'healthcare:labs' %}">Browse tests</a></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+

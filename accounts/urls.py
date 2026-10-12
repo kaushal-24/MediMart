@@ -19,7 +19,7 @@ urlpatterns = [
     path("register/professional/", views.professional_register, name="professional_register"),
     path(
         "login/",
-        rate_limit("login", 10, 15 * 60, methods={"POST"})(
+        rate_limit("login", 10, 15 * 60, methods={"POST"}, body_fields={"username"})(
             views.MediMartLoginView.as_view(authentication_form=StyledAuthenticationForm)
         ),
         name="login",
@@ -37,7 +37,7 @@ urlpatterns = [
     ),
     path(
         "password-reset/",
-        rate_limit("password-reset", 5, 60 * 60, methods={"POST"})(
+        rate_limit("password-reset", 5, 60 * 60, methods={"POST"}, body_fields={"email"})(
             auth_views.PasswordResetView.as_view(form_class=StyledPasswordResetForm)
         ),
         name="password_reset",

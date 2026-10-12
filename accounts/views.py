@@ -1,12 +1,17 @@
-from django.contrib import messages
+import base64
+import secrets
 import time
 
 import pyotp
+import qrcode
+from qrcode.image.svg import SvgPathImage
+from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from cart.models import Wishlist
 from core.audit import record_audit
@@ -23,8 +28,27 @@ from .models import Address, UserProfile
 User = get_user_model()
 
 
+def _mfa_qr_data_uri(provisioning_uri):
+    """Build an inline QR image without persisting the MFA secret anywhere."""
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=4,
+        image_factory=SvgPathImage,
+    )
+    qr.add_data(provisioning_uri)
+    qr.make(fit=True)
+    svg_bytes = qr.make_image().to_string()
+    encoded = base64.b64encode(svg_bytes).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
 class MediMartLoginView(LoginView):
     authentication_form = None
+
+    def get_success_url(self):
+        """Send every completed password login to the public home page."""
+        return reverse("core:home")
 
     def form_valid(self, form):
         user = form.get_user()
@@ -33,8 +57,13 @@ class MediMartLoginView(LoginView):
             self.request.session.cycle_key()
             self.request.session["mfa_pending_user_id"] = user.pk
             self.request.session["mfa_pending_at"] = int(time.time())
+            self.request.session["mfa_pending_auth_hash"] = user.get_session_auth_hash()
+            self.request.session["mfa_pending_nonce"] = secrets.token_urlsafe(24)
+            self.request.session.set_expiry(300)
             return redirect("accounts:mfa_challenge")
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        record_audit(self.request, "account.login", user, "Account sign-in completed.")
+        return response
 
 
 @rate_limit("customer-register", 8, 60 * 60, methods={"POST"})
@@ -131,14 +160,22 @@ def profile(request):
 def mfa_challenge(request):
     user_id = request.session.get("mfa_pending_user_id")
     pending_at = request.session.get("mfa_pending_at", 0)
-    if not user_id or int(time.time()) - int(pending_at) > 300:
+    pending_auth_hash = request.session.get("mfa_pending_auth_hash", "")
+    if not user_id or not pending_auth_hash or int(time.time()) - int(pending_at) > 300:
         request.session.pop("mfa_pending_user_id", None)
         request.session.pop("mfa_pending_at", None)
+        request.session.pop("mfa_pending_auth_hash", None)
+        request.session.pop("mfa_pending_nonce", None)
         messages.error(request, "Your sign-in verification expired. Please sign in again.")
         return redirect("accounts:login")
     user = get_object_or_404(User, pk=user_id, is_active=True)
+    if not secrets.compare_digest(pending_auth_hash, user.get_session_auth_hash()):
+        request.session.flush()
+        messages.error(request, "Your sign-in session changed. Please sign in again.")
+        return redirect("accounts:login")
     profile = getattr(user, "profile", None)
     if not profile or not profile.mfa_enabled or not profile.mfa_secret:
+        request.session.flush()
         return redirect("accounts:login")
     if request.method == "POST":
         code = request.POST.get("code", "").replace(" ", "")
@@ -146,8 +183,11 @@ def mfa_challenge(request):
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             request.session.pop("mfa_pending_user_id", None)
             request.session.pop("mfa_pending_at", None)
+            request.session.pop("mfa_pending_auth_hash", None)
+            request.session.pop("mfa_pending_nonce", None)
+            request.session.set_expiry(None)
             record_audit(request, "account.mfa_login", user, "Two-factor login completed.")
-            return redirect("accounts:dashboard")
+            return redirect("core:home")
         messages.error(request, "That verification code is invalid.")
     return render(request, "accounts/mfa_challenge.html")
 
@@ -185,10 +225,16 @@ def mfa_settings(request):
         messages.error(request, "That verification code is invalid.")
     label = request.user.email or request.user.username
     provisioning_uri = pyotp.TOTP(secret).provisioning_uri(name=label, issuer_name="MediMart")
+    qr_code_data_uri = _mfa_qr_data_uri(provisioning_uri)
     return render(
         request,
         "accounts/mfa_settings.html",
-        {"enabled": False, "secret": secret, "provisioning_uri": provisioning_uri},
+        {
+            "enabled": False,
+            "secret": secret,
+            "provisioning_uri": provisioning_uri,
+            "qr_code_data_uri": qr_code_data_uri,
+        },
     )
 
 

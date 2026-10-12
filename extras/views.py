@@ -3,13 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import UserProfile
 from accounts.permissions import role_allowed
 
-from .forms import DoctorProfileForm, SupportMessageForm, SupportTicketForm
-from .models import BlogCategory, BlogPost, DoctorProfile, Notification, SupportTicket
+from .forms import ContentIssueForm, DoctorProfileForm, SupportMessageForm, SupportTicketForm
+from .models import BlogCategory, BlogPost, ContentIssue, DoctorProfile, Notification, SupportTicket
 from .services import create_notification
 
 
@@ -208,8 +209,36 @@ def blog_detail(request, slug):
     return render(
         request,
         "extras/blog_detail.html",
-        {"post": post, "related_posts": related_posts.select_related("category")[:3]},
+        {"post": post, "related_posts": related_posts.select_related("category")[:3], "content_issue_form": ContentIssueForm()},
     )
+
+
+@require_POST
+def content_issue_create(request, kind, identifier):
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = ""
+    form = ContentIssueForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please describe the issue before submitting it.")
+        return redirect(next_url or "extras:blog_list")
+    issue = form.save(commit=False)
+    issue.reporter = request.user if request.user.is_authenticated else None
+    if kind == "blog":
+        issue.blog_post = get_object_or_404(BlogPost, pk=identifier, status=BlogPost.Status.PUBLISHED)
+    elif kind == "product":
+        from products.models import Product
+        issue.product = get_object_or_404(Product, pk=identifier, is_active=True)
+    else:
+        messages.error(request, "This content cannot be reported.")
+        return redirect(next_url or "extras:blog_list")
+    issue.save()
+    messages.success(request, "Thanks. Our content team will review this report.")
+    return redirect(next_url or (issue.blog_post.get_absolute_url() if issue.blog_post else "products:product_list"))
 
 
 def doctor_list(request):

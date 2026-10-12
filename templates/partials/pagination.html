@@ -1,31 +1,70 @@
 {% if page_obj.has_other_pages %}
-    <nav class="mt-4" aria-label="Product pagination">
-        <ul class="pagination justify-content-center">
+    <nav class="medimart-pagination mt-4" aria-label="Pagination" data-ajax-pagination>
+        <ul class="pagination justify-content-center align-items-center">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                    <a class="page-link page-link-wide" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Go to previous page">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i><span>Previous</span>
+                    </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                <li class="page-item disabled"><span class="page-link page-link-wide"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Previous</span></span></li>
             {% endif %}
 
             {% for page_number in page_obj.paginator.page_range %}
-                {% if page_number == page_obj.number %}
-                    <li class="page-item active" aria-current="page"><span class="page-link">{{ page_number }}</span></li>
-                {% elif page_number >= page_obj.number|add:"-2" and page_number <= page_obj.number|add:"2" %}
+                {% if page_obj.paginator.num_pages <= 7 or page_number == 1 or page_number == page_obj.paginator.num_pages or page_number >= page_obj.number|add:"-2" and page_number <= page_obj.number|add:"2" %}
+                    {% if page_obj.paginator.num_pages > 7 and page_obj.number > 4 and page_number == page_obj.number|add:"-2" %}
+                        <li class="page-item">
+                            <button class="page-link pagination-gap" type="button" data-pagination-jump data-pagination-max="{{ page_obj.paginator.num_pages }}" aria-label="Jump to a page">...</button>
+                        </li>
+                    {% endif %}
+
+                    {% if page_number == page_obj.number %}
+                        <li class="page-item active" aria-current="page"><span class="page-link">{{ page_number }}</span></li>
+                    {% else %}
                     <li class="page-item">
-                        <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
+                        <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_number }}" aria-label="Go to page {{ page_number }}">{{ page_number }}</a>
                     </li>
+                    {% endif %}
+
+                    {% if page_obj.paginator.num_pages > 7 and page_obj.number < page_obj.paginator.num_pages|add:"-3" and page_number == page_obj.number|add:"2" %}
+                        <li class="page-item">
+                            <button class="page-link pagination-gap" type="button" data-pagination-jump data-pagination-max="{{ page_obj.paginator.num_pages }}" aria-label="Jump to a page">...</button>
+                        </li>
+                    {% endif %}
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                    <a class="page-link page-link-wide" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Go to next page">
+                        <span>Next</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                <li class="page-item disabled"><span class="page-link page-link-wide"><span>Next</span><i class="bi bi-arrow-right" aria-hidden="true"></i></span></li>
             {% endif %}
         </ul>
     </nav>
+
+    <dialog class="pagination-jump-dialog" data-pagination-jump-dialog aria-labelledby="paginationJumpTitle">
+        <form data-pagination-jump-form data-pagination-url="?{% if filter_query %}{{ filter_query }}&{% endif %}page=">
+            <div class="pagination-jump-header">
+                <div>
+                    <p class="eyebrow mb-1">Page navigation</p>
+                    <h2 id="paginationJumpTitle">Jump to a page</h2>
+                </div>
+                <button class="pagination-jump-close" type="button" data-pagination-jump-close aria-label="Close page navigation">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <label for="paginationJumpInput">Page number</label>
+            <input id="paginationJumpInput" name="page" class="form-control" type="number" min="1" max="{{ page_obj.paginator.num_pages }}" inputmode="numeric" required>
+            <small class="pagination-jump-hint">Enter a number from 1 to {{ page_obj.paginator.num_pages }}.</small>
+            <div class="pagination-jump-actions">
+                <button class="btn btn-outline-success" type="button" data-pagination-jump-close>Cancel</button>
+                <button class="btn btn-success" type="submit">Open page</button>
+            </div>
+        </form>
+    </dialog>
 {% endif %}

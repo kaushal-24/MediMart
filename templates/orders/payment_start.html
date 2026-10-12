@@ -4,52 +4,25 @@
 
 {% block content %}
 <section class="container py-5">
-    <div class="row justify-content-center">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="row justify-content-center">
         <div class="col-lg-7">
             <div class="content-panel text-center">
                 <p class="eyebrow mb-2">Secure payment</p>
                 <h1 class="h3 fw-bold mb-2">Complete Payment</h1>
-                <p class="text-secondary mb-4">Order {{ order.order_number }} - ₹{{ order.total_amount }}</p>
-                <button class="btn btn-success btn-lg" id="razorpayButton" type="button">
-                    <i class="bi bi-credit-card me-2"></i>Pay with Razorpay
+                <p class="text-secondary mb-4">Order {{ order.order_number }} · ₹{{ order.total_amount }}</p>
+                <button class="btn btn-success btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#razorpayPaymentModal">
+                    <i class="bi bi-credit-card me-2"></i>Open secure payment
                 </button>
                 <a class="btn btn-outline-secondary btn-lg ms-sm-2 mt-2 mt-sm-0" href="{% url 'orders:order_detail' order.pk %}">Back to Order</a>
-                <form id="razorpayVerifyForm" method="post" action="{% url 'orders:payment_verify' order.pk %}" class="d-none">
-                    {% csrf_token %}
-                    <input type="hidden" name="razorpay_order_id" id="razorpayOrderId">
-                    <input type="hidden" name="razorpay_payment_id" id="razorpayPaymentId">
-                    <input type="hidden" name="razorpay_signature" id="razorpaySignature">
-                </form>
+                <p class="small text-secondary mt-3 mb-0">Your account email and phone will be prefilled. Missing contact details can be added before continuing.</p>
+            </div>
+        </div>
             </div>
         </div>
     </div>
 </section>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const button = document.querySelector("#razorpayButton");
-        const form = document.querySelector("#razorpayVerifyForm");
-        button.addEventListener("click", () => {
-            const razorpay = new Razorpay({
-                key: "{{ razorpay_key_id }}",
-                amount: "{{ amount_paise }}",
-                currency: "{{ currency }}",
-                name: "MediMart",
-                description: "Order {{ order.order_number }}",
-                order_id: "{{ gateway_order_id }}",
-                prefill: {
-                    name: "{{ order.customer.get_full_name|default:order.customer.username|escapejs }}",
-                    email: "{{ order.customer.email|escapejs }}"
-                },
-                handler(response) {
-                    document.querySelector("#razorpayOrderId").value = response.razorpay_order_id;
-                    document.querySelector("#razorpayPaymentId").value = response.razorpay_payment_id;
-                    document.querySelector("#razorpaySignature").value = response.razorpay_signature;
-                    form.submit();
-                }
-            });
-            razorpay.open();
-        });
-    });
-</script>
+{% include "orders/_payment_modal.html" %}
 {% endblock %}

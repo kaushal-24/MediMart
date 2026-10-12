@@ -9,19 +9,24 @@
         <p class="eyebrow mb-2">MediMart catalog</p>
         <h1 class="h2 fw-bold mb-2">{{ page_title|default:"Products" }}</h1>
         <p class="text-secondary mb-0">{{ page_description|default:"Search and filter medicines, healthcare essentials, and medical equipment." }}</p>
+
     </div>
 </section>
 
 <section class="container-fluid catalog-container py-5">
+    <form class="catalog-commandbar catalog-page-search" method="get" role="search">
+        <div class="catalog-commandbar-input input-group">
+            <span class="input-group-text" aria-hidden="true"><i class="bi bi-search"></i></span>
+            <input class="form-control" id="catalogSearchInput" name="q" type="search" value="{{ request.GET.q|default:'' }}" placeholder="Search medicines, healthcare products or equipment" aria-label="Search products" autocomplete="off">
+            <button class="btn btn-success catalog-commandbar-submit" type="submit"><i class="bi bi-search me-2" aria-hidden="true"></i>Search</button>
+        </div>
+    </form>
+
     <div class="catalog-layout">
         <aside class="catalog-filter-column">
             <button class="btn btn-outline-success w-100 d-lg-none mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#catalogFilters" aria-expanded="false" aria-controls="catalogFilters"><i class="bi bi-funnel me-2"></i>Filters</button>
-            <form class="filter-panel collapse d-lg-block" id="catalogFilters" method="get">
+            <form class="filter-panel collapse d-lg-block" id="catalogFilters" method="get" data-ajax-filter>
                 <h2 class="h5 fw-bold mb-3">Filters</h2>
-                <div class="mb-3">
-                    <label class="form-label" for="{{ form.q.id_for_label }}">Search</label>
-                    {{ form.q }}
-                </div>
                 <div class="mb-3">
                     <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
                     {{ form.category }}
@@ -67,29 +72,8 @@
             </form>
         </aside>
 
-        <div class="catalog-results">
-            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                <p class="text-secondary mb-0">{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} found</p>
-            </div>
-
-            {% if products %}
-                <div class="catalog-product-grid">
-                    {% for product in products %}
-                        <div>
-                            {% include "products/product_card.html" with product=product %}
-                        </div>
-                    {% endfor %}
-                </div>
-
-                {% include "partials/pagination.html" with page_obj=page_obj filter_query=filter_query %}
-            {% else %}
-                <div class="empty-state">
-                    <i class="bi bi-search"></i>
-                    <h2 class="h5 fw-semibold">No products found</h2>
-                    <p>Try a different search term or remove a filter.</p>
-                    <a class="btn btn-success" href="{% url 'products:product_list' %}">View All Products</a>
-                </div>
-            {% endif %}
+        <div class="catalog-results" data-catalog-results>
+            {% include "products/_catalog_results.html" %}
         </div>
     </div>
 </section>

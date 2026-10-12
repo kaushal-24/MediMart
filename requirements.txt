@@ -7,3 +7,4 @@ reportlab==5.0.1
 cryptography==50.0.2
 django-storages[s3]==1.14.6
 PyOTP==2.10.0
+qrcode==8.2

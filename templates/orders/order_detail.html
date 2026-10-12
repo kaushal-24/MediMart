@@ -13,6 +13,9 @@
 
 <section class="container py-5">
     <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <div class="row g-4">
         <div class="col-lg-8">
             <div class="content-panel mb-4">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
@@ -28,6 +31,7 @@
                                 <th>Qty</th>
                                 <th>Price</th>
                                 <th>Total</th>
+                                <th>After-sales</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -38,6 +42,15 @@
                                     <td>{{ item.quantity }}</td>
                                     <td>₹{{ item.unit_price }}</td>
                                     <td>₹{{ item.total_price }}</td>
+                                    <td>
+                                        {% if item.can_request_return %}
+                                            <a class="btn btn-sm btn-outline-success" href="{% url 'orders:return_create' item.pk %}">Request return{% if item.return_remaining_quantity < item.quantity %} ({{ item.return_remaining_quantity }} left){% endif %}</a>
+                                        {% elif item.active_return_request %}
+                                            <a class="small text-success" href="{% url 'orders:return_list' %}">{{ item.active_return_request.get_status_display }}</a>
+                                        {% else %}
+                                            <span class="small text-secondary">{% if order.order_status == "delivered" %}Return window used{% else %}Available after delivery{% endif %}</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -46,14 +59,28 @@
             </div>
 
             <div class="content-panel">
-                <h2 class="h5 fw-bold mb-3">Tracking Timeline</h2>
-                <div class="timeline">
-                    {% for history in order.status_history.all %}
-                        <div class="timeline-item">
-                            <strong>{{ history.get_status_display }}</strong>
-                            <span>{{ history.created_at|date:"M d, Y H:i" }}</span>
-                            {% if history.note %}<p>{{ history.note }}</p>{% endif %}
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                    <div>
+                        <p class="eyebrow mb-1">Live order updates</p>
+                        <h2 class="h5 fw-bold mb-0">Tracking Timeline</h2>
+                    </div>
+                    <span class="badge text-bg-success">{{ order.get_order_status_display }}</span>
+                </div>
+                <div class="order-stepper" aria-label="Order status history">
+                    {% for step in tracking_timeline %}
+                        <div class="order-step {% if step.is_current %}is-current{% else %}is-complete{% endif %}">
+                            <div class="order-step-marker"><i class="bi {{ step.icon }}" aria-hidden="true"></i></div>
+                            <div class="order-step-content">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <strong>{{ step.history.get_status_display }}</strong>
+                                    {% if step.is_current %}<span class="order-step-current">Current status</span>{% endif %}
+                                </div>
+                                <time datetime="{{ step.history.created_at|date:'c' }}">{{ step.history.created_at|date:"M d, Y · g:i A" }}</time>
+                                {% if step.history.note %}<p>{{ step.history.note }}</p>{% endif %}
+                            </div>
                         </div>
+                    {% empty %}
+                        <p class="text-secondary mb-0">Tracking updates will appear here as your order progresses.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -73,9 +100,9 @@
                 <div class="summary-row summary-total"><span>Total</span><strong>₹{{ order.total_amount }}</strong></div>
                 <p class="small text-secondary mt-3">{{ order.get_payment_method_display }} - {{ order.get_payment_status_display }}</p>
                 {% if order.payment_method == "razorpay" and order.payment_status != "paid" %}
-                    <a class="btn btn-success w-100" href="{% url 'orders:payment_start' order.pk %}">
+                    <button class="btn btn-success w-100" type="button" data-bs-toggle="modal" data-bs-target="#razorpayPaymentModal">
                         <i class="bi bi-credit-card me-2"></i>Complete Payment
-                    </a>
+                    </button>
                 {% endif %}
                 {% if can_cancel %}
                     <form class="mt-2" method="post" action="{% url 'orders:cancel_order' order.pk %}">
@@ -86,6 +113,11 @@
                 {% endif %}
             </div>
         </div>
+            </div>
+        </div>
     </div>
 </section>
+{% if order.payment_method == "razorpay" and order.payment_status != "paid" %}
+    {% include "orders/_payment_modal.html" %}
+{% endif %}
 {% endblock %}

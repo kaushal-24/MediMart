@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from accounts.models import UserProfile
 from accounts.permissions import role_allowed
 from extras.models import DoctorProfile, SupportMessage, SupportTicket
+from healthcare.models import ConsultationMessage, HealthRecord, LabBooking
 from prescriptions.models import Prescription
 from vendors.models import BusinessLicense, Vendor
 
@@ -36,6 +37,10 @@ def _download(field, *, inline=False):
         stream,
         as_attachment=not inline,
         filename=Path(field.name).name,
+        headers={
+            "Cache-Control": "private, no-store, max-age=0",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -85,3 +90,35 @@ def doctor_credential(request, pk):
     if doctor.user_id != request.user.id and not role_allowed(request.user, CLINICAL_ROLES):
         raise PermissionDenied
     return _download(doctor.qualification_document, inline=True)
+
+
+@login_required
+def health_record_file(request, pk):
+    record = get_object_or_404(HealthRecord, pk=pk)
+    if record.user_id != request.user.id and not role_allowed(request.user, CLINICAL_ROLES):
+        raise PermissionDenied
+    return _download(record.document, inline=True)
+
+
+@login_required
+def lab_report_file(request, pk):
+    booking = get_object_or_404(LabBooking, pk=pk)
+    if booking.user_id != request.user.id and not role_allowed(request.user, CLINICAL_ROLES):
+        raise PermissionDenied
+    return _download(booking.report_file, inline=True)
+
+
+@login_required
+def consultation_attachment(request, pk):
+    message = get_object_or_404(
+        ConsultationMessage.objects.select_related("consultation__doctor"),
+        pk=pk,
+    )
+    consultation = message.consultation
+    is_participant = (
+        consultation.user_id == request.user.id
+        or consultation.doctor.user_id == request.user.id
+    )
+    if not is_participant and not role_allowed(request.user, CLINICAL_ROLES):
+        raise PermissionDenied
+    return _download(message.attachment)

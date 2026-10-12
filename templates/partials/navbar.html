@@ -1,11 +1,27 @@
-<nav class="navbar navbar-expand-xl bg-white border-bottom sticky-top site-navbar">
-    <div class="container py-1">
-        <a class="navbar-brand fw-bold text-success d-flex align-items-center gap-2" href="{% url 'core:home' %}">
-            <span class="brand-mark"><i class="bi bi-heart-pulse-fill"></i></span>
-            <span>MediMart</span>
+{% load static %}
+<nav class="navbar navbar-expand-xl sticky-top site-navbar">
+    <div class="site-utility-bar" data-utility-bar>
+        <div class="container d-flex align-items-center justify-content-between gap-3">
+            <span><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Trusted healthcare marketplace</span>
+            <div class="site-utility-actions d-flex align-items-center gap-3">
+                <div class="d-none d-md-flex align-items-center gap-3">
+                    <a href="{% url 'extras:support_ticket_list' %}">Need help?</a>
+                    <a href="{% url 'orders:order_list' %}">Track order</a>
+                    {% comment %} <span class="site-utility-status"><i class="bi bi-circle-fill" aria-hidden="true"></i>Online</span> {% endcomment %}
+                </div>
+                <button class="site-utility-dismiss" type="button" data-utility-dismiss aria-label="Dismiss trusted marketplace bar" title="Dismiss">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="container site-navbar-container">
+        <a class="navbar-brand site-brand" href="{% url 'core:home' %}">
+            <span class="brand-mark"><img class="brand-logo" src="{% static 'images/MediMart-favicon-Logo.png' %}" alt="" aria-hidden="true" width="512" height="512"></span>
+            <span class="brand-lockup"><span class="brand-wordmark">MediMart</span><small>health, simplified</small></span>
         </a>
 
-        <button class="location-trigger d-xl-none" type="button" data-bs-toggle="modal" data-bs-target="#locationModal" aria-label="Choose delivery location">
+        <button class="location-trigger d-xxl-none" type="button" data-bs-toggle="modal" data-bs-target="#locationModal" aria-label="Choose delivery location">
             <i class="bi bi-geo-alt-fill"></i>
             <span data-site-location-label>{{ site_location_label|truncatechars:18 }}</span>
         </button>
@@ -15,7 +31,7 @@
         </button>
 
         <div class="collapse navbar-collapse" id="mainNavbar">
-            <button class="location-trigger d-none d-xl-flex ms-4" type="button" data-bs-toggle="modal" data-bs-target="#locationModal">
+            <button class="location-trigger d-none d-xxl-flex ms-4" type="button" data-bs-toggle="modal" data-bs-target="#locationModal">
                 <i class="bi bi-geo-alt-fill"></i>
                 <span class="location-trigger-copy">
                     <small>Deliver to</small>
@@ -24,18 +40,19 @@
                 <i class="bi bi-chevron-down"></i>
             </button>
 
-            <form class="d-flex flex-grow-1 mx-xl-3 my-3 my-xl-0 search-form" role="search" action="{% url 'products:search' %}" method="get">
+            <form class="d-flex flex-grow-1 mx-xl-3 my-3 my-xl-0 search-form" role="search" data-ai-search-form data-ai-endpoint="{% url 'products:ai_search' %}" data-suggestion-endpoint="{% url 'products:search_suggestions' %}">
                 <div class="input-group">
                     <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
-                    <input class="form-control border-start-0" id="siteSearchInput" name="q" type="search" placeholder="Search medicines, equipment, brands" aria-label="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false" data-suggestions-url="{% url 'products:search_suggestions' %}">
+                    <input class="form-control border-start-0" id="siteSearchInput" name="q" type="search" placeholder="Ask MediMart AI about medicines, equipment, or care" aria-label="Ask MediMart AI" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false">
+                    <button class="ai-search-button" id="aiSearchButton" type="submit" aria-label="Ask MediMart AI" title="Ask MediMart AI"><i class="bi bi-stars" aria-hidden="true"></i></button>
                 </div>
-                <div class="search-suggestions" id="searchSuggestions" role="listbox" aria-label="Product suggestions"></div>
+                <div class="search-suggestions" id="searchSuggestions" data-ai-search-results role="listbox" aria-label="AI product results"></div>
             </form>
 
-            <ul class="navbar-nav align-items-xl-center gap-xl-1">
-                <li class="nav-item"><a class="nav-link" href="{% url 'products:product_list' %}"><i class="bi bi-grid me-1"></i>Products</a></li>
+            <ul class="navbar-nav align-items-xl-center gap-xl-1 site-nav-links">
+                <li class="nav-item"><a class="nav-link" href="{% url 'products:product_list' %}"><i class="bi bi-capsule-pill me-1"></i>Products</a></li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-heart-pulse me-1"></i>Equipment</a>
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-heart-pulse me-1"></i>Health products</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'products:medical_equipment' %}">Medical Equipment</a></li>
                         <li><a class="dropdown-item" href="{% url 'products:surgical_equipment' %}">Surgical Equipment</a></li>
@@ -45,16 +62,20 @@
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Care</a>
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-activity me-1"></i>Care</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{% url 'prescriptions:prescription_upload' %}"><i class="bi bi-file-earmark-medical me-2"></i>Upload prescription</a></li>
+                        <li><a class="dropdown-item" href="{% url 'healthcare:labs' %}"><i class="bi bi-eyedropper me-2"></i>Lab tests</a></li>
+                        <li><a class="dropdown-item" href="{% url 'healthcare:consultation_create' %}"><i class="bi bi-camera-video me-2"></i>Book consultation</a></li>
+                        <li><a class="dropdown-item" href="{% url 'healthcare:dashboard' %}"><i class="bi bi-heart-pulse me-2"></i>Health workspace</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:doctor_list' %}"><i class="bi bi-person-vcard me-2"></i>Doctors</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:blog_list' %}"><i class="bi bi-journal-medical me-2"></i>Health guides</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:support_ticket_list' %}"><i class="bi bi-headset me-2"></i>Support</a></li>
                     </ul>
                 </li>
-                <li class="nav-item"><a class="nav-icon-link" href="{% url 'cart:wishlist_detail' %}" aria-label="Saved for later" title="Saved for later"><i class="bi bi-bookmark-heart"></i><span class="d-xl-none">Saved</span></a></li>
-                <li class="nav-item"><a class="nav-icon-link" href="{% url 'cart:cart_detail' %}" aria-label="Cart" title="Cart"><i class="bi bi-cart3"></i><span class="d-xl-none">Cart</span></a></li>
+                {% if user.is_authenticated %}<li class="nav-item"><a class="nav-icon-link position-relative" href="{% url 'extras:notification_list' %}" aria-label="Notifications" title="Notifications"><i class="bi bi-bell"></i><span class="nav-count {% if not unread_notification_count %}d-none{% endif %}" data-notification-count>{{ unread_notification_count }}</span><span class="d-xl-none">Notifications</span></a></li>{% endif %}
+                <li class="nav-item"><a class="nav-icon-link position-relative" href="{% url 'cart:wishlist_detail' %}" aria-label="Saved for later" title="Saved for later"><i class="bi bi-bookmark-heart"></i><span class="nav-count {% if not saved_item_count %}d-none{% endif %}" data-saved-count>{{ saved_item_count }}</span><span class="d-xl-none">Saved</span></a></li>
+                <li class="nav-item"><a class="nav-icon-link position-relative" href="{% url 'cart:cart_detail' %}" aria-label="Cart" title="Cart"><i class="bi bi-cart3"></i><span class="nav-count {% if not cart_item_count %}d-none{% endif %}" data-cart-count>{{ cart_item_count }}</span><span class="d-xl-none">Cart</span></a></li>
                 <li class="nav-item"><button class="nav-icon-link theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch color theme" title="Switch color theme"><i class="bi bi-moon-stars"></i><span class="d-xl-none">Theme</span></button></li>
                 {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
@@ -62,7 +83,11 @@
                             <span class="account-avatar">
                                 {% if user.profile.profile_picture %}<img src="{{ user.profile.profile_picture.url }}" alt="">{% else %}<i class="bi bi-person-fill"></i>{% endif %}
                             </span>
-                            <span class="account-display-name">{{ user.first_name|default:user.username|truncatechars:12 }}</span>
+                            <span class="account-identity">
+                                <strong class="account-display-name">{{ user.first_name|default:user.username|truncatechars:16 }}</strong>
+                                <small>My account</small>
+                            </span>
+                            <i class="bi bi-chevron-down account-chevron" aria-hidden="true"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end account-dropdown">
                             <li class="account-dropdown-heading"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.email }}</small></li>
@@ -71,6 +96,10 @@
                             <li><a class="dropdown-item" href="{% url 'orders:order_list' %}">Orders</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:address_list' %}">Addresses</a></li>
                             <li><a class="dropdown-item" href="{% url 'prescriptions:prescription_list' %}">Prescriptions</a></li>
+                            <li><a class="dropdown-item" href="{% url 'orders:return_list' %}">Returns & refunds</a></li>
+                            <li><a class="dropdown-item" href="{% url 'healthcare:dependents' %}">Family members</a></li>
+                            <li><a class="dropdown-item" href="{% url 'healthcare:records' %}">Health records</a></li>
+                            <li><a class="dropdown-item" href="{% url 'healthcare:reminders' %}">Medication reminders</a></li>
                             <li><a class="dropdown-item" href="{% url 'extras:notification_list' %}">Notifications</a></li>
                             {% if can_view_vendor_dashboard %}<li><a class="dropdown-item" href="{% url 'vendors:vendor_dashboard' %}">Seller Dashboard</a></li><li><a class="dropdown-item" href="{% url 'vendors:business_license_list' %}">Business Licences</a></li>{% endif %}
                             {% if can_view_doctor_dashboard %}<li><a class="dropdown-item" href="{% url 'extras:doctor_dashboard' %}">Doctor Dashboard</a></li>{% endif %}
@@ -81,9 +110,9 @@
                         </ul>
                     </li>
                 {% else %}
-                    <li class="nav-item"><a class="btn btn-outline-success" href="{% url 'accounts:login' %}">Login</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="btn btn-success dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Register</a>
+                    <li class="nav-item guest-auth-item"><a class="nav-login-link" href="{% url 'accounts:login' %}">Sign in</a></li>
+                    <li class="nav-item dropdown guest-auth-item">
+                        <a class="nav-register-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Create account</a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{% url 'accounts:register' %}"><i class="bi bi-person me-2"></i>Customer account</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:professional_register' %}"><i class="bi bi-building me-2"></i>Professional account</a></li>

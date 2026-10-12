@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from extras.models import BlogPost, DoctorProfile
+from healthcare.models import LabTest
+from prescriptions.models import Prescription
 from products.models import Category, Product
 from vendors.models import Vendor
 from products.services import with_offer_summary
@@ -38,11 +40,34 @@ def home(request):
     )[:4]
     latest_posts = BlogPost.objects.filter(status=BlogPost.Status.PUBLISHED)[:3]
     verified_doctors = DoctorProfile.objects.filter(is_verified=True)[:3]
+    featured_lab_tests = (
+        LabTest.objects.filter(is_active=True)
+        .select_related("partner")
+        .order_by("name")[:6]
+    )
     marketplace_stats = {
         "products": Product.objects.filter(is_active=True).count(),
         "sellers": Vendor.objects.filter(is_active=True, is_approved=True).count(),
         "doctors": DoctorProfile.objects.filter(is_verified=True).count(),
     }
+    prescription_snapshot = None
+    if request.user.is_authenticated:
+        latest_prescription = request.user.prescriptions.only(
+            "id",
+            "status",
+            "valid_until",
+            "created_at",
+        ).first()
+        prescription_snapshot = {
+            "latest": latest_prescription,
+            "active_count": request.user.prescriptions.filter(
+                status=Prescription.Status.APPROVED,
+                valid_until__gte=timezone.localdate(),
+            ).count(),
+            "action_count": request.user.prescriptions.filter(
+                status=Prescription.Status.NEEDS_INFORMATION,
+            ).count(),
+        }
 
     return render(
         request,
@@ -53,7 +78,9 @@ def home(request):
             "equipment_products": equipment_products,
             "latest_posts": latest_posts,
             "verified_doctors": verified_doctors,
+            "featured_lab_tests": featured_lab_tests,
             "marketplace_stats": marketplace_stats,
+            "prescription_snapshot": prescription_snapshot,
         },
     )
 
