@@ -29,6 +29,7 @@ from extras.models import (
     SupportMessage,
     SupportTicket,
 )
+from extras.services import whatsapp_destination
 from healthcare.models import (
     Consultation,
     ConsultationFollowUp,
@@ -1023,7 +1024,16 @@ class Command(BaseCommand):
                     continue
                 notifications.append(Notification(user=user, title=f"{DEMO} Notification {index:05d}", message="Synthetic in-app notification for QA.", notification_type="general", link="/notifications/", is_read=index % 4 == 0))
             self.bulk(Notification, notifications)
-            deliveries = [NotificationDelivery(notification=notification, channel="email", destination=notification.user.email, status="sent", attempts=1, sent_at=timezone.now(), provider_reference=f"DEMO-EMAIL-{notification.id}") for notification in Notification.objects.filter(title__startswith=f"{DEMO} Notification")]
+            deliveries = [
+                NotificationDelivery(
+                    notification=notification,
+                    channel=NotificationDelivery.Channel.WHATSAPP,
+                    destination=destination,
+                )
+                for notification in Notification.objects.filter(title__startswith=f"{DEMO} Notification")
+                for destination in [whatsapp_destination(notification.user)]
+                if destination
+            ]
             self.bulk(NotificationDelivery, deliveries)
 
         category, _ = BlogCategory.objects.get_or_create(name=f"{DEMO} Health Guides", defaults={"description": "Synthetic health-guide category for local QA."})

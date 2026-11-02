@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AuditEvent
+from .models import AuditEvent, CheckoutSettings
 
 
 @admin.register(AuditEvent)
@@ -27,3 +27,21 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(CheckoutSettings)
+class CheckoutSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        "delivery_fee",
+        "free_delivery",
+        "tax_rate_percent",
+        "handling_fee",
+        "platform_fee",
+        "cold_chain_fee",
+        "cod_max_order_value",
+        "updated_at",
+    )
+    readonly_fields = ("created_at", "updated_at", "updated_by")
+
+    def has_add_permission(self, request):
+        return not CheckoutSettings.objects.exists()

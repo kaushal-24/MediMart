@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Pay for consultation | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="content-panel mx-auto" style="max-width: 620px;">
+    <p class="eyebrow">Secure consultation payment</p>
+    <h1 class="h3 fw-bold">Confirm your doctor consultation</h1>
+    <p class="text-secondary">Dr. {{ consultation.doctor.full_name }} · {{ consultation.get_mode_display }}</p>
+    <div class="d-flex justify-content-between border-top border-bottom py-3 my-4">
+      <span>Consultation fee</span><strong>₹{{ consultation.fee }}</strong>
+    </div>
+    {% if gateway_configured %}
+      <button class="btn btn-success w-100" id="consultationPayButton" type="button">Pay securely</button>
+      <p class="small text-secondary mt-3 mb-0">Your consultation is confirmed only after the payment provider verifies the payment.</p>
+      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <script>
+        document.getElementById("consultationPayButton").addEventListener("click", async function () {
+          const button = this;
+          button.disabled = true;
+          const csrf = document.cookie.split(";").map(item => item.trim()).find(item => item.startsWith("csrftoken="))?.split("=")[1] || "";
+          const response = await fetch("{% url 'healthcare:consultation_payment_create' consultation.pk %}", {method: "POST", headers: {"X-CSRFToken": csrf, "X-Requested-With": "XMLHttpRequest"}});
+          const payload = await response.json();
+          if (!payload.ok) { alert(payload.error || "Payment could not be started."); button.disabled = false; return; }
+          new Razorpay({key: "{{ razorpay_key_id }}", amount: payload.amount, currency: payload.currency, order_id: payload.order_id, name: "MediMart", description: "Doctor consultation", handler: function (result) {
+            const form = document.createElement("form"); form.method = "post"; form.action = "{% url 'healthcare:consultation_payment_verify' consultation.pk %}";
+            const csrfInput = document.createElement("input"); csrfInput.type = "hidden"; csrfInput.name = "csrfmiddlewaretoken"; csrfInput.value = csrf; form.appendChild(csrfInput);
+            ["razorpay_payment_id", "razorpay_signature"].forEach(name => { const input = document.createElement("input"); input.type = "hidden"; input.name = name; input.value = result[name] || ""; form.appendChild(input); });
+            document.body.appendChild(form); form.submit();
+          }}).open();
+          button.disabled = false;
+        });
+      </script>
+    {% else %}
+      <div class="alert alert-warning mb-0">Online consultation payments are not configured. An administrator must add the Razorpay credentials before this consultation can be confirmed.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

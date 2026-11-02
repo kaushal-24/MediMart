@@ -28,9 +28,83 @@ from orders.models import (
 )
 from products.models import Brand, Category, Product
 from vendors.models import BusinessLicense, Vendor, VendorProduct
+from core.models import CheckoutSettings
 
 
 User = get_user_model()
+
+
+class CheckoutSettingsForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = CheckoutSettings
+        fields = [
+            "delivery_fee",
+            "free_delivery",
+            "tax_rate_percent",
+            "handling_fee",
+            "platform_fee",
+            "cold_chain_fee",
+            "cod_max_order_value",
+            "cod_blocked_pincodes",
+            "finance_test_mode",
+            "gst_enabled",
+            "gstin",
+            "business_state",
+            "invoice_prefix",
+            "commission_rate_percent",
+            "settlement_days",
+        ]
+        labels = {
+            "delivery_fee": "Delivery fee (₹)",
+            "free_delivery": "Free delivery",
+            "tax_rate_percent": "Tax / GST rate (%)",
+            "handling_fee": "Handling fee (₹)",
+            "platform_fee": "Platform fee (₹)",
+            "cold_chain_fee": "Cold-chain fee (₹)",
+            "cod_max_order_value": "Maximum COD order value (₹)",
+            "cod_blocked_pincodes": "Blocked COD pincodes",
+            "finance_test_mode": "Finance test mode",
+            "gst_enabled": "Apply GST",
+            "gstin": "MediMart GSTIN",
+            "business_state": "MediMart state",
+            "invoice_prefix": "Invoice prefix",
+            "commission_rate_percent": "Platform commission (%)",
+            "settlement_days": "Seller settlement days",
+        }
+        help_texts = {
+            "free_delivery": "Enable only when delivery should be free for every order.",
+            "tax_rate_percent": "Applied to subtotal after discounts.",
+            "cod_blocked_pincodes": "Enter one 6-digit pincode per line or separate values with commas.",
+        }
+        widgets = {
+            "cod_blocked_pincodes": forms.Textarea(attrs={"rows": 4, "placeholder": "380001\n400001"}),
+            "gstin": forms.TextInput(attrs={"placeholder": "24ABCDE1234F1Z5"}),
+            "business_state": forms.TextInput(attrs={"placeholder": "Gujarat"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_classes()
+
+    def clean_tax_rate_percent(self):
+        value = self.cleaned_data["tax_rate_percent"]
+        if value > 100:
+            raise forms.ValidationError("Tax / GST rate cannot exceed 100%.")
+        return value
+
+    def clean_commission_rate_percent(self):
+        value = self.cleaned_data["commission_rate_percent"]
+        if value > 100:
+            raise forms.ValidationError("Commission cannot exceed 100%.")
+        return value
+
+    def clean_cod_blocked_pincodes(self):
+        value = self.cleaned_data["cod_blocked_pincodes"]
+        pincodes = [part.strip() for part in value.replace("\n", ",").split(",") if part.strip()]
+        invalid = [pincode for pincode in pincodes if not pincode.isdigit() or len(pincode) != 6]
+        if invalid:
+            raise forms.ValidationError("Every blocked COD pincode must be a 6-digit number.")
+        return "\n".join(dict.fromkeys(pincodes))
 
 
 class UserManagementForm(BootstrapFormMixin, forms.ModelForm):
@@ -125,6 +199,7 @@ class ProductManagementForm(BootstrapFormMixin, forms.ModelForm):
             "regulatory_schedule",
             "state_restrictions",
             "requires_pharmacist_review",
+            "cold_chain_required",
             "manufacturer",
             "composition",
             "pack_size",
@@ -135,6 +210,10 @@ class ProductManagementForm(BootstrapFormMixin, forms.ModelForm):
             "short_description": forms.Textarea(attrs={"rows": 2}),
             "description": forms.Textarea(attrs={"rows": 6}),
             "regulatory_notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {"cold_chain_required": "Cold-chain product"}
+        help_texts = {
+            "cold_chain_required": "Apply the configured cold-chain fee and special delivery handling.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -401,11 +480,18 @@ class ShipmentManagementForm(BootstrapFormMixin, forms.ModelForm):
             "order",
             "warehouse",
             "courier_name",
+            "carrier_code",
             "tracking_number",
+            "tracking_url",
             "status",
             "promised_at",
             "shipped_at",
             "delivered_at",
+            "last_location",
+            "exception_reason",
+            "delivery_attempts",
+            "cod_collected_at",
+            "cod_cash_reference",
         ]
         widgets = {
             "promised_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
@@ -424,11 +510,13 @@ class ShipmentManagementForm(BootstrapFormMixin, forms.ModelForm):
         allowed = {
             Shipment.Status.PENDING: {Shipment.Status.BOOKED, Shipment.Status.EXCEPTION},
             Shipment.Status.BOOKED: {Shipment.Status.IN_TRANSIT, Shipment.Status.EXCEPTION},
-            Shipment.Status.IN_TRANSIT: {Shipment.Status.OUT_FOR_DELIVERY, Shipment.Status.EXCEPTION, Shipment.Status.RETURNED},
-            Shipment.Status.OUT_FOR_DELIVERY: {Shipment.Status.DELIVERED, Shipment.Status.EXCEPTION, Shipment.Status.RETURNED},
-            Shipment.Status.EXCEPTION: {Shipment.Status.BOOKED, Shipment.Status.RETURNED},
+            Shipment.Status.IN_TRANSIT: {Shipment.Status.OUT_FOR_DELIVERY, Shipment.Status.NDR, Shipment.Status.EXCEPTION, Shipment.Status.RETURNED, Shipment.Status.RTO},
+            Shipment.Status.OUT_FOR_DELIVERY: {Shipment.Status.DELIVERED, Shipment.Status.NDR, Shipment.Status.EXCEPTION, Shipment.Status.RETURNED, Shipment.Status.RTO},
+            Shipment.Status.NDR: {Shipment.Status.OUT_FOR_DELIVERY, Shipment.Status.RETURNED, Shipment.Status.RTO, Shipment.Status.EXCEPTION},
+            Shipment.Status.EXCEPTION: {Shipment.Status.BOOKED, Shipment.Status.RETURNED, Shipment.Status.RTO},
             Shipment.Status.DELIVERED: set(),
             Shipment.Status.RETURNED: set(),
+            Shipment.Status.RTO: set(),
         }
         if status not in allowed.get(self.instance.status, set()):
             raise ValidationError("That shipment status transition is not allowed.")
@@ -467,7 +555,8 @@ class VendorManagementForm(BootstrapFormMixin, forms.ModelForm):
         model = Vendor
         fields = [
             "user", "business_name", "owner_name", "email", "phone", "address",
-            "gst_number", "license_number", "business_type", "bank_name",
+            "city", "state", "pincode", "latitude", "longitude",
+            "logo", "gst_number", "license_number", "business_type", "bank_name",
             "bank_account_number", "ifsc_code", "documents", "is_approved", "is_active",
         ]
         widgets = {"address": forms.Textarea(attrs={"rows": 4})}

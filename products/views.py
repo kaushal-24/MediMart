@@ -20,7 +20,13 @@ from core.throttling import rate_limit
 
 from .forms import ProductFilterForm
 from .models import Brand, Category, PriceAlert, Product, ProductQuestion, SearchQuery, StockAlert
-from .services import with_offer_summary
+from .services import (
+    location_offer_filter,
+    product_keyword_query,
+    rank_product_queryset,
+    vendor_location_filter,
+    with_offer_summary,
+)
 
 
 MAX_COMPARE_PRODUCTS = 3
@@ -29,6 +35,49 @@ RECENTLY_VIEWED_SESSION_KEY = "recently_viewed_product_ids"
 MAX_RECENTLY_VIEWED_PRODUCTS = 12
 RECENT_SEARCHES_SESSION_KEY = "recent_search_queries"
 MAX_RECENT_SEARCHES = 6
+PRODUCT_PAGE_SIZE_OPTIONS = (
+    {"value": "12", "label": "12 products"},
+    {"value": "24", "label": "24 products"},
+    {"value": "48", "label": "48 products"},
+    {"value": "all", "label": "List all"},
+)
+PRODUCT_PAGE_SIZE_VALUES = {option["value"] for option in PRODUCT_PAGE_SIZE_OPTIONS}
+
+
+def _selected_location(request):
+    location = request.session.get("site_location")
+    if location:
+        return location
+    if request.user.is_authenticated:
+        profile = getattr(request.user, "profile", None)
+        if profile and profile.preferred_location_label:
+            return {
+                "label": profile.preferred_location_label,
+                "city": profile.preferred_city,
+                "state": profile.preferred_state,
+                "pincode": profile.preferred_pincode,
+                "latitude": str(profile.preferred_latitude or ""),
+                "longitude": str(profile.preferred_longitude or ""),
+            }
+    return {}
+
+
+def _paginate_products(request, products):
+    selected_page_size = str(request.GET.get("per_page", "12")).casefold()
+    if selected_page_size not in PRODUCT_PAGE_SIZE_VALUES:
+        selected_page_size = "12"
+    page_size = products.count() or 1 if selected_page_size == "all" else int(selected_page_size)
+    page_number = 1 if selected_page_size == "all" else request.GET.get("page")
+    return Paginator(products, page_size).get_page(page_number), selected_page_size
+
+
+def _page_size_query_fields(request):
+    return [
+        {"name": key, "value": value}
+        for key in request.GET
+        if key not in {"per_page", "page"}
+        for value in request.GET.getlist(key)
+    ]
 
 
 def _record_search_query(request, query, *, source, result_count=0, lab_result_count=0):
@@ -117,13 +166,17 @@ def remember_search_query(request, query):
     request.session.modified = True
 
 
-def get_approved_seller_offers(product):
-    return product.vendor_products.filter(
+def get_approved_seller_offers(product, location=None):
+    offers = product.vendor_products.filter(
         is_active=True,
         is_approved=True,
         vendor__is_active=True,
         vendor__is_approved=True,
-    ).select_related("vendor")
+    )
+    local_filter = vendor_location_filter(location)
+    if local_filter and offers.filter(local_filter).exists():
+        offers = offers.filter(local_filter)
+    return offers.select_related("vendor")
 
 
 def get_price_summary(offers):
@@ -135,11 +188,12 @@ def get_price_summary(offers):
     return lowest_offer, highest_offer, maximum_saving
 
 
-def get_filtered_products(data):
+def get_filtered_products(data, location=None):
     products = with_offer_summary(
         Product.objects.filter(is_active=True)
         .select_related("category", "brand")
-        .prefetch_related("specifications")
+        .prefetch_related("specifications"),
+        location=location,
     )
     form = ProductFilterForm(data)
 
@@ -154,14 +208,7 @@ def get_filtered_products(data):
         sort = form.cleaned_data.get("sort")
 
         if q:
-            products = products.filter(
-                Q(name__icontains=q)
-                | Q(sku__icontains=q)
-                | Q(composition__icontains=q)
-                | Q(category__name__icontains=q)
-                | Q(brand__name__icontains=q)
-                | Q(manufacturer__icontains=q)
-            )
+            products = products.filter(product_keyword_query([q])).distinct()
         if category:
             products = products.filter(Q(category=category) | Q(category__parent=category))
         if brand:
@@ -183,6 +230,8 @@ def get_filtered_products(data):
             products = products.order_by("-selling_price")
         elif sort == "discount":
             products = products.order_by("-mrp", "selling_price")
+        elif q:
+            products = rank_product_queryset(products, [q])
         else:
             products = products.order_by("-created_at")
 
@@ -228,9 +277,9 @@ def get_active_filter_chips(data, form, clear_path):
 
 
 def product_list(request):
-    form, products = get_filtered_products(request.GET)
-    paginator = Paginator(products, 12)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    location = _selected_location(request)
+    form, products = get_filtered_products(request.GET, location=location)
+    page_obj, selected_page_size = _paginate_products(request, products)
     filter_query = request.GET.copy()
     filter_query.pop("page", None)
 
@@ -241,6 +290,10 @@ def product_list(request):
         "page_description": "Search and filter medicines, healthcare essentials, and medical equipment.",
         "page_obj": page_obj,
         "products": page_obj.object_list,
+        "page_size_options": PRODUCT_PAGE_SIZE_OPTIONS,
+        "selected_page_size": selected_page_size,
+        "page_size_query_fields": _page_size_query_fields(request),
+        "location_selected": bool(location.get("pincode") or location.get("city") or location.get("latitude")),
         "active_filter_chips": get_active_filter_chips(request.GET, form, request.path),
     }
     if request.GET.get("q"):
@@ -261,24 +314,18 @@ def search_suggestions(request):
     if len(query) < 2:
         return JsonResponse({"results": [], "categories": [], "brands": [], "lab_tests": [], "suggestions": [], "recent_queries": recent_queries})
 
-    cache_key = f"search-suggestions:{query.casefold()}"
+    cache_key = f"search-suggestions:v2:{query.casefold()}"
     cached = cache.get(cache_key)
     if cached is not None:
         return JsonResponse(cached)
 
     products = (
         Product.objects.filter(is_active=True)
-        .filter(
-            Q(name__icontains=query)
-            | Q(sku__icontains=query)
-            | Q(brand__name__icontains=query)
-            | Q(category__name__icontains=query)
-            | Q(manufacturer__icontains=query)
-            | Q(composition__icontains=query)
-        )
+        .filter(product_keyword_query([query]))
+        .distinct()
         .select_related("brand", "category")
-        .order_by("name")[:8]
     )
+    products = rank_product_queryset(products, [query])[:8]
     results = [
         {
             "name": product.name,
@@ -311,6 +358,8 @@ def search_suggestions(request):
 @rate_limit("ai-search", 30, 60, json_response=True)
 def ai_search(request):
     query = request.GET.get("q", "").strip()
+    location = request.GET.get("location", "").strip()[:120]
+    delivery_time = request.GET.get("delivery_time", "").strip()
     if len(query) < 3:
         return JsonResponse({"ok": True, "results": [], "understanding": "Ask for a product, use, or healthcare need."})
 
@@ -320,33 +369,68 @@ def ai_search(request):
 
     plan = ai_search_plan(query)
     terms = plan["terms"] or [query]
-    search_query = Q()
-    for term in terms:
-        search_query |= (
-            Q(name__icontains=term)
-            | Q(description__icontains=term)
-            | Q(short_description__icontains=term)
-            | Q(composition__icontains=term)
-            | Q(category__name__icontains=term)
-            | Q(brand__name__icontains=term)
-            | Q(manufacturer__icontains=term)
-            | Q(sku__icontains=term)
-        )
-    products = with_offer_summary(
+    # Always include the user's original wording. AI terms add recall, but
+    # must never hide a direct match in the catalogue.
+    search_query = product_keyword_query([query, *terms])
+    selected_location = _selected_location(request)
+    products = (
         Product.objects.filter(is_active=True)
         .filter(search_query)
+        .distinct()
         .select_related("brand", "category")
-        .order_by("name")
-    )[:8]
-    results = [
-        {
-            "name": product.name,
-            "url": product.get_absolute_url(),
-            "meta": product.brand.name if product.brand else product.get_product_type_display(),
-            "price": str(product.lowest_offer_price or product.selling_price),
-        }
-        for product in products
-    ]
+    )
+    products = rank_product_queryset(products, [query, *terms])
+    products = with_offer_summary(
+        products,
+        location=selected_location,
+    )
+    if delivery_time:
+        delivery_terms = {
+            "same_day": ("same", "today"),
+            "1_2_days": ("1-2", "24", "48", "2 day"),
+            "3_5_days": ("3-5", "4 day", "5 day"),
+        }.get(delivery_time, ())
+        if delivery_terms:
+            offer_query = Q()
+            for term in delivery_terms:
+                offer_query |= Q(vendor_products__delivery_time__icontains=term)
+            delivery_offer_filter = Q(
+                vendor_products__is_active=True,
+                vendor_products__is_approved=True,
+                vendor_products__vendor__is_active=True,
+                vendor_products__vendor__is_approved=True,
+            )
+            local_filter = location_offer_filter(selected_location)
+            if local_filter:
+                delivery_offer_filter &= local_filter
+            products = products.filter(
+                offer_query,
+                delivery_offer_filter,
+            ).distinct()
+    products = products.prefetch_related("vendor_products__vendor")[:8]
+    results = []
+    for product in products:
+        price = (
+            product.location_lowest_offer_price
+            if getattr(product, "location_offer_count", 0)
+            else product.lowest_offer_price
+        ) or product.selling_price
+        results.append(
+            {
+                "name": product.name,
+                "url": product.get_absolute_url(),
+                "meta": product.brand.name if product.brand else product.get_product_type_display(),
+                "price": str(price),
+                "delivery_time": next(
+                    (
+                        offer.delivery_time
+                        for offer in product.vendor_products.all()
+                        if offer.is_active and offer.is_approved and offer.vendor.is_active and offer.vendor.is_approved
+                    ),
+                    "Delivery time confirmed at checkout",
+                ),
+            }
+        )
     lab_query = Q()
     for term in plan.get("lab_terms", terms):
         lab_query |= Q(name__icontains=term) | Q(description__icontains=term) | Q(preparation__icontains=term) | Q(partner__name__icontains=term)
@@ -394,6 +478,8 @@ def ai_search(request):
         "articles": articles,
         "suggestions": _fuzzy_search_suggestions(query),
         "understanding": plan["summary"],
+        "location": selected_location.get("label") or location,
+        "delivery_filter": delivery_time,
         "intent": plan.get("intent", "catalog"),
         "source": plan["source"],
         "safety_note": "These are catalog matches, not a diagnosis or prescription. Consult a qualified clinician for medical advice.",
@@ -492,12 +578,14 @@ def compare_clear(request):
 
 
 def product_detail(request, slug):
+    location = _selected_location(request)
     product = get_object_or_404(
         with_offer_summary(
             Product.objects.select_related("category", "brand").prefetch_related(
                 "images",
                 "specifications",
-            )
+            ),
+            location=location,
         ),
         slug=slug,
         is_active=True,
@@ -507,10 +595,17 @@ def product_detail(request, slug):
     related_products = with_offer_summary(
         Product.objects.filter(category=product.category, is_active=True)
         .exclude(pk=product.pk)
-        .select_related("category", "brand")
+        .select_related("category", "brand"),
+        location=location,
     )[:4]
-    seller_offers = get_approved_seller_offers(product)
+    seller_offers = get_approved_seller_offers(product, location=location)
     lowest_offer, highest_offer, maximum_saving = get_price_summary(seller_offers)
+    location_selected = bool(location.get("pincode") or location.get("city") or location.get("latitude"))
+    selected_offer_stock = (
+        product.location_available_offer_stock
+        if location_selected and getattr(product, "location_offer_count", 0)
+        else product.available_offer_stock
+    )
     approved_reviews = (
         product.reviews.filter(is_approved=True)
         .select_related("user")
@@ -545,6 +640,8 @@ def product_detail(request, slug):
         "products/product_detail.html",
         {
             "product": product,
+            "location_selected": location_selected,
+            "selected_offer_stock": selected_offer_stock,
             "related_products": related_products,
             "seller_offers": seller_offers,
             "lowest_offer": lowest_offer,
@@ -585,7 +682,7 @@ def product_question_create(request, pk):
 @require_POST
 def stock_alert_create(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True)
-    if get_approved_seller_offers(product).filter(stock_quantity__gt=0).exists():
+    if get_approved_seller_offers(product, location=_selected_location(request)).filter(stock_quantity__gt=0).exists():
         message = "This product is currently in stock. You can add it to your cart now."
         level = "info"
         alert_active = False
@@ -641,12 +738,13 @@ def price_alert_create(request, pk):
 
 
 def price_comparison(request, slug):
+    location = _selected_location(request)
     product = get_object_or_404(
         Product.objects.select_related("category", "brand").prefetch_related("specifications"),
         slug=slug,
         is_active=True,
     )
-    seller_offers = get_approved_seller_offers(product)
+    seller_offers = get_approved_seller_offers(product, location=location)
     lowest_offer, highest_offer, maximum_saving = get_price_summary(seller_offers)
 
     return render(
@@ -654,6 +752,7 @@ def price_comparison(request, slug):
         "products/price_comparison.html",
         {
             "product": product,
+            "location_selected": bool(location.get("pincode") or location.get("city") or location.get("latitude")),
             "seller_offers": seller_offers,
             "lowest_offer": lowest_offer,
             "highest_offer": highest_offer,
@@ -669,11 +768,11 @@ def price_comparison_by_id(request, pk):
 
 def category_detail(request, slug):
     category = get_object_or_404(Category, slug=slug, is_active=True)
+    location = _selected_location(request)
     data = request.GET.copy()
     data["category"] = category.pk
-    form, products = get_filtered_products(data)
-    paginator = Paginator(products, 12)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    form, products = get_filtered_products(data, location=location)
+    page_obj, selected_page_size = _paginate_products(request, products)
     filter_query = request.GET.copy()
     filter_query.pop("page", None)
 
@@ -689,6 +788,10 @@ def category_detail(request, slug):
             or "Browse products in this MediMart category.",
             "page_obj": page_obj,
             "products": page_obj.object_list,
+            "page_size_options": PRODUCT_PAGE_SIZE_OPTIONS,
+            "selected_page_size": selected_page_size,
+            "page_size_query_fields": _page_size_query_fields(request),
+            "location_selected": bool(location.get("pincode") or location.get("city") or location.get("latitude")),
             "active_filter_chips": get_active_filter_chips(data, form, reverse("products:product_list")),
         },
     )
@@ -699,11 +802,11 @@ def product_type_detail(request, product_type):
     if product_type not in product_type_values:
         product_type = Product.ProductType.MEDICAL_EQUIPMENT
 
+    location = _selected_location(request)
     data = request.GET.copy()
     data["product_type"] = product_type
-    form, products = get_filtered_products(data)
-    paginator = Paginator(products, 12)
-    page_obj = paginator.get_page(request.GET.get("page"))
+    form, products = get_filtered_products(data, location=location)
+    page_obj, selected_page_size = _paginate_products(request, products)
     filter_query = data.copy()
     filter_query.pop("page", None)
 
@@ -717,6 +820,10 @@ def product_type_detail(request, product_type):
             "page_description": "Compare equipment, specifications, availability, and prices in MediMart.",
             "page_obj": page_obj,
             "products": page_obj.object_list,
+            "page_size_options": PRODUCT_PAGE_SIZE_OPTIONS,
+            "selected_page_size": selected_page_size,
+            "page_size_query_fields": _page_size_query_fields(request),
+            "location_selected": bool(location.get("pincode") or location.get("city") or location.get("latitude")),
             "selected_product_type": product_type,
             "active_filter_chips": get_active_filter_chips(data, form, reverse("products:product_list")),
         },

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Business Profile | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header">
+    <div class="container">
+        <p class="eyebrow mb-2">Seller workspace</p>
+        <h1 class="h2 fw-bold mb-2">Edit business profile</h1>
+        <p class="text-secondary mb-0">Update the public business details and logo shown to customers.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <form class="content-panel" method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% include "accounts/form_errors.html" with form=form %}
+                <div class="row g-3">
+                    {% for field in form %}
+                        <div class="{% if field.name == 'address' %}col-12{% else %}col-md-6{% endif %}">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-2"></i>Save profile</button>
+                    <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_dashboard' %}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

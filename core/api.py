@@ -1,6 +1,4 @@
-from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db import connection
 from django.db.models import Min, Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
@@ -8,6 +6,9 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET
 
 from products.models import Product
+from products.services import product_keyword_query, rank_product_queryset
+
+from .monitoring import health_snapshot
 
 
 ACTIVE_OFFER_FILTER = Q(
@@ -69,19 +70,17 @@ def product_collection(request):
     query = request.GET.get("q", "").strip()[:120]
     product_type = request.GET.get("type", "").strip()
     if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(sku__icontains=query)
-            | Q(brand__name__icontains=query)
-            | Q(category__name__icontains=query)
-        )
+        products = products.filter(product_keyword_query([query])).distinct()
+        products = rank_product_queryset(products, [query])
     if product_type in Product.ProductType.values:
         products = products.filter(product_type=product_type)
     try:
         page_size = min(100, max(1, int(request.GET.get("page_size", 24))))
     except (TypeError, ValueError):
         page_size = 24
-    page = Paginator(products.order_by("name", "pk"), page_size).get_page(request.GET.get("page"))
+    if not query:
+        products = products.order_by("name", "pk")
+    page = Paginator(products, page_size).get_page(request.GET.get("page"))
     return JsonResponse(
         {
             "count": page.paginator.count,
@@ -144,17 +143,5 @@ def health_live(request):
 
 @require_GET
 def health_ready(request):
-    checks = {"database": False, "cache": False}
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            checks["database"] = cursor.fetchone()[0] == 1
-    except Exception:
-        pass
-    try:
-        cache.set("health:ready", "ok", 10)
-        checks["cache"] = cache.get("health:ready") == "ok"
-    except Exception:
-        pass
-    ready = all(checks.values())
-    return JsonResponse({"status": "ok" if ready else "unavailable", "checks": checks}, status=200 if ready else 503)
+    snapshot = health_snapshot(include_notification_queue=False)
+    return JsonResponse(snapshot, status=200 if snapshot["status"] == "ok" else 503)

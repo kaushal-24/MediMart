@@ -427,6 +427,7 @@ class Consultation(models.Model):
         CHAT = "chat", "Chat"
         AUDIO = "audio", "Audio"
         VIDEO = "video", "Video"
+        CLINIC = "clinic", "In-clinic visit"
 
     class Status(models.TextChoices):
         REQUESTED = "requested", "Requested"
@@ -434,6 +435,7 @@ class Consultation(models.Model):
         IN_PROGRESS = "in_progress", "In progress"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
+        NO_SHOW = "no_show", "No-show"
         REFUND_PENDING = "refund_pending", "Refund pending"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="consultations")
@@ -451,6 +453,12 @@ class Consultation(models.Model):
     consent_at = models.DateTimeField(blank=True, null=True)
     scheduled_at = models.DateTimeField(blank=True, null=True)
     followup_until = models.DateTimeField(blank=True, null=True)
+    clinic_name = models.CharField(max_length=160, blank=True)
+    clinic_address = models.TextField(blank=True)
+    clinic_phone = models.CharField(max_length=20, blank=True)
+    room_id = models.CharField(max_length=120, blank=True, unique=True, null=True)
+    room_url = models.URLField(blank=True)
+    provider_session_id = models.CharField(max_length=160, blank=True)
     clinical_notes = models.TextField(blank=True)
     advice = models.TextField(blank=True)
     e_prescription = models.FileField(
@@ -462,6 +470,9 @@ class Consultation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    cancelled_at = models.DateTimeField(blank=True, null=True)
+    no_show_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -498,6 +509,7 @@ class ConsultationPayment(models.Model):
     provider = models.CharField(max_length=40, default="razorpay")
     provider_order_id = models.CharField(max_length=120, blank=True)
     provider_payment_id = models.CharField(max_length=120, blank=True)
+    provider_refund_id = models.CharField(max_length=120, blank=True)
     refunded_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     failure_reason = models.CharField(max_length=255, blank=True)
     paid_at = models.DateTimeField(blank=True, null=True)

@@ -6,8 +6,9 @@
 <section class="product-header">
     <div class="container">
         <p class="eyebrow mb-2">Vendor profile</p>
-        <h1 class="h2 fw-bold mb-2">{{ vendor.business_name }}</h1>
+        <div class="vendor-detail-heading"><div class="vendor-logo vendor-logo-sm">{% if vendor.logo %}<img src="{{ vendor.logo.url }}" alt="{{ vendor.business_name }}" decoding="async">{% else %}<i class="bi bi-shop" aria-hidden="true"></i>{% endif %}</div><div><h1 class="h2 fw-bold mb-2">{{ vendor.business_name }}</h1>
         <p class="text-secondary mb-0">{{ vendor.get_business_type_display }} · {{ vendor.phone }}</p>
+        </div></div>
     </div>
 </section>
 

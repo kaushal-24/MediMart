@@ -16,7 +16,20 @@
                 <button class="btn btn-success w-100" id="detectLocationButton" type="button" data-endpoint="{% url 'core:detect_location' %}">
                     <i class="bi bi-crosshair me-2"></i>Use my current location
                 </button>
-                <p class="small text-secondary mt-2 mb-3">Your browser will ask permission. Coordinates are used to identify your delivery area and are sent to the configured geocoding service.</p>
+                <p class="small text-secondary mt-2 mb-3">Your browser will ask permission. Coordinates are used only to identify your delivery area through Google Maps.</p>
+                <div class="location-search-block mb-3" data-location-picker data-autocomplete-url="{% url 'core:location_autocomplete' %}" data-place-endpoint="{% url 'core:select_location_place' %}">
+                    <label class="form-label" for="locationSearch">Search an address, area, or pincode</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+                        <input class="form-control" id="locationSearch" type="search" autocomplete="off" placeholder="e.g. Maninagar, Ahmedabad">
+                    </div>
+                    <div class="location-suggestions d-none" id="locationSuggestions" role="listbox" aria-label="Location suggestions"></div>
+                    <div class="location-map mt-3 d-none" id="locationPickerMap" data-google-maps-key="{{ google_maps_browser_api_key }}" data-detect-endpoint="{% url 'core:detect_location' %}">
+                        <div class="location-map-canvas" aria-label="Select a point on the map"></div>
+                        <button class="btn btn-sm btn-success location-map-confirm d-none" id="confirmMapLocationButton" type="button"><i class="bi bi-check2 me-1"></i>Use this map location</button>
+                    </div>
+                    <p class="small text-secondary mt-2 mb-0" data-location-picker-status>Search suggestions need Google Maps to be configured. Manual city and pincode entry is always available.</p>
+                </div>
                 <div class="location-divider"><span>or enter manually</span></div>
                 <form id="manualLocationForm" action="{% url 'core:set_manual_location' %}" method="post">
                     {% csrf_token %}

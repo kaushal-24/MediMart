@@ -6,11 +6,17 @@ from . import views
 app_name = "extras"
 
 urlpatterns = [
+    path("assistant/feedback/", views.assistant_feedback, name="assistant_feedback"),
     path("notifications/", views.notification_list, name="notification_list"),
     path(
         "notifications/<int:pk>/read/",
         views.mark_notification_read,
         name="mark_notification_read",
+    ),
+    path(
+        "notifications/<int:pk>/open/",
+        views.open_notification,
+        name="open_notification",
     ),
     path("support/", views.support_ticket_list, name="support_ticket_list"),
     path("support/create/", views.support_ticket_create, name="support_ticket_create"),

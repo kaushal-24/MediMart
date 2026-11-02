@@ -18,10 +18,6 @@ class Command(BaseCommand):
     help = "Copy legacy regulated uploads from MEDIA_ROOT into PRIVATE_MEDIA_ROOT."
 
     def handle(self, *args, **options):
-        if settings.USE_CLOUD_MEDIA:
-            raise CommandError(
-                "Cloud migration requires provider-specific transfer tooling. Keep the bucket private and upload these prefixes to private/."
-            )
         source_root = Path(settings.MEDIA_ROOT).resolve()
         target_root = Path(settings.PRIVATE_MEDIA_ROOT).resolve()
         copied = 0

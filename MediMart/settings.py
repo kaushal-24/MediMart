@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import os
-
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import dotenv_values, load_dotenv
 
@@ -115,6 +114,12 @@ DATABASES = {
     }
 }
 
+DB_USER = env_value("DB_USER", "root").strip()
+if not DEBUG and DB_USER.casefold() == "root":
+    raise ImproperlyConfigured(
+        "Production must use a dedicated MySQL account. Set DB_USER to a non-root user."
+    )
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -152,47 +157,8 @@ PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
 DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DATA_UPLOAD_MAX_MEMORY_SIZE", 12 * 1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("FILE_UPLOAD_MAX_MEMORY_SIZE", 5 * 1024 * 1024)
 
-USE_CLOUD_MEDIA = env_bool("USE_CLOUD_MEDIA", False)
-MEDIA_CLOUD_PROVIDER = os.getenv("MEDIA_CLOUD_PROVIDER", "s3")
-MEDIA_CLOUD_BUCKET = os.getenv("MEDIA_CLOUD_BUCKET", "")
-MEDIA_CLOUD_CONNECTION_OPTIONS = {
-    key: value
-    for key, value in {
-        "access_key": os.getenv("AWS_ACCESS_KEY_ID"),
-        "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
-        "region_name": os.getenv("AWS_S3_REGION_NAME"),
-        "endpoint_url": os.getenv("AWS_S3_ENDPOINT_URL"),
-    }.items()
-    if value
-}
-
-if USE_CLOUD_MEDIA:
-    if MEDIA_CLOUD_PROVIDER.lower() != "s3":
-        raise ValueError("MEDIA_CLOUD_PROVIDER must be 's3' when USE_CLOUD_MEDIA is enabled.")
-    if not MEDIA_CLOUD_BUCKET:
-        raise ValueError("MEDIA_CLOUD_BUCKET is required when USE_CLOUD_MEDIA is enabled.")
-
-    INSTALLED_APPS.append("storages")
-    s3_options = {
-        "bucket_name": MEDIA_CLOUD_BUCKET,
-        "location": "public",
-        "default_acl": None,
-        "file_overwrite": False,
-        "querystring_auth": False,
-        "object_parameters": {
-            "CacheControl": "public, max-age=31536000, immutable",
-        },
-    }
-    s3_options.update(MEDIA_CLOUD_CONNECTION_OPTIONS)
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-            "OPTIONS": s3_options,
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
-        },
-    }
+# Uploaded files stay on the local private filesystem for this deployment.
+# Regulated documents are served only through authorized Django views.
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -224,12 +190,6 @@ RAZORPAY_CURRENCY = env_value("RAZORPAY_CURRENCY", "INR")
 RAZORPAY_WEBHOOK_SECRET = env_value("RAZORPAY_WEBHOOK_SECRET")
 PAYMENT_RESERVATION_MINUTES = env_int("PAYMENT_RESERVATION_MINUTES", 20)
 
-# Delivery fee settings — toggle FREE_DELIVERY=true in .env for testing
-DELIVERY_FEE = env_int("DELIVERY_FEE", 49)
-FREE_DELIVERY = env_bool("FREE_DELIVERY", False)
-COD_MAX_ORDER_VALUE = env_int("COD_MAX_ORDER_VALUE", 5000)
-COD_BLOCKED_PINCODES = set(env_list("COD_BLOCKED_PINCODES"))
-
 CHATBOT_API_URL = env_value("CHATBOT_API_URL", "https://api.groq.com/openai/v1").strip()
 CHATBOT_API_KEY = env_value("CHATBOT_API_KEY")
 CHATBOT_PROVIDER = env_value("CHATBOT_PROVIDER", "openai_compatible").strip().casefold()
@@ -255,17 +215,35 @@ CHATBOT_SEARCH_CACHE_SECONDS = env_int("CHATBOT_SEARCH_CACHE_SECONDS", 180)
 CHATBOT_FALLBACK_CACHE_SECONDS = env_int("CHATBOT_FALLBACK_CACHE_SECONDS", 30)
 CHATBOT_DEDUP_LOCK_SECONDS = env_int("CHATBOT_DEDUP_LOCK_SECONDS", 45)
 
-GEOCODING_REVERSE_URL = os.getenv(
-    "GEOCODING_REVERSE_URL",
-    "https://nominatim.openstreetmap.org/reverse",
-)
-GEOCODING_USER_AGENT = os.getenv(
-    "GEOCODING_USER_AGENT",
-    "MediMart/1.0 (development; contact: medimart.notifications@gmail.com)",
-)
-GEOCODING_TIMEOUT_SECONDS = env_int("GEOCODING_TIMEOUT_SECONDS", 5)
+GOOGLE_MAPS_API_KEY = env_value("GOOGLE_MAPS_API_KEY")
+GOOGLE_MAPS_BROWSER_API_KEY = env_value("GOOGLE_MAPS_BROWSER_API_KEY")
+GOOGLE_MAPS_TIMEOUT_SECONDS = env_int("GOOGLE_MAPS_TIMEOUT_SECONDS", 6)
+GOOGLE_MAPS_RADIUS_METERS = env_int("GOOGLE_MAPS_RADIUS_METERS", 5000)
+GOOGLE_MAPS_MAX_RESULTS = min(env_int("GOOGLE_MAPS_MAX_RESULTS", 20), 20)
+GOOGLE_MAPS_ERROR_CACHE_SECONDS = env_int("GOOGLE_MAPS_ERROR_CACHE_SECONDS", 30)
+GOOGLE_MAPS_AUTOCOMPLETE_CACHE_SECONDS = env_int("GOOGLE_MAPS_AUTOCOMPLETE_CACHE_SECONDS", 30)
+WHATSAPP_PROVIDER = env_value("WHATSAPP_PROVIDER", "openwa").strip().casefold()
+WHATSAPP_API_URL = env_value("WHATSAPP_API_URL", "http://localhost:2785/api").strip()
+WHATSAPP_API_KEY = env_value("WHATSAPP_API_KEY")
+WHATSAPP_SESSION_ID = env_value("WHATSAPP_SESSION_ID", "default").strip()
+PUBLIC_SITE_URL = env_value("PUBLIC_SITE_URL", "http://127.0.0.1:8000").strip().rstrip("/")
+WHATSAPP_TIMEOUT_SECONDS = env_int("WHATSAPP_TIMEOUT_SECONDS", 10)
+WHATSAPP_OTP_TTL_SECONDS = env_int("WHATSAPP_OTP_TTL_SECONDS", 300)
+WHATSAPP_OTP_RESEND_COOLDOWN_SECONDS = env_int("WHATSAPP_OTP_RESEND_COOLDOWN_SECONDS", 60)
+WHATSAPP_OTP_MAX_ATTEMPTS = env_int("WHATSAPP_OTP_MAX_ATTEMPTS", 5)
+WHATSAPP_NOTIFICATION_MAX_ATTEMPTS = env_int("WHATSAPP_NOTIFICATION_MAX_ATTEMPTS", 5)
+NOTIFICATION_WORKER_AUTOSTART = env_bool("NOTIFICATION_WORKER_AUTOSTART", True)
+NOTIFICATION_WORKER_INTERVAL_SECONDS = env_int("NOTIFICATION_WORKER_INTERVAL_SECONDS", 15)
+STAFF_MFA_REQUIRED = env_bool("STAFF_MFA_REQUIRED", not DEBUG)
+CONSULTATION_ROOM_BASE_URL = env_value("CONSULTATION_ROOM_BASE_URL", "").strip().rstrip("/")
+BULK_ORDER_QUANTITY_THRESHOLD = env_int("BULK_ORDER_QUANTITY_THRESHOLD", 10)
 TRUSTED_PROXY_COUNT = env_int("TRUSTED_PROXY_COUNT", 0)
 RATE_LIMIT_FAIL_CLOSED = env_bool("RATE_LIMIT_FAIL_CLOSED", True)
+MONITORING_ALERT_WEBHOOK = env_value("MONITORING_ALERT_WEBHOOK").strip()
+MAKER_CHECKER_REQUIRED = env_bool("MAKER_CHECKER_REQUIRED", not DEBUG)
+SHIPMENT_SLA_ESCALATION_HOURS = env_int("SHIPMENT_SLA_ESCALATION_HOURS", 24)
+LAB_SLA_ESCALATION_HOURS = env_int("LAB_SLA_ESCALATION_HOURS", 24)
+SUPPORT_SLA_ESCALATION_HOURS = env_int("SUPPORT_SLA_ESCALATION_HOURS", 24)
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)

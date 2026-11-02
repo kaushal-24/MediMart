@@ -45,6 +45,11 @@
                             {{ form.qualification }}
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label" for="{{ form.profile_image.id_for_label }}">Profile image</label>
+                            {{ form.profile_image }}
+                            <div class="form-text">Use a clear professional headshot.</div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label" for="{{ form.qualification_document.id_for_label }}">Credential document</label>
                             {{ form.qualification_document }}
                         </div>

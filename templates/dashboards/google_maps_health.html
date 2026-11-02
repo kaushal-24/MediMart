@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Google Maps health | MediMart{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">ADMIN CONFIGURATION</p>
+            <h1 class="h2 mb-2">Google Maps health</h1>
+            <p class="text-secondary mb-0">Check the server and browser configuration used by location search, address selection, and pharmacy discovery.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{% url 'dashboards:admin_dashboard' %}"><i class="bi bi-arrow-left me-2"></i>Back to Operations Center</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Configuration</p><h2>Required keys</h2></div></div>
+                <dl class="row mb-0">
+                    <dt class="col-sm-7">Server key for Geocoding and Places</dt>
+                    <dd class="col-sm-5">{% if server_key_configured %}<span class="status-pill status-approved">Configured</span>{% else %}<span class="status-pill status-rejected">Missing</span>{% endif %}</dd>
+                    <dt class="col-sm-7">Browser key for interactive maps</dt>
+                    <dd class="col-sm-5">{% if browser_key_configured %}<span class="status-pill status-approved">Configured</span>{% else %}<span class="status-pill status-pending">Optional</span>{% endif %}</dd>
+                </dl>
+                <p class="small text-secondary mt-4 mb-0">Keys are never displayed here. Keep the server key restricted to Geocoding API and Places API (New). Restrict the browser key to the Maps JavaScript API and your site origins.</p>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="content-panel h-100">
+                <div class="panel-heading"><div><p class="eyebrow mb-1">Live check</p><h2>Test Google connection</h2></div></div>
+                <p class="text-secondary small">This makes one server-side Geocoding request using a fixed India coordinate. It does not expose your key.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button class="btn btn-success" type="submit"><i class="bi bi-arrow-repeat me-2"></i>Run health check</button>
+                </form>
+                {% if health %}<div class="alert {% if health.ok %}alert-success{% else %}alert-warning{% endif %} mt-3 mb-0" role="status">{{ health.message }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="content-panel mt-4">
+        <div class="panel-heading"><div><p class="eyebrow mb-1">What the feature uses</p><h2>Location workflow</h2></div></div>
+        <div class="row g-3 small text-secondary">
+            <div class="col-md-4"><strong class="d-block text-body mb-1">Search</strong>Google Places autocomplete suggests Indian addresses. Selecting one is resolved on the server before it is saved.</div>
+            <div class="col-md-4"><strong class="d-block text-body mb-1">Map pin</strong>Users can click or drag a pin, then confirm it. The server reverse-geocodes the confirmed coordinates.</div>
+            <div class="col-md-4"><strong class="d-block text-body mb-1">Discovery</strong>Google pharmacy listings stay marked General. Only approved MediMart partners are treated as verified sellers.</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

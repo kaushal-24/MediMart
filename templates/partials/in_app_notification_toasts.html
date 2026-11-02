@@ -11,7 +11,7 @@
                 </div>
             </div>
             <div class="site-in-app-notification-actions">
-                {% if notification.link %}<a href="{{ notification.link }}">Open</a>{% endif %}
+                {% if notification.link %}<a class="btn btn-sm btn-outline-success notification-open-button" href="{% url 'extras:open_notification' notification.pk %}">Open</a>{% endif %}
                 <a href="{% url 'extras:notification_list' %}">View all</a>
                 <button type="button" data-notification-dismiss aria-label="Dismiss notification">
                     <i class="bi bi-x-lg" aria-hidden="true"></i>

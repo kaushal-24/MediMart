@@ -10,6 +10,7 @@ from orders.models import Order, OrderItem
 from .forms import (
     BusinessLicenseForm,
     VendorCatalogProductForm,
+    VendorProfileForm,
     VendorProductForm,
     VendorRegistrationForm,
 )
@@ -97,6 +98,7 @@ def vendor_dashboard(request):
         "order",
         "product",
     )
+
     recognized_items = order_items.filter(
         Q(order__payment_status=Order.PaymentStatus.PAID)
         | Q(order__order_status=Order.OrderStatus.DELIVERED)
@@ -134,6 +136,28 @@ def vendor_dashboard(request):
             "recent_order_items": order_items.order_by("-order__created_at")[:8],
             "licenses": vendor.licenses.all(),
         },
+    )
+
+
+@login_required
+def vendor_profile(request):
+    vendor = get_vendor_or_redirect(request)
+    if not isinstance(vendor, Vendor):
+        return vendor
+
+    if request.method == "POST":
+        form = VendorProfileForm(request.POST, request.FILES, instance=vendor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your business profile and logo have been updated.")
+            return redirect("vendors:vendor_dashboard")
+    else:
+        form = VendorProfileForm(instance=vendor)
+
+    return render(
+        request,
+        "vendors/vendor_profile.html",
+        {"form": form, "vendor": vendor},
     )
 
 

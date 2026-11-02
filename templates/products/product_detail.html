@@ -85,7 +85,7 @@
                 {% endif %}
 
                 <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
-                    {% if lowest_offer and product.available_offer_stock %}
+                    {% if lowest_offer and selected_offer_stock %}
                         <form data-ajax-form="cart" method="post" action="{% url 'cart:add_to_cart' lowest_offer.pk %}">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
@@ -232,7 +232,7 @@
         <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
             <div>
                 <h2 class="h4 fw-bold mb-1">Seller Offers</h2>
-                <p class="text-secondary mb-0">Approved vendor prices for this product.</p>
+                    <p class="text-secondary mb-0">{% if location_selected %}Approved offers available near {{ site_location_label }} are shown first.{% else %}Approved vendor prices for this product.{% endif %}</p>
             </div>
             {% if lowest_offer %}
                 <div class="seller-summary">

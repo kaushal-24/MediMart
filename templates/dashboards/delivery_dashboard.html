@@ -64,6 +64,8 @@
                                             <input class="form-control form-control-sm mb-1" name="delivery_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Customer OTP" required aria-label="Customer delivery OTP">
                                             <input class="form-control form-control-sm mb-1" name="recipient_name" maxlength="120" placeholder="Recipient name" aria-label="Recipient name">
                                             <input class="form-control form-control-sm mb-1" name="delivery_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Delivery proof">
+                                            {% if order.original_prescription_required %}<label class="form-check small mb-1"><input class="form-check-input" type="checkbox" name="original_prescription_checked" required> Original prescription checked</label>{% endif %}
+                                            {% if order.payment_method == "cod" %}<input class="form-control form-control-sm mb-1" name="cod_cash_reference" maxlength="120" placeholder="Cash collection reference" aria-label="Cash collection reference" required>{% endif %}
                                             <button class="btn btn-sm btn-success" type="submit">Verify &amp; deliver</button>
                                         </form>{% endif %}
                                         {% if order.order_status == "confirmed" or order.order_status == "processing" or order.order_status == "packed" %}

@@ -21,6 +21,15 @@
                     <button class="btn btn-outline-success" id="addressLocationButton" type="button" data-endpoint="{% url 'core:detect_location' %}"><i class="bi bi-crosshair me-2"></i>Detect location</button>
                 </div>
                 <div class="small mb-3" id="addressLocationStatus" role="status" aria-live="polite"></div>
+                <div class="location-search-block mb-4" data-location-picker data-autocomplete-url="{% url 'core:location_autocomplete' %}" data-place-endpoint="{% url 'core:select_location_place' %}">
+                    <label class="form-label" for="addressLocationSearch">Search and select an address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+                        <input class="form-control" id="addressLocationSearch" type="search" autocomplete="off" placeholder="Search area, street, or pincode">
+                    </div>
+                    <div class="location-suggestions d-none" role="listbox" aria-label="Location suggestions"></div>
+                    <p class="small text-secondary mt-2 mb-0" data-location-picker-status>Choose a suggestion to fill the address fields, then verify the details before saving.</p>
+                </div>
 
                 <form method="post" novalidate>
                     {% csrf_token %}
@@ -89,8 +98,6 @@
                         {{ form.country }}
                         {{ form.country_code }}
                         {{ form.geocoding_place_id }}
-                        {{ form.geocoding_osm_type }}
-                        {{ form.geocoding_osm_id }}
                         {{ form.geocoding_display_name }}
                         {{ form.geocoding_payload }}
                         {{ form.location_source }}

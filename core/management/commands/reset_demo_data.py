@@ -23,6 +23,7 @@ from extras.models import (
     SupportMessage,
     SupportTicket,
 )
+from extras.services import create_notification
 from orders.models import Coupon, Order, OrderItem, OrderStatusHistory, Payment
 from prescriptions.models import Prescription, PrescriptionItem
 from products.models import Brand, Category, Product, ProductImage, ProductSpecification
@@ -810,24 +811,26 @@ class Command(BaseCommand):
             message="Your order is currently out for delivery and should arrive today.",
             is_staff_reply=True,
         )
-        Notification.objects.create(
-            user=self.users["customer"],
-            title="Order out for delivery",
-            message="Your MediMart order is out for delivery.",
-            notification_type=Notification.NotificationType.ORDER,
+        create_notification(
+            self.users["customer"],
+            "Order out for delivery",
+            "Your MediMart order is out for delivery.",
+            Notification.NotificationType.ORDER,
         )
-        Notification.objects.create(
-            user=self.users["customer"],
-            title="Prescription approved",
-            message="Your uploaded prescription has been approved.",
-            notification_type=Notification.NotificationType.PRESCRIPTION,
-            is_read=True,
+        notification = create_notification(
+            self.users["customer"],
+            "Prescription approved",
+            "Your uploaded prescription has been approved.",
+            Notification.NotificationType.PRESCRIPTION,
         )
-        Notification.objects.create(
-            user=self.users["vendor"],
-            title="Vendor offer approved",
-            message="Your seller offers are approved and visible to customers.",
-            notification_type=Notification.NotificationType.OFFER,
+        if notification:
+            notification.is_read = True
+            notification.save(update_fields=["is_read"])
+        create_notification(
+            self.users["vendor"],
+            "Vendor offer approved",
+            "Your seller offers are approved and visible to customers.",
+            Notification.NotificationType.OFFER,
         )
 
     def attach_commons_image(self, instance, field_name, commons_filename, local_filename):

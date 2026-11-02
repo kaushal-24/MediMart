@@ -208,6 +208,43 @@ class RazorpayCheckoutTests(TestCase):
         self.assertEqual(self.order.payment_status, Order.PaymentStatus.PAID)
         client.utility.verify_payment_signature.assert_called_once()
 
+    @patch("orders.views.create_notification")
+    @patch("orders.views.get_razorpay_client")
+    def test_order_placed_notification_is_sent_only_after_payment(self, get_client, create_notification):
+        self.payment.gateway_order_id = "order_test_123"
+        self.payment.save(update_fields=["gateway_order_id"])
+        payment_id = "pay_test_123"
+        signature = hmac.new(
+            b"test-secret",
+            b"order_test_123|pay_test_123",
+            hashlib.sha256,
+        ).hexdigest()
+        client = MagicMock()
+        client.payment.fetch.return_value = {
+            "id": payment_id,
+            "order_id": "order_test_123",
+            "amount": 14900,
+            "currency": "INR",
+            "status": "captured",
+        }
+        get_client.return_value = client
+
+        response = self.client.post(
+            reverse("orders:payment_verify", args=[self.order.pk]),
+            {
+                "razorpay_order_id": "order_test_123",
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": signature,
+            },
+            HTTP_ACCEPT="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        create_notification.assert_called_once()
+        self.assertEqual(create_notification.call_args.args[1], "Order placed")
+        self.assertIn("after payment confirmation", create_notification.call_args.args[2])
+
     def test_payment_page_loads_checkout_script_and_create_endpoint(self):
         response = self.client.get(reverse("orders:payment_start", args=[self.order.pk]))
 

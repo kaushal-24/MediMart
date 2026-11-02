@@ -21,28 +21,34 @@
             {% if product.brand %}{{ product.brand.name }}{% else %}MediMart verified{% endif %}
         </p>
         <div class="d-flex align-items-center gap-2 mb-2">
-            <strong>₹{{ product.lowest_offer_price|default:product.selling_price }}</strong>
+            {% if location_selected and product.location_offer_count %}
+                <strong>₹{{ product.location_lowest_offer_price }}</strong>
+            {% else %}
+                <strong>₹{{ product.lowest_offer_price|default:product.selling_price }}</strong>
+            {% endif %}
             {% if product.discount_percentage %}
                 <span class="text-secondary text-decoration-line-through small">₹{{ product.mrp }}</span>
                 <span class="discount-label">{{ product.discount_percentage }}% off</span>
             {% endif %}
         </div>
-        <p class="small mb-0 {% if product.available_offer_stock == 0 %}text-danger{% elif product.available_offer_stock <= 5 %}text-warning{% else %}text-success{% endif %}">
-            {% if product.available_offer_stock == 0 %}Out of Stock{% elif product.available_offer_stock <= 5 %}Low Stock{% else %}In Stock{% endif %}
-        </p>
-        {% if product.available_offer_stock == 0 %}
-            {% if user.is_authenticated %}
-                <form data-ajax-form="stock-alert" method="post" action="{% url 'products:stock_alert_create' product.pk %}">
-                    {% csrf_token %}
-                    <button class="btn btn-sm btn-outline-warning w-100 mt-3" type="submit">
-                        <i class="bi bi-bell me-1"></i>Notify me when available
-                    </button>
-                </form>
-            {% else %}
-                <a class="btn btn-sm btn-outline-warning w-100 mt-3" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">
-                    <i class="bi bi-bell me-1"></i>Sign in for stock alert
-                </a>
+        {% if location_selected and product.location_offer_count %}
+            <p class="small mb-0 {% if product.location_available_offer_stock == 0 %}text-danger{% elif product.location_available_offer_stock <= 5 %}text-warning{% else %}text-success{% endif %}">
+                {% if product.location_available_offer_stock == 0 %}Out of Stock near you{% elif product.location_available_offer_stock <= 5 %}Low stock near you{% else %}Available near you{% endif %}
+            </p>
+        {% else %}
+            <p class="small mb-0 {% if product.available_offer_stock == 0 %}text-danger{% elif product.available_offer_stock <= 5 %}text-warning{% else %}text-success{% endif %}">
+                {% if product.available_offer_stock == 0 %}Out of Stock{% elif product.available_offer_stock <= 5 %}Low Stock{% else %}In Stock{% endif %}
+            </p>
+        {% endif %}
+        {% if location_selected and product.location_offer_count %}
+            <small class="product-location-match"><i class="bi bi-geo-alt me-1" aria-hidden="true"></i>Seller matched to {{ site_location_label }}</small>
+        {% endif %}
+        {% if location_selected and product.location_offer_count %}
+            {% if product.location_available_offer_stock == 0 %}
+                {% include "products/partials/stock_alert_action.html" with product=product %}
             {% endif %}
+        {% elif product.available_offer_stock == 0 %}
+            {% include "products/partials/stock_alert_action.html" with product=product %}
         {% endif %}
         <div class="product-card-actions">
             <a class="btn btn-success product-card-primary" href="{{ product.get_absolute_url }}">View details <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>

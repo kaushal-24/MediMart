@@ -349,9 +349,13 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll("[data-site-location-label]").forEach((element) => {
             element.textContent = location.label || "Current location";
         });
+        document.querySelectorAll('input[name="location"]').forEach((input) => { input.value = location.label || "Current location"; });
         if (locationAttribution && location.attribution) {
             locationAttribution.textContent = location.attribution;
             locationAttribution.classList.remove("d-none");
+        }
+        if (document.querySelector("[data-catalog-results]")) {
+            window.location.reload();
         }
     };
 
@@ -373,8 +377,6 @@ document.addEventListener("DOMContentLoaded", () => {
             "#id_latitude": location.latitude,
             "#id_longitude": location.longitude,
             "#id_geocoding_place_id": location.place_id,
-            "#id_geocoding_osm_type": location.osm_type,
-            "#id_geocoding_osm_id": location.osm_id,
             "#id_geocoding_display_name": location.display_name,
             "#id_geocoding_payload": JSON.stringify(location.raw_payload || {}),
             "#id_location_source": "geolocation",
@@ -403,6 +405,191 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         return data;
     };
+
+    const googleMapsLoader = (() => {
+        let promise;
+        return (apiKey) => {
+            if (!apiKey) return Promise.reject(new Error("Google Maps browser key is not configured."));
+            if (window.google?.maps) return Promise.resolve(window.google.maps);
+            if (promise) return promise;
+            promise = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&loading=async`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => window.google?.maps ? resolve(window.google.maps) : reject(new Error("Google Maps could not be loaded."));
+                script.onerror = () => reject(new Error("Google Maps could not be loaded. Check the browser key and Maps JavaScript API."));
+                document.head.appendChild(script);
+            });
+            return promise;
+        };
+    })();
+
+    const initLocationPickers = () => {
+        document.querySelectorAll("[data-location-picker]").forEach((picker) => {
+            if (picker.dataset.locationPickerReady === "1") return;
+            picker.dataset.locationPickerReady = "1";
+            const input = picker.querySelector('input[type="search"]');
+            const suggestions = picker.querySelector(".location-suggestions");
+            const status = picker.querySelector("[data-location-picker-status]");
+            if (!input || !suggestions) return;
+            let debounceTimer;
+
+            const hideSuggestions = () => {
+                suggestions.classList.add("d-none");
+                suggestions.replaceChildren();
+            };
+            const renderSuggestions = (items) => {
+                suggestions.replaceChildren();
+                if (!items.length) {
+                    hideSuggestions();
+                    return;
+                }
+                items.forEach((item) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "location-suggestion";
+                    button.setAttribute("role", "option");
+                    button.innerHTML = `<strong>${item.primary || item.label}</strong><small>${item.secondary || item.label}</small>`;
+                    button.addEventListener("click", async () => {
+                        button.disabled = true;
+                        setStatus(status, "Confirming this address with Google Maps...", "secondary");
+                        try {
+                            const response = await fetch(picker.dataset.placeEndpoint || "/location/place/", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken(), "X-Requested-With": "XMLHttpRequest" },
+                                credentials: "same-origin",
+                                body: JSON.stringify({ place_id: item.place_id }),
+                            });
+                            const data = await response.json();
+                            if (!response.ok || !data.ok) throw new Error(data.error || "This address could not be selected.");
+                            updateLocationLabels(data.location);
+                            fillAddressFromLocation(data.location);
+                            input.value = data.location.display_name || item.label;
+                            hideSuggestions();
+                            setStatus(status, `Location selected: ${data.location.label}`, "success");
+                            if (picker.closest("#locationModal")) {
+                                window.setTimeout(() => bootstrap.Modal.getInstance(document.querySelector("#locationModal"))?.hide(), 450);
+                            }
+                        } catch (error) {
+                            setStatus(status, error.message, "danger");
+                        } finally {
+                            button.disabled = false;
+                        }
+                    });
+                    suggestions.appendChild(button);
+                });
+                suggestions.classList.remove("d-none");
+            };
+
+            input.addEventListener("input", () => {
+                window.clearTimeout(debounceTimer);
+                const query = input.value.trim();
+                if (query.length < 3) {
+                    hideSuggestions();
+                    return;
+                }
+                debounceTimer = window.setTimeout(async () => {
+                    setStatus(status, "Finding matching addresses...", "secondary");
+                    try {
+                        const endpoint = picker.dataset.autocompleteUrl || "/location/autocomplete/";
+                        const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`, { headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" });
+                        const data = await response.json();
+                        if (!response.ok || !data.ok) throw new Error(data.error || "Address suggestions are unavailable.");
+                        renderSuggestions(data.suggestions || []);
+                        setStatus(status, data.suggestions?.length ? "Select the closest matching address." : "No matching address found. Try a wider area or use manual entry.", data.suggestions?.length ? "secondary" : "warning");
+                    } catch (error) {
+                        hideSuggestions();
+                        setStatus(status, error.message, "warning");
+                    }
+                }, 280);
+            });
+
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") hideSuggestions();
+            });
+        });
+    };
+
+    initLocationPickers();
+
+    const initLocationMap = () => {
+        const mapShell = document.querySelector("#locationPickerMap");
+        if (!mapShell || !mapShell.dataset.googleMapsKey) return;
+        const canvas = mapShell.querySelector(".location-map-canvas");
+        const confirmButton = mapShell.querySelector("#confirmMapLocationButton");
+        if (!canvas || !confirmButton) return;
+        const selected = window.siteLocation || {};
+        const fallbackCenter = { lat: Number(selected.latitude) || 20.5937, lng: Number(selected.longitude) || 78.9629 };
+        googleMapsLoader(mapShell.dataset.googleMapsKey).then((maps) => {
+            const map = new maps.Map(canvas, { center: fallbackCenter, zoom: selected.latitude ? 15 : 5, mapTypeControl: false, streetViewControl: false, fullscreenControl: false });
+            const marker = new maps.Marker({ position: fallbackCenter, map, draggable: true, title: "Delivery location" });
+            let pending = selected.latitude ? fallbackCenter : null;
+            const setPending = (latLng) => {
+                pending = { lat: latLng.lat(), lng: latLng.lng() };
+                marker.setPosition(pending);
+                map.panTo(pending);
+                confirmButton.classList.remove("d-none");
+            };
+            map.addListener("click", (event) => setPending(event.latLng));
+            marker.addListener("dragend", (event) => setPending(event.latLng));
+            confirmButton.addEventListener("click", async () => {
+                if (!pending) return;
+                setButtonBusy(confirmButton, true);
+                const status = mapShell.parentElement.querySelector("[data-location-picker-status]");
+                setStatus(status, "Resolving the map location...", "secondary");
+                try {
+                    const data = await postDetectedLocation(mapShell.dataset.detectEndpoint || "/location/detect/", { latitude: pending.lat, longitude: pending.lng, accuracy: 0 });
+                    updateLocationLabels(data.location);
+                    fillAddressFromLocation(data.location);
+                    setStatus(status, data.warning || `Location selected: ${data.location.label}`, data.warning ? "warning" : "success");
+                    confirmButton.classList.add("d-none");
+                } catch (error) {
+                    setStatus(status, error.message, "danger");
+                } finally {
+                    setButtonBusy(confirmButton, false);
+                }
+            });
+            mapShell.classList.remove("d-none");
+        }).catch(() => {
+            mapShell.classList.add("d-none");
+        });
+    };
+
+    document.querySelector("#locationModal")?.addEventListener("shown.bs.modal", initLocationMap);
+
+    const nearbyMapShell = document.querySelector("#nearby-pharmacy-map");
+    if (nearbyMapShell) {
+        const escapeHtml = (value) => String(value || "").replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
+        const pointsElement = document.querySelector("#nearbyMapPoints");
+        let points = [];
+        try { points = JSON.parse(pointsElement?.textContent || "[]"); } catch (error) { points = []; }
+        const canvas = nearbyMapShell.querySelector(".location-map-canvas");
+        const emptyState = nearbyMapShell.querySelector(".location-map-empty");
+        if (!nearbyMapShell.dataset.googleMapsKey || !points.length) {
+            canvas?.classList.add("d-none");
+            emptyState?.classList.remove("d-none");
+            if (emptyState && !points.length) emptyState.textContent = "No mapped pharmacies were found for this location.";
+        } else {
+            googleMapsLoader(nearbyMapShell.dataset.googleMapsKey).then((maps) => {
+                const center = { lat: Number(points[0].latitude), lng: Number(points[0].longitude) };
+                const map = new maps.Map(canvas, { center, zoom: 13, mapTypeControl: false, streetViewControl: false, fullscreenControl: true });
+                const bounds = new maps.LatLngBounds();
+                points.forEach((point) => {
+                    const position = { lat: Number(point.latitude), lng: Number(point.longitude) };
+                    const marker = new maps.Marker({ map, position, title: point.name });
+                    const info = new maps.InfoWindow({ content: `<div class="map-info-window"><strong>${escapeHtml(point.name)}</strong><small>${escapeHtml(point.kind)}</small><a href="${escapeHtml(point.url)}" target="_blank" rel="noopener">Directions</a></div>` });
+                    marker.addListener("click", () => info.open({ map, anchor: marker }));
+                    bounds.extend(position);
+                });
+                if (points.length > 1) map.fitBounds(bounds, 48);
+            }).catch(() => {
+                canvas?.classList.add("d-none");
+                emptyState?.classList.remove("d-none");
+                if (emptyState) emptyState.textContent = "The interactive map is unavailable. Use the Directions buttons below.";
+            });
+        }
+    }
 
     const detectLocation = (button, statusElement, onSuccess) => {
         if (!navigator.geolocation) {
@@ -742,15 +929,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            if (state.searchInFlightQuery === query) return;
-            if (state.searchCache.has(query)) {
-                renderAiSearchResults(panel, input, state.searchCache.get(query));
+            const formParams = new URLSearchParams(new FormData(form));
+            formParams.set("q", query);
+            const requestKey = formParams.toString();
+            if (state.searchInFlightQuery === requestKey) return;
+            if (state.searchCache.has(requestKey)) {
+                renderAiSearchResults(panel, input, state.searchCache.get(requestKey));
                 return;
             }
             state.searchController?.abort();
             const searchController = new AbortController();
             state.searchController = searchController;
-            state.searchInFlightQuery = query;
+            state.searchInFlightQuery = requestKey;
             state.searchRequestId += 1;
             const searchRequestId = state.searchRequestId;
             const searchTimeout = window.setTimeout(() => searchController.abort(), 30000);
@@ -763,14 +953,14 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.classList.add("is-visible");
             input.setAttribute("aria-expanded", "true");
             try {
-                const response = await fetch(`${form.dataset.aiEndpoint}?q=${encodeURIComponent(query)}`, {
+                const response = await fetch(`${form.dataset.aiEndpoint}?${formParams.toString()}`, {
                     headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
                     signal: searchController.signal,
                 });
                 const data = await response.json();
                 if (!response.ok || !data.ok) throw new Error(data.error || "AI search could not be completed.");
                 if (state.searchRequestId !== searchRequestId) return;
-                state.searchCache.set(query, data);
+                state.searchCache.set(requestKey, data);
                 renderAiSearchResults(panel, input, data);
             } catch (error) {
                 if (error.name !== "AbortError" && state.searchRequestId === searchRequestId) {

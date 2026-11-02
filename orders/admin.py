@@ -12,6 +12,7 @@ from .models import (
     OrderStatusHistory,
     Payment,
     PaymentEvent,
+    FinanceLedgerEntry,
     OrderChargeBreakdown,
     PaymentReconciliation,
     PaymentSettlement,
@@ -23,6 +24,7 @@ from .models import (
     Shipment,
     ShipmentEvent,
     Warehouse,
+    BulkOrderReview,
 )
 
 
@@ -80,6 +82,14 @@ class OrderItemAdmin(admin.ModelAdmin):
     search_fields = ("order__order_number", "product_name", "seller_name", "sku")
 
 
+@admin.register(BulkOrderReview)
+class BulkOrderReviewAdmin(admin.ModelAdmin):
+    list_display = ("order", "status", "reviewed_by", "created_at", "reviewed_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("order__order_number", "order__customer__username")
+    readonly_fields = ("created_at", "updated_at")
+
+
 @admin.register(OrderStatusHistory)
 class OrderStatusHistoryAdmin(admin.ModelAdmin):
     list_display = ("order", "status", "note", "created_at")
@@ -113,6 +123,14 @@ class PaymentEventAdmin(admin.ModelAdmin):
     list_filter = ("event_type", "processed", "received_at")
     search_fields = ("event_id", "gateway_order_id", "gateway_payment_id", "payment__order__order_number")
     readonly_fields = ("event_id", "event_type", "payment", "payload_hash", "payload", "received_at", "processed_at")
+
+
+@admin.register(FinanceLedgerEntry)
+class FinanceLedgerEntryAdmin(admin.ModelAdmin):
+    list_display = ("entry_reference", "entry_type", "direction", "amount", "currency", "order", "created_at")
+    list_filter = ("entry_type", "direction", "finance_test_mode", "created_at")
+    search_fields = ("entry_reference", "order__order_number", "description")
+    readonly_fields = [field.name for field in FinanceLedgerEntry._meta.fields]
 
 
 @admin.register(OrderChargeBreakdown)

@@ -7,7 +7,7 @@ from accounts.models import Address
 from core.validators import validate_private_document
 from extras.models import DoctorProfile
 
-from .models import Consultation, Dependent, HealthRecord, LabBooking, LabCollectionSlot, LabTest, MedicationReminder
+from .models import Consultation, Dependent, HealthRecord, LabBooking, LabCollectionSlot, LabDispute, LabTest, MedicationReminder
 
 
 class DependentForm(BootstrapFormMixin, forms.ModelForm):
@@ -99,6 +99,17 @@ class LabRescheduleForm(BootstrapFormMixin, forms.Form):
         return slot
 
 
+class LabDisputeForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = LabDispute
+        fields = ["category", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_classes()
+
+
 class MedicationReminderForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = MedicationReminder
@@ -122,12 +133,25 @@ class ConsultationForm(BootstrapFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["dependent"].queryset = user.dependents.filter(is_active=True) if user else Dependent.objects.none()
         self.fields["doctor"].queryset = DoctorProfile.objects.filter(is_verified=True).order_by("full_name")
+        self.fields["doctor"].label_from_instance = (
+            lambda doctor: f"Dr. {doctor.full_name} — {doctor.specialization}"
+        )
+        self.fields["doctor"].help_text = "Choose a verified doctor by name and specialty."
         self.apply_bootstrap_classes()
 
 
 class ConsultationMessageForm(BootstrapFormMixin, forms.Form):
     message = forms.CharField(max_length=4000, widget=forms.Textarea(attrs={"rows": 4}))
     attachment = forms.FileField(required=False, validators=[validate_private_document])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_classes()
+
+
+class ConsultationFollowUpForm(BootstrapFormMixin, forms.Form):
+    scheduled_at = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
+    notes = forms.CharField(required=False, max_length=4000, widget=forms.Textarea(attrs={"rows": 3}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

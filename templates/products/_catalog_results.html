@@ -1,6 +1,21 @@
-<div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
     <p class="text-secondary mb-0"><strong>{{ page_obj.paginator.count }}</strong> product{{ page_obj.paginator.count|pluralize }} found</p>
+    <form class="catalog-page-size-form" method="get" action="{{ request.path }}">
+        {% for field in page_size_query_fields %}<input type="hidden" name="{{ field.name }}" value="{{ field.value }}">{% endfor %}
+        <label for="catalogPageSize" class="text-secondary">Show</label>
+        <select id="catalogPageSize" name="per_page" class="form-select form-select-sm" aria-label="Products per page">
+            {% for option in page_size_options %}<option value="{{ option.value }}"{% if option.value == selected_page_size %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-outline-success btn-sm" type="submit">Apply</button>
+    </form>
 </div>
+{% if location_selected %}
+    <div class="catalog-location-note mb-3" role="status">
+        <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>
+        Seller prices and stock are prioritised for <strong>{{ site_location_label }}</strong> when a matching local offer is available.
+        <a href="{% url 'core:nearby_pharmacies' %}">View nearby pharmacies</a>
+    </div>
+{% endif %}
 
 {% if active_filter_chips %}
     <div class="active-filter-bar mb-4" aria-label="Active filters">

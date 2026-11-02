@@ -13,7 +13,7 @@ MediMart is a healthcare marketplace and care-services platform. It supports:
 - Approved sellers, manufacturers, pharmacies, and healthcare businesses.
 - Prescription upload, scanning metadata, manual clinical review, resubmission, and fulfilment limits.
 - Cart, saved items, coupons, Razorpay online payments, invoices, delivery assignment, order tracking, returns, refunds, and support.
-- Lab tests, home bookings, verified doctors, consultations, health records, dependents, medication reminders, and care plans.
+- Lab tests, home bookings, verified doctors, consultations, health records, dependents, and medication reminders.
 - Health education articles, notifications, audit events, and a guarded MediMart AI assistant.
 
 ## 2. Application Architecture
@@ -29,8 +29,8 @@ MediMart is a server-rendered Django application with progressive AJAX interacti
 | `prescriptions` | Prescription upload, private files, scan metadata, review, medicine mapping, resubmission |
 | `orders` | Checkout, order totals, payments, invoices, order status history, inventory, shipments, returns, refunds |
 | `dashboards` | Role-scoped Operations Center, management CRUD, delivery dashboard, seller/license/offer review |
-| `healthcare` | Dependents, health records, labs, bookings, consultations, reminders, care plans |
-| `extras` | Notifications, email delivery records, support tickets, blog, doctors, content issues |
+| `healthcare` | Dependents, health records, labs, bookings, consultations, and reminders |
+| `extras` | In-app notifications, WhatsApp delivery records, support tickets, blog, doctors, content issues |
 | `assistant` | Chat endpoint, guarded AI answers, AI catalogue search planning, model failover |
 | `reviews` | Product and order reviews |
 | `core` | Homepage, geolocation, private media delivery, audit/security helpers, public API/health checks |
@@ -44,7 +44,7 @@ MediMart is a server-rendered Django application with progressive AJAX interacti
 - Public media: `media/`.
 - Sensitive media: `private_media/`, served through permission-checked views rather than public URLs.
 - Payments: Razorpay Standard Checkout and server-side signature/webhook handling.
-- Email: Django email backend. Development commonly uses the console backend; production email credentials belong in `.env`.
+- WhatsApp: queued provider delivery is configured through `.env`; in-app notifications remain the source of truth.
 - External location service: reverse geocoding configured by `GEOCODING_REVERSE_URL`.
 - AI: custom OpenAI-compatible or Gemini-compatible endpoint configured by `CHATBOT_API_URL`, with model rotation through `CHATBOT_MODELS`.
 
@@ -67,7 +67,7 @@ Every signed-in account has a Django user and a `UserProfile`. The profile role 
 | Catalog manager | Manage catalogue, seller offers, product publication, categories, and brands | Operations Center |
 | Operations manager | Coordinate users, sellers, fulfilment, clinical, support, finance, and audits | Operations Center |
 | Warehouse manager | Manage warehouses, batches, inventory, shipments, and fulfilment | Operations Center |
-| Admin | Full application operations access; normally a trusted staff account | Operations Center and Django Admin |
+| Admin | Full application operations access; normally a trusted staff account | Custom Operations Center |
 
 Role is not the same as a Django superuser. A superuser bypasses the custom capability checks, while ordinary staff should be assigned the appropriate MediMart role and only the capabilities needed for their job.
 
@@ -139,7 +139,7 @@ The custom authorization layer is in `accounts/permissions.py`. Views use `role_
 - A delivery worker can update only assigned orders and only through the permitted delivery transitions.
 - Operations pages verify both authentication and the capability for the requested section.
 - Superusers are allowed through the custom capability gate, but sensitive operations should still be audited and separated operationally.
-- The default Django Admin remains available at `/admin/` for authorized Django staff/superusers. It is not removed; it complements the custom role-based panels.
+- The custom Operations Center is the supported operational interface. Django Admin is an internal framework surface, not part of the MediMart staff workflow, and should not be used for routine business actions.
 
 ## 6. Customer Journey
 
@@ -240,7 +240,7 @@ When a seller uses `/vendor-products/add/`, the seller selects an existing produ
 
 ## 8. Operations Center and Panels
 
-The custom Operations Center is available at `/admin-dashboard/` to users with `dashboard.operations`. It is separate from, and used alongside, the default Django Admin at `/admin/`.
+The custom Operations Center is available at `/admin-dashboard/` to users with `dashboard.operations`. It is the intended staff interface and keeps workflow rules, permissions, confirmations, and audit records in one place.
 
 ### Management sections
 
@@ -253,7 +253,7 @@ The Operations Center currently exposes capability-controlled sections for:
 - Prescriptions, doctors, lab tests, lab bookings, and consultations.
 - Coupons.
 - Blog posts and blog categories.
-- Notifications and email delivery records.
+- Notifications and WhatsApp delivery records.
 - Payments and refunds.
 - Support tickets.
 - Audit trail.
@@ -344,7 +344,7 @@ Public users can browse active labs and verified doctors, but booking and record
 
 ## 13. Notifications, Support, and Blog
 
-Notifications are in-app records linked to a user and can be marked read. Notification deliveries retain email channel, destination, attempt count, retry timing, and delivery state. The current implementation keeps SMS out of the normal notification flow; email and in-app notifications are the supported channels.
+Notifications are in-app records linked to a user and can be marked read. New notification deliveries use the WhatsApp channel, destination, attempt count, retry timing, and delivery state. Legacy email rows may remain for migration history, but new application notifications do not create or send email deliveries.
 
 Support users can see all support tickets; ordinary customers can see only their own tickets and messages. Staff replies move open tickets to in progress and create a notification for the customer.
 
@@ -374,7 +374,7 @@ Sensitive values and documents have additional protections:
 - Audit events record security, seller, offer, prescription, delivery, management, and payment decisions.
 - CSRF, rate limits, password validators, MFA, secure session settings, and security headers reduce common web risks.
 
-Production deployment should set a strong `SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, non-debug mode, allowed hosts, HTTPS, secure cookies, real email credentials, real Razorpay webhook secret, and an approved media storage provider.
+Production deployment should set a strong `SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, non-debug mode, allowed hosts, HTTPS, secure cookies, WhatsApp provider credentials, and a real Razorpay webhook secret. MediMart currently uses local private media storage; upload backups and structural validation must be operated against `PRIVATE_MEDIA_ROOT`.
 
 ## 16. Practical Runbooks
 
@@ -482,9 +482,9 @@ The default Django Admin user is separate from ordinary MediMart roles. Create a
 - Licence verification is a manual review workflow; there is no live government licence lookup API in the current implementation.
 - AI is a guarded search/support layer and must not diagnose, prescribe, or reveal private information.
 - Provider failover requires multiple models to be configured in `CHATBOT_MODELS`; otherwise the local fallback is used.
-- Email delivery depends on production SMTP configuration; the console backend is suitable for development only.
+- WhatsApp delivery depends on a configured OpenWA, Meta Cloud API, or compliant BSP provider; in-app notifications work without an external provider.
 - Razorpay real-payment readiness depends on correct production keys, webhook configuration, HTTPS, reconciliation, refund policy, and merchant account configuration.
-- Media production readiness depends on private storage, backups, virus scanning, size limits, and a cloud/object-storage strategy.
+- Media production readiness depends on private local storage, backups, virus scanning, and size limits. Cloud object storage is deliberately disabled for the current deployment.
 - Role assignment should be controlled by trusted administrators; never let an ordinary customer self-promote to an operations or compliance role.
 
 ## 20. Source-of-Truth Files
@@ -509,7 +509,7 @@ This section was appended without deleting any system-guide content. The complet
 
 Current working workflows include pharmacist-only prescription review with validation and clarification, Schedule H/H1/NDPS/habit-forming classification foundations, batch and dispensing traceability, temperature excursion quarantine, product variants and pharmacist-reviewed alternatives, moderated questions and review trust controls, lab capacity-safe cancellation/rescheduling, delivery assignment with hashed OTP and private proof, MySQL migrations, and per-user action capability overrides.
 
-Operational boundaries remain explicit: AI must not diagnose or prescribe; licence verification remains manual; live courier, lab, consultation, storage, email, payment, and monitoring providers require configured accounts; legal and clinical approval remains mandatory; and the roadmap must not be marked complete merely because a database model exists.
+Operational boundaries remain explicit: AI must not diagnose or prescribe; licence verification remains manual; courier and lab workflows are currently manual in the website; clinic consultations use clinic details and private chat; OpenWA retries need a running worker; legal and clinical approval remains mandatory; and the roadmap must not be marked complete merely because a database model exists.
 
 ### Additive single-model AI policy
 
@@ -523,13 +523,13 @@ The assistant and AI catalogue search share MediMart's OpenAI-compatible provide
 
 ### Required integrations
 
-- Razorpay live/test keys and webhook secret in `.env`
+- Razorpay test keys and webhook secret for the current deployment; live keys are a later release gate
 - Courier API account, documentation, and credentials
 - Lab partner API or confirmed manual lab workflow
-- Doctor consultation provider or chat/video API
+- Approved clinic appointment and private chat workflow; video/audio provider is optional
 - AI provider API keys and approved models
-- Private object storage credentials, such as S3
-- SMTP Gmail app password for email notifications
+- Local private media backup process
+- OpenWA WhatsApp session, API key, and public site URL
 - Production error monitoring and uptime service
 
 ### Business decisions
@@ -540,7 +540,7 @@ The assistant and AI catalogue search share MediMart's OpenAI-compatible provide
 - Prescription acceptance, pharmacist approval, substitution, and expiry policies
 - Cold-chain products and temperature rules
 - Refund, cancellation, recall, and reverse-pickup policies
-- Loyalty points and Care Plan rules
+- Loyalty points and future subscription rules
 - Languages to support, beginning with Hindi or Gujarati
 
 ### Compliance documents
@@ -580,7 +580,7 @@ The normal local runtime is:
 - Razorpay SDK for payment-provider requests.
 - `cryptography` for encrypted database fields and protected secrets.
 - `PyOTP` and `qrcode` for TOTP two-factor authentication and Google Authenticator QR enrollment.
-- `django-storages[s3]` for optional private/public S3-compatible object storage.
+- Local filesystem storage for private regulated documents under `PRIVATE_MEDIA_ROOT`.
 - `python-dotenv` for `.env` configuration.
 
 The application starts from `manage.py`, loads `MediMart/settings.py`, then routes requests through `MediMart/urls.py`. Each domain app owns its models, forms, views, URLs, templates, migrations, and optional admin configuration.
@@ -591,7 +591,7 @@ The authoritative configuration layers are:
 2. The local `.env` file loaded by Django.
 3. Safe development defaults in `MediMart/settings.py`.
 
-Production must override development defaults. In particular, use `DEBUG=False`, a dedicated MySQL user, a strong secret key, an encryption key, HTTPS, secure cookies, private media storage, real SMTP, and a signed Razorpay webhook secret.
+Production must override development defaults. In particular, use `DEBUG=False`, a dedicated MySQL user, a strong secret key, an encryption key, HTTPS, secure cookies, private media storage, a configured WhatsApp provider, and a signed Razorpay webhook secret.
 
 ### B. Request and data-flow model
 
@@ -620,7 +620,7 @@ Money and inventory operations must be treated as server-authoritative. Browser 
 | `cart` | Cart, CartItem, Wishlist, WishlistItem and coupon selection state |
 | `prescriptions` | Prescription, PrescriptionItem, PrescriptionReview and scan/validation state |
 | `orders` | Order, OrderItem, OrderStatusHistory, Payment, PaymentEvent, charge breakdown, inventory, shipment, return, refund, recall, settlement, chargeback, credit note |
-| `healthcare` | Dependents, HealthRecord, LabPartner, LabTest, LabCollectionSlot, LabBooking, LabSampleEvent, LabReportValue, Consultation, ConsultationMessage, ConsultationPayment, reminders, care plans |
+| `healthcare` | Dependents, HealthRecord, LabPartner, LabTest, LabCollectionSlot, LabBooking, LabSampleEvent, LabReportValue, Consultation, ConsultationMessage, ConsultationPayment, reminders |
 | `extras` | DoctorProfile, PharmacistProfile, Notification, NotificationDelivery, SupportTicket, SupportMessage, BlogPost, ContentIssue, QualityComplaint |
 | `reviews` | Customer reviews, seller replies, helpfulness votes, abuse reports and moderation state |
 | `dashboards` | Capability-controlled Operations Center, management CRUD forms, review actions, assignment, delivery dashboard |
@@ -776,7 +776,7 @@ The customer can cancel only in the allowed early states. Returns start only aft
 6. Delivery staff verify the OTP, optionally attach proof, record recipient name, create a shipment event, and complete delivery.
 7. Order history, audit event, and customer notification are created.
 
-Courier API tracking, NDR/RTO automation, cash collection reconciliation, and reverse pickup require an external courier or an approved manual operational process.
+Courier API tracking, NDR/RTO automation, cash collection reconciliation, and reverse pickup are intentionally handled through the website's manual delivery dashboard for the current deployment.
 
 ### J. Returns, refunds, recalls, and complaints
 
@@ -814,7 +814,7 @@ Quality complaints, adverse events, temperature excursions, and evidence files s
 9. Customer can view only their own booking/report through protected access.
 10. Cancellation/rescheduling releases or moves slot capacity and records a sample event.
 
-Lab partner APIs, digital result ingestion, invoice payment, settlements, no-show fees, and disputes are not automatically connected without a partner integration or documented manual workflow.
+Lab bookings, sample events, report uploads, invoices, settlements, no-show handling, and disputes are handled through the website's manual lab workflow for the current deployment.
 
 ### L. Doctor consultation workflow
 
@@ -827,7 +827,7 @@ Lab partner APIs, digital result ingestion, invoice payment, settlements, no-sho
 7. Doctor notes, advice, referral, follow-up end time, and signed e-prescription are private clinical records.
 8. Follow-up access is valid only until the stored follow-up deadline.
 
-The current project stores consultation payment records and private messaging data, but a complete provider-backed video/chat payment and refund integration still requires an external provider and additional operational policy.
+The current project stores consultation payment records and private messaging data. The selected operational mode is clinic appointments plus private in-website chat; clinic name, address, and phone are snapshotted on booking so later doctor-profile edits do not change an existing appointment. External video/audio rooms remain optional and are not required for clinic consultations.
 
 ### M. Notifications and support
 
@@ -878,7 +878,7 @@ The current local configuration uses one Groq OpenAI-compatible model. Caching a
 
 ### P. Scheduled commands and operational jobs
 
-The project does not require Redis. Use Windows Task Scheduler, a MySQL-backed job runner, or an equivalent controlled scheduler in production. Do not run overlapping copies of the same command.
+The project does not require Redis. The Django development server autostarts one guarded WhatsApp retry worker by default (`NOTIFICATION_WORKER_AUTOSTART=true`); set it to `false` only when a separate worker/service owns the queue. Production should run one dedicated worker/service or a controlled scheduler and must prevent overlapping copies.
 
 ```powershell
 \.venv\Scripts\python.exe manage.py migrate
@@ -901,9 +901,9 @@ Before public launch:
 2. Enable HTTPS redirect, secure session cookies, secure CSRF cookies, HSTS, and trusted proxy settings appropriate to the hosting topology.
 3. Use a dedicated MySQL user; do not use `root`.
 4. Configure a strong Django secret key and a valid field-encryption key.
-5. Configure private S3-compatible storage for prescriptions, reports, credentials, support attachments, and signed access.
-6. Configure malware scanning, image validation, file-size limits, backups, retention, and restore drills.
-7. Configure SMTP, Razorpay live/test keys, webhook secret, payment reconciliation, refund policy, and chargeback ownership.
+5. Keep prescriptions, reports, credentials, and support attachments under local `PRIVATE_MEDIA_ROOT`; back up that directory and validate uploads before approval.
+6. Configure image validation, file-size limits, backups, retention, and restore drills.
+7. Configure OpenWA/WhatsApp, Razorpay test keys, webhook secret, payment reconciliation, refund policy, and chargeback ownership.
 8. Configure courier, lab, doctor consultation, monitoring, uptime, error tracking, and alerting providers or approved manual runbooks.
 9. Obtain legal review for pharmacy, prescription, telemedicine, DPDP/privacy, GST/tax, consumer protection, medical-device, and retention requirements.
 10. Create named admin, pharmacist, compliance, operations, warehouse, delivery, support, lab, and doctor accounts using least privilege.
@@ -911,16 +911,17 @@ Before public launch:
 
 ### R. Current verified checks and known boundaries
 
-The current codebase passes Django system checks, migration consistency checks, Python compilation, and the complete automated suite available in the repository. The automated suite covers authentication identifiers, MFA, permissions, product trust controls, prescription review, healthcare workflows, Razorpay verification, returns, private media, and industrial hardening.
+The repository has passed Python compilation and the existing automated suite for the prior workflows. The new migrations were generated successfully, but this sandbox pass could not connect to MySQL on `127.0.0.1:3306`; run the database-backed checks after starting MySQL.
 
-The following are still implementation boundaries or review items and must not be described as fully production-complete merely because models or screens exist:
+The following are still implementation boundaries or review items and must not be described as fully production-complete merely because models or screens exist. The local application now includes consultation payment verification hooks, secure consultation room routing, consultation cancellation/refund states, follow-up scheduling, no-show handling, lab booking detail/report access, lab dispute intake, and shipment tracking/NDR/RTO fields; those additions still require provider configuration and operational ownership for production use:
 
 - Admin bulk order actions and generic Operations Center forms need to use the same domain transition services as delivery/payment/return workflows.
 - COD delivery needs a cash-collection and reconciliation step before payment status is considered settled.
-- Tax, handling, platform, and cold-chain invoice charges require approved business rules and calculation code; the current invoice fields alone do not establish a tax implementation.
+- Tax, handling, platform, and cold-chain invoice charges are now calculated from database-owned checkout settings and snapshotted on each order; finance and tax professionals must still approve the configured values before live use.
 - Pharmacist private prescription-document access must remain aligned with the pharmacist review capability.
-- Consultation payments, video/chat provider integration, refunds, follow-up enforcement, and signed e-prescription operations require provider and clinical policy decisions.
-- Courier tracking, NDR/RTO, reverse pickup, cash reconciliation, lab partner integration, email delivery, monitoring, malware scanning, and production object storage require external setup.
+- Consultation payment capture and refund adapters are wired for Razorpay, but video/audio provider rooms, follow-up enforcement, signed e-prescription operations, and clinical no-show/refund policy require provider and clinical decisions.
+- Shipment lifecycle fields and controlled local transitions cover tracking, delivery exceptions, RTO states, cash references, delivery OTP, and proof; courier integration is intentionally out of scope for the current manual workflow.
+- Lab booking detail, secure report access, report values, dispute intake, and manual operations transitions are available; partner APIs and automated report ingestion remain optional future integrations.
 - Legal, clinical, pharmacy, tax, privacy, and consumer-policy review cannot be replaced by application code or seed data.
 
 ### S. How to investigate a feature or bug
@@ -1050,28 +1051,28 @@ The current sections are:
 - `coupons`: discount rules and coupon activation.
 - `recalls`, `quality_complaints`: product/batch recall and quality complaint workflows.
 - `blog_categories`, `blog`: health-guide categories and medically reviewed editorial content.
-- `support`, `notifications`, `notification_deliveries`: customer support, in-app notices, and email delivery attempts.
+- `support`, `notifications`, `notification_deliveries`: customer support, in-app notices, WhatsApp delivery attempts, retries, and dead-letter records.
 - `audit`: immutable operational audit records for permitted users.
 
-Some advanced child records are intentionally available through Django Admin at `/admin/` rather than the custom directory. These include product images, variants, specifications, clinical profiles and interactions, lab branches and reference ranges, sample events and report values, consultation messages and follow-ups, invoice/settlement/dispute records, payment events, inventory movements, and review moderation records.
+Advanced child records are exposed through the custom data manager or their workflow screen. Read-only records such as audit events and the finance ledger cannot be edited or deleted from that manager.
 
 ### Recommended data-entry order
 
 Enter data in dependency order. This avoids orphan records, invalid foreign-key choices, and publishing an unreviewed regulated item:
 
-1. Configure `.env`, connect MySQL on port `3306`, run migrations, and create a trusted superuser.
+1. Configure `.env`, connect MySQL on port `3306`, run migrations, and create the trusted MediMart Admin account through the supported setup flow.
 2. Create staff accounts and assign their `UserProfile` roles. Create separate pharmacist, compliance, warehouse, delivery, lab, doctor, support, and operations accounts.
 3. Add top-level and child categories, then brands.
 4. Add sellers, pharmacies, manufacturers, and their business licence records and private evidence.
 5. Review and verify seller licences before approving regulated sellers.
 6. Add products with SKU, category, brand, pricing, images, composition, safety class, regulatory schedule, prescription rules, storage, and recall defaults.
-7. Add product images, variants, specifications, clinical profiles, interactions, substitutes, and product questions through Django Admin where required.
+7. Add product images, variants, specifications, clinical profiles, interactions, substitutes, and product questions through the custom data manager or catalogue workflow.
 8. Add seller offers for products, including seller price, stock, delivery promise, warranty, and offer text. Approve offers only after seller and licence review.
 9. Add warehouses and inventory batches with batch number, quantity, MRP, supplier, manufacture/expiry dates, pharmacy/warehouse, and cold-chain requirements.
 10. Add pharmacist profiles and verify registration and pharmacy details.
 11. Add lab partners, branches, accreditation, service pincodes, tests/packages, images, report SLAs, reference ranges, and collection slots.
 12. Add doctor profiles, credentials, specialties, languages, fees, availability, leave, and follow-up rules. Verify credentials before public listing.
-13. Add coupons, care plans, health-guide categories, approved health guides, and homepage/content data.
+13. Add coupons, health-guide categories, approved health guides, and homepage/content data.
 14. Add delivery staff, courier configuration, warehouse assignments, and operational delivery policies.
 15. Test customer registration, address selection, prescription upload, pharmacist review, cart, coupon, Razorpay test payment, webhook, invoice, delivery assignment, return, refund, lab booking, and consultation flows.
 
@@ -1142,12 +1143,12 @@ Because Redis is intentionally excluded, scheduled commands should be run with W
 
 The application can store internal catalogue, users, roles, seller reviews, prescriptions, labs, doctors, orders, returns, refunds, notifications, and audit data without every external provider being connected. Genuine production operation still requires real and approved:
 
-- Razorpay live credentials and webhook secret.
+- Razorpay test credentials and webhook secret for the current deployment; live credentials are a later release gate.
 - Courier account, tracking, NDR/RTO, delivery-proof, and reverse-pickup integration or an approved manual process.
 - Lab partner accreditation, branch/service data, result workflow, and either API access or a documented manual process.
-- Doctor consultation provider or approved chat/video workflow.
-- Private object storage and signed URLs for sensitive documents.
-- SMTP credentials for transactional email.
+- Approved clinic appointment and private chat workflow; a video/audio provider is optional for this deployment.
+- Local private media backup and authorized document delivery.
+- OpenWA WhatsApp credentials for the current deployment.
 - Monitoring, uptime alerts, backups, restore drills, legal review, privacy/consent wording, tax rules, return/refund policy, and named operational owners.
 
 Until these inputs are supplied, keep the relevant records in test/manual-review states and do not present demo licences, demo providers, demo health reports, or test payment credentials as production data.
@@ -1179,4 +1180,130 @@ python manage.py replace_prescription_images `
 ```
 
 The command stores copies through the configured private media storage and assigns them round-robin to existing prescription records. It never writes to or deletes the public `static/` directory. Prescription records remain protected by the existing owner/reviewer authorization checks.
+
+### Location-aware discovery and delivery search
+
+The location flow is available to authenticated and anonymous visitors. The navbar location selector stores a session location and, for signed-in users, mirrors it to `UserProfile.preferred_*` fields. Browser coordinates are reverse-geocoded through Google Maps Platform Geocoding. Approved pharmacy records also support city, state, pincode, latitude, and longitude.
+
+- `GET /pharmacies/nearby/` lists approved pharmacies, their known distance, seller delivery window, approval state, and a Google Maps navigation link.
+- The location picker supports Google Places autocomplete, selected-place resolution, and an optional Google Maps JavaScript map where the user can click or drag a pin before confirming the location. The server still performs the final reverse-geocoding request.
+- Nearby results are filtered to the configured discovery radius when coordinates are available, while an exact seller pincode match remains serviceable even if the seller has not supplied precise coordinates. MediMart partner cards show serviceability, delivery window, distance, and directions; general Google listings show rating, review count, phone, opening state, website, and directions. General listings are never treated as approved MediMart sellers.
+- AI search sends `location` and `delivery_time` parameters. Delivery filters are applied to approved active seller offers; the location label is included as the user's delivery context.
+- Google Maps Platform is the single location provider. The Geocoding API handles coordinate-to-address conversion, Places API (New) handles autocomplete and nearby pharmacy discovery, Google Maps JavaScript API powers the optional map, and Google Maps URLs provide navigation. Manual city/state/pincode entry remains available when the key is not configured.
+- Configure `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_BROWSER_API_KEY`, `GOOGLE_MAPS_TIMEOUT_SECONDS`, `GOOGLE_MAPS_RADIUS_METERS`, `GOOGLE_MAPS_MAX_RESULTS`, `GOOGLE_MAPS_ERROR_CACHE_SECONDS`, and `GOOGLE_MAPS_AUTOCOMPLETE_CACHE_SECONDS` in `.env`. Enable billing, Geocoding API, Places API (New), and Maps JavaScript API in Google Cloud. Keep the server key private; restrict the optional browser key to the Maps JavaScript API and approved site origins.
+- Admins can open **Operations Center -> Maps health** to see whether each key is configured and run a live server-side Geocoding check without exposing a secret. Google errors are cached briefly to avoid repeated quota-consuming failures.
+- If location detection reports that Google rejected the server key, enable **Geocoding API** and **Places API (New)** in the same Google Cloud project, attach an active billing account, and update the key restriction to allow server-side requests from the MediMart host. Browser-referrer-only restrictions do not work for this Django server request.
+
+### Chatbot result links
+
+The chatbot answers remain grounded in the public MediMart catalogue. Product and lab-test context now carries same-origin links, and the browser renders them as labelled result buttons underneath the answer. The UI rejects off-site links returned by a provider. Private order, consultation, and account answers remain local and do not send private records to the AI provider.
+
+### Consultation notifications
+
+Creating a consultation creates in-app notifications for both the customer and the selected doctor. Each notification links to the consultation detail page. Doctor confirmation, payment, scheduling, and follow-up changes should continue to use the same notification service so the in-app notification center remains the source of truth.
+
+### WhatsApp-first notifications
+
+Email is no longer created for new notification deliveries. The in-app `Notification` record is always created; when the account has a phone number, a queued `NotificationDelivery` is created for WhatsApp. `process_notification_queue` sends through the configured provider and retries failures.
+
+The current adapter supports the requested self-hosted OpenWA gateway:
+
+```env
+WHATSAPP_PROVIDER=openwa
+WHATSAPP_API_URL=http://localhost:2785/api
+WHATSAPP_API_KEY=
+WHATSAPP_SESSION_ID=<openwa-session-uuid>
+WHATSAPP_TIMEOUT_SECONDS=10
+WHATSAPP_OTP_TTL_SECONDS=300
+WHATSAPP_OTP_RESEND_COOLDOWN_SECONDS=60
+WHATSAPP_OTP_MAX_ATTEMPTS=5
+```
+
+OpenWA is a separate gateway and is not the official Meta WhatsApp Business Cloud API. Review its operating model, WhatsApp terms, consent requirements, opt-out handling, delivery limits, and production security before using it for real customer communication. For regulated production messaging, prefer the official Meta API or a compliant BSP and keep the adapter boundary.
+
+### WhatsApp OTP authentication
+
+Customer and professional signup now requires a valid Indian mobile number. The account is created inactive, a six-digit OTP is sent through OpenWA, and the account is activated only after successful verification. Password login for accounts with a verified-format mobile number sends a WhatsApp OTP before completing login. If authenticator-app MFA is enabled, the existing TOTP challenge follows the WhatsApp OTP challenge. **Forgot password also uses WhatsApp OTP instead of email:** the customer enters only the WhatsApp number saved on the account, verifies the six-digit code, and then sets a new password in the same session. No password-reset email or emailed reset link is generated.
+
+OTP codes are stored only as an HMAC digest in the session, expire after `WHATSAPP_OTP_TTL_SECONDS`, allow at most `WHATSAPP_OTP_MAX_ATTEMPTS` attempts, and are protected by a resend cooldown. Configure and run an OpenWA session before enabling this flow:
+
+```env
+WHATSAPP_PROVIDER=openwa
+WHATSAPP_API_URL=http://localhost:2785/api
+WHATSAPP_API_KEY=your-openwa-api-key
+WHATSAPP_SESSION_ID=<openwa-session-uuid>
+```
+
+#### Windows OpenWA pairing checklist
+
+The local OpenWA checkout is in `OPENWA/OpenWA` and runs on the Node.js 22 LTS runtime. From PowerShell:
+
+```powershell
+cd C:\xampp\htdocs\MediMart\OPENWA\OpenWA
+C:\Users\Admin\AppData\Local\Programs\nodejs22\npx.cmd puppeteer browsers install chrome
+C:\Users\Admin\AppData\Local\Programs\nodejs22\npm.cmd run start:prod
+```
+
+Open `http://127.0.0.1:2785`, enter the OpenWA API key shown in `OPENWA\OpenWA\data\.api-key`, and connect the `default` session. Scan its QR code from the WhatsApp account that will send MediMart messages. The MediMart `.env` points to `http://127.0.0.1:2785/api`; do not put the API key in templates, browser JavaScript, or documentation. Keep the OpenWA process running while testing signup, login, password reset, or queued notifications.
+
+The OpenWA API can be healthy while the WhatsApp session is still `qr_ready` or `disconnected`. OTP delivery becomes live only after the session reports `connected`. Do not send a real test message until the intended sending account has been paired and customer consent has been collected.
+
+If OpenWA is unavailable or its API key is missing, new signup stops with a configuration message because the account cannot be treated as WhatsApp-verified. Existing password login falls back to the already-configured authenticator-app MFA or password flow until OpenWA is configured; once the OpenWA provider and key are present, phone-based login requires the WhatsApp OTP. Keep the OpenWA API key server-side in `.env`; never expose it in templates, browser JavaScript, or Markdown credentials.
+
+The password recovery endpoints are:
+
+- `/password-reset/` accepts only the saved WhatsApp phone number and starts a WhatsApp password-reset challenge.
+- `/password-reset/verify/` verifies the OTP and records only the verified user id and timestamp in the session.
+- `/reset/confirm/` accepts the new password only after successful OTP verification.
+- `/reset/done/` confirms completion.
+
+Reset codes are kept as HMAC digests, have the same expiry, attempt limit, and resend cooldown as login/signup codes, and are cleared after successful verification or password change. A reset challenge does not authenticate the user or expose account records.
+
+### Bulk-order verification
+
+If any cart line reaches `BULK_ORDER_QUANTITY_THRESHOLD` (default `10`), checkout creates a `BulkOrderReview` record. The customer sees that fulfilment is waiting for verification. Pharmacists, pharmacy accounts, and compliance officers receive an in-app notification and can open **Operations Center -> Bulk Order Verification** to approve, reject, or request clarification. An approved pending order can move to confirmed when payment/COD conditions are satisfied; it must not be fulfilled while review is pending.
+
+The threshold is configured in `.env`:
+
+```env
+BULK_ORDER_QUANTITY_THRESHOLD=10
+```
+
+## Current local deployment profile
+
+This profile records the decisions for the present test deployment:
+
+- **Consultations:** Customers can book an in-clinic visit with a verified doctor. The doctor profile must contain a clinic name and address. The booking stores a clinic snapshot and keeps private in-website messaging available. External video/audio is optional.
+- **Courier and fulfilment:** Delivery staff and operations staff update shipment assignment, tracking number, location, delivery attempts, NDR/RTO, COD cash reference, delivery OTP, proof, and allowed order status transitions manually in the website.
+- **Laboratories:** Lab staff manage partners, branches, tests, collection slots, sample events, accession numbers, report files, report values, invoices, recollection, and disputes through the website. No external lab API is required for this mode.
+- **Location:** Google Maps Platform is the only external location provider. Geocoding and Places are optional until a Google key is configured; manual address/pincode entry remains available. Do not use scraped business data as verified MediMart seller data.
+- **WhatsApp retries:** `NOTIFICATION_WORKER_AUTOSTART=true` starts one guarded retry worker with Django. It retries failed OpenWA deliveries with backoff. For production, use one dedicated Windows service or scheduler process and monitor its logs.
+- **Media:** S3, `django-storages`, and ClamAV are not required by the MediMart deployment. Private uploads use `PRIVATE_MEDIA_ROOT`. Back up that directory with the MySQL database and keep the structural file validation enabled.
+- **Finance and GST:** Checkout settings are database-owned and editable from the custom Operations Center. Finance test mode, GST enablement, GSTIN, business state, invoice prefix, platform commission, settlement days, delivery fees, handling fees, platform fees, cold-chain fees, COD limits, and tax rate are stored in `CheckoutSettings`. Each order stores an immutable tax split and commission snapshot in `OrderChargeBreakdown`.
+- **Medicine compliance:** Prescription-required, Schedule H/H1, NDPS, habit-forming, state-restricted, recalled, quarantined, quantity-limited, minimum-shelf-life, cold-chain, pharmacist-review, and seller-licence checks are enforced before checkout. Prescription approval still requires the configured clinical review evidence and must be reviewed by an authorized pharmacist or compliance operator.
+- **Backups and monitoring:** Use `manage.py backup_database` to create a transaction-consistent MySQL `.sql` backup. `/health/live/` checks process availability and `/health/ready/` checks database/cache/private-media readiness. `manage.py monitor_health` emits JSON and can POST an alert webhook. Schedule `ops/check_mediMart.ps1`, `ops/escalate_sla.ps1`, and the backup script with Windows Task Scheduler, retain multiple generations, and perform restore drills.
+
+### New operational commands
+
+```powershell
+.venv\Scripts\python.exe manage.py backup_database
+.venv\Scripts\python.exe manage.py check
+.venv\Scripts\python.exe manage.py process_notification_queue --limit 200
+.venv\Scripts\python.exe manage.py run_notification_worker --interval 15
+.venv\Scripts\python.exe manage.py monitor_health
+.venv\Scripts\python.exe manage.py escalate_sla
+```
+
+`backup_database` requires `mysqldump` on `PATH` and writes to `backups/` unless `--output` is supplied. Never commit the generated SQL backup, `.env`, OpenWA keys, or patient documents.
+
+For Windows scheduling, use `ops/backup_mediMart.ps1` for the database plus `private_media/` archive, and `ops/check_mediMart.ps1` for an HTTP readiness probe. Configure both in Task Scheduler with a service account that can read the project and backup destination.
+
+### Current hardening status
+
+- **Complete:** CSP/security headers, private upload validation, staff MFA enforcement switch, non-root production DB guard, audit events, Razorpay test signature and replay protection, payment idempotency guards, append-only finance ledger, database-owned checkout/GST settings, custom-admin read-only ledger access, maker-checker approval center, SLA escalation command, finance/settlement report, and local health/alert checks.
+- **Complete:** WhatsApp notification opt-out, retry backoff, configurable maximum attempts, dead-letter status, immediate delivery plus queue fallback, and `ops/process_notifications.ps1` for Task Scheduler.
+- **Manual:** delivery assignment, shipment events, ETA/SLA decisions, NDR/RTO, reverse pickup, COD collection, lab workflows, pharmacy review, prescription delivery checks, and seller/medicine approvals.
+- **Requires external setup:** monitoring/APM provider selection, backup retention, restore drills, and legal/tax/clinical approvals. Google Maps restrictions are configured, Razorpay remains test-only, OpenWA is configured, and courier/lab/clinic integrations are intentionally manual.
+
+Production should set `STAFF_MFA_REQUIRED=true` and a dedicated `DB_USER`. `ops/restore_backup.ps1` is confirmation-gated and should be tested on staging before any production restore.
 

@@ -96,6 +96,15 @@ class MarketplaceImprovementTests(TestCase):
             is_approved=True,
         )
 
+    def test_vendor_can_open_business_profile_editor(self):
+        self.client.login(username="vendor", password="Testpass123!")
+
+        response = self.client.get(reverse("vendors:vendor_profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Business logo")
+        self.assertContains(response, 'enctype="multipart/form-data"')
+
     @override_settings(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
     def test_razorpay_checkout_requires_gateway_keys(self):
         cart = Cart.objects.create(user=self.customer)
@@ -364,6 +373,169 @@ class MarketplaceImprovementTests(TestCase):
         self.assertEqual(self.client.session["site_location"]["city"], "Bengaluru")
         self.assertEqual(self.customer.profile.preferred_pincode, "560001")
 
+    @override_settings(GOOGLE_MAPS_API_KEY="google-test-key", GOOGLE_MAPS_TIMEOUT_SECONDS=6)
+    @patch("core.services.urlopen")
+    def test_google_reverse_geocoder_parses_address_components(self, urlopen_mock):
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "status": "OK",
+                        "results": [
+                            {
+                                "formatted_address": "42 MG Road, Bengaluru, Karnataka 560001, India",
+                                "place_id": "google-place-123",
+                                "address_components": [
+                                    {"long_name": "42", "types": ["street_number"]},
+                                    {"long_name": "MG Road", "types": ["route"]},
+                                    {"long_name": "Bengaluru", "types": ["locality"]},
+                                    {"long_name": "Karnataka", "types": ["administrative_area_level_1"]},
+                                    {"long_name": "560001", "types": ["postal_code"]},
+                                    {"long_name": "India", "short_name": "IN", "types": ["country"]},
+                                ],
+                            }
+                        ],
+                    }
+                ).encode("utf-8")
+
+        urlopen_mock.return_value = FakeResponse()
+
+        from core.services import reverse_geocode
+
+        location = reverse_geocode(12.9716, 77.5946)
+
+        self.assertEqual(location["place_id"], "google-place-123")
+        self.assertEqual(location["city"], "Bengaluru")
+        self.assertEqual(location["pincode"], "560001")
+        self.assertEqual(location["country_code"], "in")
+        self.assertEqual(location["attribution"], "Powered by Google Maps")
+        request = urlopen_mock.call_args.args[0]
+        self.assertIn("maps.googleapis.com/maps/api/geocode/json", request.full_url)
+        self.assertIn("google-test-key", request.full_url)
+
+    @override_settings(GOOGLE_MAPS_API_KEY="google-test-key", GOOGLE_MAPS_TIMEOUT_SECONDS=6)
+    @patch("core.services.urlopen")
+    def test_google_reverse_geocoder_explains_rejected_key(self, urlopen_mock):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "status": "REQUEST_DENIED",
+                        "error_message": "The provided API key is invalid.",
+                    }
+                ).encode("utf-8")
+
+        urlopen_mock.return_value = FakeResponse()
+
+        from core.services import GeocodingError, reverse_geocode
+
+        with self.assertRaisesMessage(GeocodingError, "Enable Geocoding API and billing"):
+            reverse_geocode(12.9717, 77.5947)
+
+    @override_settings(GOOGLE_MAPS_API_KEY="google-test-key", GOOGLE_MAPS_TIMEOUT_SECONDS=6)
+    @patch("core.services.urlopen")
+    def test_google_location_autocomplete_returns_safe_suggestions(self, urlopen_mock):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "suggestions": [
+                            {
+                                "placePrediction": {
+                                    "placeId": "place-123",
+                                    "text": {"text": "Maninagar, Ahmedabad, Gujarat"},
+                                    "structuredFormat": {
+                                        "mainText": {"text": "Maninagar"},
+                                        "secondaryText": {"text": "Ahmedabad, Gujarat"},
+                                    },
+                                }
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+
+        urlopen_mock.return_value = FakeResponse()
+        response = self.client.get(reverse("core:location_autocomplete"), {"q": "Maninagar"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["suggestions"][0]["place_id"], "place-123")
+        self.assertEqual(response.json()["suggestions"][0]["primary"], "Maninagar")
+        self.assertIn("places.googleapis.com/v1/places:autocomplete", urlopen_mock.call_args.args[0].full_url)
+
+    @override_settings(GOOGLE_MAPS_API_KEY="google-test-key", GOOGLE_MAPS_TIMEOUT_SECONDS=6)
+    @patch("core.services.urlopen")
+    def test_selected_google_place_is_saved_as_delivery_location(self, urlopen_mock):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "status": "OK",
+                        "results": [
+                            {
+                                "formatted_address": "42 MG Road, Bengaluru, Karnataka 560001, India",
+                                "place_id": "place-123",
+                                "address_components": [
+                                    {"long_name": "Bengaluru", "types": ["locality"]},
+                                    {"long_name": "Karnataka", "types": ["administrative_area_level_1"]},
+                                    {"long_name": "560001", "types": ["postal_code"]},
+                                ],
+                            }
+                        ],
+                    }
+                ).encode("utf-8")
+
+        urlopen_mock.return_value = FakeResponse()
+        response = self.client.post(
+            reverse("core:select_location_place"),
+            data=json.dumps({"place_id": "place-123"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["location"]["source"], "google_place")
+        self.assertEqual(self.client.session["site_location"]["pincode"], "560001")
+
+    def test_admin_can_open_google_maps_health_page(self):
+        self.client.login(username="staff", password="Testpass123!")
+        response = self.client.get(reverse("dashboards:google_maps_health"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Google Maps health")
+
+    @patch("dashboards.views.google_maps_healthcheck")
+    def test_admin_google_maps_health_check_reports_status(self, healthcheck_mock):
+        healthcheck_mock.return_value = {"ok": True, "configured": True, "message": "Google Geocoding is responding successfully."}
+        self.client.login(username="staff", password="Testpass123!")
+        response = self.client.post(reverse("dashboards:google_maps_health"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Google Geocoding is responding successfully.")
+        healthcheck_mock.assert_called_once_with()
+
     def test_manual_location_validates_and_persists(self):
         invalid_response = self.client.post(
             reverse("core:set_manual_location"),
@@ -378,6 +550,7 @@ class MarketplaceImprovementTests(TestCase):
         self.assertEqual(valid_response.status_code, 200)
         self.assertEqual(self.client.session["site_location"]["label"], "Bengaluru, Karnataka 560001")
 
+    @override_settings(MAKER_CHECKER_REQUIRED=False)
     def test_admin_can_publish_pending_catalog_offer(self):
         self.offer.is_approved = False
         self.offer.product.is_active = False
@@ -448,11 +621,11 @@ class MarketplaceImprovementTests(TestCase):
         self.assertEqual(order.order_status, Order.OrderStatus.OUT_FOR_DELIVERY)
         shipment = Shipment.objects.get(order=order)
         notification = Notification.objects.filter(user=self.customer, title="Delivery verification code").latest("created_at")
-        otp = notification.message.rsplit(" is ", 1)[-1].split(".", 1)[0]
+        otp = notification.message.split("*", 2)[1]
 
         self.client.post(
             reverse("dashboards:update_delivery_order_status", args=[order.pk]),
-            {"status": Order.OrderStatus.DELIVERED, "delivery_otp": otp, "recipient_name": "Health Customer"},
+            {"status": Order.OrderStatus.DELIVERED, "delivery_otp": otp, "recipient_name": "Health Customer", "cod_cash_reference": "TEST-CASH-001"},
         )
         order.refresh_from_db()
         shipment.refresh_from_db()
@@ -548,6 +721,7 @@ class MarketplaceImprovementTests(TestCase):
         self.assertEqual(license_record.status, BusinessLicense.Status.PENDING)
         self.assertEqual(license_record.form_number, "MD-5")
 
+    @override_settings(MAKER_CHECKER_REQUIRED=False)
     def test_regulated_offer_requires_compatible_verified_license(self):
         self.product.requires_business_license = True
         self.product.required_license_type = Product.RegulationType.MEDICAL_DEVICE_SALE
@@ -579,6 +753,7 @@ class MarketplaceImprovementTests(TestCase):
         self.assertRedirects(approved, reverse("dashboards:admin_dashboard"))
         self.assertTrue(self.offer.is_approved)
 
+    @override_settings(MAKER_CHECKER_REQUIRED=False)
     def test_compliance_role_can_review_license_without_global_staff_flag(self):
         officer = User.objects.create_user(
             username="compliance",
@@ -664,7 +839,8 @@ class MarketplaceImprovementTests(TestCase):
         self.assertContains(professional_page, "Professional registration")
         self.assertContains(professional_page, "Equipment manufacturer")
 
-    def test_customer_registration_assigns_customer_role(self):
+    @patch("accounts.views.send_whatsapp_message", return_value=True)
+    def test_customer_registration_assigns_customer_role(self, send_whatsapp_message):
         response = self.client.post(
             reverse("accounts:register"),
             {
@@ -679,7 +855,7 @@ class MarketplaceImprovementTests(TestCase):
         )
 
         created = User.objects.get(username="new_customer")
-        self.assertRedirects(response, reverse("accounts:dashboard"))
+        self.assertRedirects(response, reverse("accounts:whatsapp_otp_verify"))
         self.assertEqual(created.profile.role, UserProfile.Role.CUSTOMER)
 
     def test_address_form_prefills_account_contact(self):
@@ -705,6 +881,18 @@ class MarketplaceImprovementTests(TestCase):
         self.assertContains(django_admin_response, "Django administration")
         self.assertEqual(operations_response.status_code, 200)
         self.assertContains(operations_response, "Operations Center")
+
+    def test_workflow_records_use_operations_center_instead_of_generic_crud(self):
+        self.client.login(username="staff", password="Testpass123!")
+
+        response = self.client.get(
+            reverse("dashboards:custom_data_records", args=["orders", "order"])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("dashboards:management_records", args=["orders"]),
+        )
 
     def test_catalog_manager_has_scoped_custom_management_access(self):
         manager = User.objects.create_user(

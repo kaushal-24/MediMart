@@ -17,6 +17,7 @@
             {% for vendor in vendors %}
                 <div class="col-md-6 col-xl-4">
                     <article class="vendor-card h-100">
+                        <div class="vendor-logo vendor-logo-card mb-3">{% if vendor.logo %}<img src="{{ vendor.logo.url }}" alt="{{ vendor.business_name }}" loading="lazy" decoding="async">{% else %}<i class="bi bi-shop" aria-hidden="true"></i>{% endif %}</div>
                         <span class="badge text-bg-success mb-3">{{ vendor.get_business_type_display }}</span>
                         <h2 class="h5 fw-bold">{{ vendor.business_name }}</h2>
                         <p class="text-secondary">{{ vendor.address|truncatechars:120 }}</p>

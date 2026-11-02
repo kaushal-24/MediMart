@@ -15,12 +15,12 @@ class SecurityHeadersMiddleware:
                     "object-src 'none'",
                     "frame-ancestors 'none'",
                     "form-action 'self' https://api.razorpay.com",
-                    "img-src 'self' data: https:",
+                    "img-src 'self' data: https: https://maps.gstatic.com https://*.googleusercontent.com",
                     "font-src 'self' https://cdn.jsdelivr.net data:",
                     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-                    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://checkout.razorpay.com",
-                    "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
-                    "frame-src https://api.razorpay.com https://*.razorpay.com",
+                    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://checkout.razorpay.com https://maps.googleapis.com",
+                    "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://maps.googleapis.com https://places.googleapis.com",
+                    "frame-src https://api.razorpay.com https://*.razorpay.com https://www.google.com https://*.google.com",
                 ]
         if not settings.DEBUG:
             directives.append("upgrade-insecure-requests")

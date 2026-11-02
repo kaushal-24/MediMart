@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} {{ title }} | Custom Data Manager{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container">
+        <a class="management-back" href="{% url 'dashboards:custom_data_records' app_label model_name %}"><i class="bi bi-arrow-left"></i> Back to {{ title|lower }}</a>
+        <p class="eyebrow mt-3 mb-2">Custom CRUD</p>
+        <h1 class="h2 fw-bold mb-2">{% if is_edit %}Edit{% else %}Add{% endif %} {{ title|lower }}</h1>
+        <p class="text-secondary mb-0">Changes are validated before they are saved.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="management-form-shell">
+        <form class="content-panel" method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% include "accounts/form_errors.html" with form=form %}
+            <div class="row g-3">
+                {% for field in form %}
+                <div class="{% if field.field.widget.input_type == 'checkbox' %}col-12{% elif field.field.widget.input_type == 'textarea' or field.name == 'description' or field.name == 'message' or field.name == 'notes' or field.name == 'content' %}col-12{% else %}col-md-6{% endif %}">
+                    {% if field.field.widget.input_type == 'checkbox' %}<div class="form-check mt-3">{{ field }}<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>{% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-4"><button class="btn btn-success" type="submit">Save {{ title|lower }}</button><a class="btn btn-outline-secondary" href="{% url 'dashboards:custom_data_records' app_label model_name %}">Cancel</a></div>
+        </form>
+    </div>
+</section>
+{% endblock %}

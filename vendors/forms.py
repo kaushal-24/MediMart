@@ -28,10 +28,16 @@ class VendorRegistrationForm(BootstrapModelForm):
         model = Vendor
         fields = [
             "business_name",
+            "logo",
             "owner_name",
             "email",
             "phone",
             "address",
+            "city",
+            "state",
+            "pincode",
+            "latitude",
+            "longitude",
             "gst_number",
             "license_number",
             "business_type",
@@ -42,6 +48,7 @@ class VendorRegistrationForm(BootstrapModelForm):
         ]
         widgets = {
             "address": forms.Textarea(attrs={"rows": 3}),
+            "pincode": forms.TextInput(attrs={"inputmode": "numeric", "maxlength": 6}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -50,6 +57,35 @@ class VendorRegistrationForm(BootstrapModelForm):
 
     def clean_license_number(self):
         return self.cleaned_data["license_number"].strip().upper()
+
+
+class VendorProfileForm(BootstrapModelForm):
+    class Meta:
+        model = Vendor
+        fields = [
+            "business_name",
+            "logo",
+            "owner_name",
+            "email",
+            "phone",
+            "address",
+            "city",
+            "state",
+            "pincode",
+            "latitude",
+            "longitude",
+            "gst_number",
+        ]
+        widgets = {
+            "address": forms.Textarea(attrs={"rows": 4}),
+            "pincode": forms.TextInput(attrs={"inputmode": "numeric", "maxlength": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["logo"].label = "Business logo"
+        self.fields["logo"].help_text = "Optional public logo shown on your vendor profile."
+        self.apply_bootstrap_classes()
 
 
 class BusinessLicenseForm(BootstrapModelForm):

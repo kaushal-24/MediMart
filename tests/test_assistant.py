@@ -9,8 +9,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import Address, UserProfile
-from extras.models import DoctorProfile
+from extras.models import AssistantFeedback, DoctorProfile
 from healthcare.models import Consultation, ConsultationPayment, LabBooking, LabInvoice, LabPartner, LabTest
+from products.models import Category, Product, ProductClinicalProfile, ProductSpecification
 
 
 User = get_user_model()
@@ -40,6 +41,45 @@ class AssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["source"], "policy")
         self.assertIn("cannot access", response.json()["answer"])
+
+    def test_chatbot_routes_customer_to_support(self):
+        response = self.client.post(
+            reverse("assistant:chat"),
+            data=json.dumps({"message": "I need help with a complaint"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["source"], "local")
+        self.assertIn("support", payload["answer"].casefold())
+        self.assertTrue(any("support" in item["url"] for item in payload["links"]))
+
+    def test_chatbot_protects_account_workflow_links_for_guests(self):
+        response = self.client.post(
+            reverse("assistant:chat"),
+            data=json.dumps({"message": "How do I upload a prescription?"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        links = response.json()["links"]
+        self.assertTrue(links)
+        self.assertIn(reverse("accounts:login"), links[0]["url"])
+        self.assertIn("next=", links[0]["url"])
+
+    def test_chatbot_feedback_endpoint_records_no_message_content(self):
+        response = self.client.post(
+            reverse("extras:assistant_feedback"),
+            data=json.dumps({"helpful": True, "source": "local", "context": "support"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        feedback = AssistantFeedback.objects.get()
+        self.assertTrue(feedback.helpful)
+        self.assertEqual(feedback.context, "support")
+        self.assertFalse(hasattr(feedback, "question"))
 
     def test_base_template_includes_assistant_widget(self):
         response = self.client.get(reverse("accounts:login"))
@@ -290,3 +330,51 @@ class AccountScopedAssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["source"], "local")
         self.assertIn("Assistant Doctor", response.json()["answer"])
+
+
+class ProductKeywordDiscoveryTests(TestCase):
+    def setUp(self):
+        category = Category.objects.create(
+            name="Home Monitoring",
+            description="Devices and supplies for everyday health monitoring.",
+        )
+        self.product = Product.objects.create(
+            name="Everyday Wellness Kit",
+            sku="KEYWORD-001",
+            category=category,
+            product_type=Product.ProductType.HEALTHCARE_PRODUCT,
+            short_description="A practical home monitoring kit.",
+            description="A compact kit for hydration tracking and daily wellness routines.",
+            mrp="799.00",
+            selling_price="699.00",
+        )
+        ProductSpecification.objects.create(
+            product=self.product,
+            name="Included feature",
+            value="Hydration reminder support",
+        )
+        ProductClinicalProfile.objects.create(
+            product=self.product,
+            active_ingredient="Electrolyte support",
+            uses="General hydration support information.",
+        )
+
+    @override_settings(CHATBOT_API_URL="")
+    def test_ai_search_finds_keyword_in_product_metadata(self):
+        response = self.client.get(reverse("products:ai_search"), {"q": "hydration reminder"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.product.name, [item["name"] for item in response.json()["results"]])
+
+    @override_settings(CHATBOT_API_URL="")
+    def test_chatbot_returns_product_link_for_keyword_match(self):
+        response = self.client.post(
+            reverse("assistant:chat"),
+            data=json.dumps({"message": "Show me hydration reminder products"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn(self.product.name, payload["answer"])
+        self.assertTrue(any(item["url"] == self.product.get_absolute_url() for item in payload["links"]))

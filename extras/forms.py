@@ -67,6 +67,7 @@ class DoctorProfileForm(BootstrapFormMixin, forms.ModelForm):
             "registration_number",
             "medical_council",
             "qualification",
+            "profile_image",
             "qualification_document",
             "experience_years",
             "clinic_name",

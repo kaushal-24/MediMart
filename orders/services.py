@@ -13,10 +13,32 @@ from .models import (
     OrderStatusHistory,
     OrderItem,
     Payment,
+    FinanceLedgerEntry,
     RecallNotice,
     Refund,
     ReturnRequest,
 )
+
+
+def _record_ledger_entry(*, reference, entry_type, direction, amount, order=None, payment=None, description="", actor=None, metadata=None):
+    """Write one idempotent ledger entry; repeated provider events stay harmless."""
+    if amount is None or amount <= 0:
+        return None
+    return FinanceLedgerEntry.objects.get_or_create(
+        entry_reference=reference,
+        defaults={
+            "entry_type": entry_type,
+            "direction": direction,
+            "amount": amount,
+            "currency": getattr(payment, "currency", "INR") if payment else "INR",
+            "order": order,
+            "payment": payment,
+            "description": description[:255],
+            "metadata": metadata or {},
+            "finance_test_mode": getattr(getattr(order, "charge_breakdown", None), "finance_test_mode", True),
+            "created_by": actor,
+        },
+    )[0]
 
 
 @transaction.atomic
@@ -184,6 +206,17 @@ def complete_refund(refund, resolution_note="Refund completed by the payment pro
         )
         order_update_fields.append("order_status")
     payment.order.save(update_fields=order_update_fields)
+    _record_ledger_entry(
+        reference=f"refund:{refund.pk}:completed",
+        entry_type=FinanceLedgerEntry.EntryType.REFUND,
+        direction=FinanceLedgerEntry.Direction.DEBIT,
+        amount=refund.amount,
+        order=payment.order,
+        payment=payment,
+        description=f"Refund completed for {payment.order.order_number}.",
+        actor=refund.requested_by,
+        metadata={"refund_id": refund.pk, "gateway_refund_id": refund.gateway_refund_id},
+    )
     if return_request and return_request.status == ReturnRequest.Status.REFUND_PENDING:
         return_request.status = ReturnRequest.Status.COMPLETED
         return_request.resolution_note = resolution_note[:500]

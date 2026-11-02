@@ -46,17 +46,15 @@ Update at least:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-- Email settings if password reset or support email will be used
+- OpenWA WhatsApp settings for OTP and notification delivery
 - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`
-- SMTP provider URL and credentials if outbound notification email is enabled
-- A production geocoding endpoint and contactable `GEOCODING_USER_AGENT`
-- Cloud object storage settings for uploaded prescriptions, documents, and images
+- Google Maps browser/server keys and billing restrictions
+- Local private media backup settings for uploaded prescriptions, documents, and images
 
-When `USE_CLOUD_MEDIA=True`, MediMart uses the S3-compatible storage backend from
-`django-storages`. Configure `MEDIA_CLOUD_BUCKET`, the AWS credentials, and the
-region. Set `AWS_S3_ENDPOINT_URL` only when using a compatible provider rather
-than AWS S3. Uploaded files remain private and are served through expiring signed
-URLs; keep bucket-level public access disabled.
+MediMart currently uses local private storage under `PRIVATE_MEDIA_ROOT`. Back up
+that directory with the database and restrict access to authorized Django views.
+Cloud object storage is intentionally not
+enabled in this deployment.
 
 MediMart does not scrape or call government licence portals. Applicants submit licence
 details and evidence, and compliance officers complete the review manually. Keep the
@@ -159,9 +157,9 @@ sudo systemctl restart medimart
 ## 10. Production Notes
 
 - Keep `.env` private and never commit it.
-- Back up the MySQL database and either `media/` uploads or the configured object-storage bucket.
+- Back up the MySQL database and `PRIVATE_MEDIA_ROOT` uploads.
 - Keep prescription and vendor-document uploads private; serve them through authorized views or signed object-storage URLs.
-- Use a paid or self-hosted reverse-geocoding service at commercial traffic levels. The public OpenStreetMap Nominatim service has strict usage and attribution requirements.
+- Keep Google Maps server and browser keys restricted, monitor quota, and configure billing alerts before commercial traffic.
 - Configure payment webhooks before accepting live Razorpay payments; browser callbacks alone are not sufficient for final payment reconciliation.
 - Do not auto-approve regulated sellers from applicant-entered data. Validate licence scope, premises, status, validity dates, and product category through an authorized source, then retain a named reviewer decision.
 - Run scheduled database backups and perform restore drills.
@@ -174,7 +172,7 @@ sudo systemctl restart medimart
 
 This section is additive and does not replace any deployment instruction above. Before treating the full MediMart scope as production-ready, complete the checklist in `ONE_MG_GAP_ANALYSIS.md` and obtain evidence for each external dependency.
 
-Required launch inputs are a production domain and HTTPS certificate, dedicated MySQL credentials, live Razorpay keys and signed webhook secret, transactional SMTP credentials, private object storage with signed URLs, malware scanning, courier and lab partner accounts, doctor consultation provider access, approved AI provider configuration, error monitoring, uptime alerts, backup storage, restore-drill evidence, and named owners for pharmacy, clinical, finance, delivery, support, privacy, and incident response.
+Required launch inputs are a production domain and HTTPS certificate, dedicated MySQL credentials, approved AI provider configuration, error monitoring, uptime alerts, backup storage, restore-drill evidence, and named owners for pharmacy, clinical, finance, delivery, support, privacy, and incident response. Razorpay remains in test mode for the current deployment. Courier, lab, and clinic workflows may remain manual if their runbooks and ownership are approved.
 
 Healthcare legal and regulatory controls must be reviewed by qualified counsel and responsible professionals before launch. Application code cannot substitute for pharmacy licences, pharmacist registration, medical-device obligations, GST/tax advice, DPDP privacy review, telemedicine review, consumer policy approval, or partner contracts.
 
@@ -184,13 +182,13 @@ MediMart uses MySQL and excludes Redis. Use Windows Task Scheduler or a MySQL-ba
 
 ### Required integrations
 
-- Razorpay live/test keys and webhook secret in `.env`
+- Razorpay test keys and webhook secret for the current deployment; live keys are a later release gate
 - Courier API account, documentation, and credentials
 - Lab partner API or confirmed manual lab workflow
-- Doctor consultation provider or chat/video API
+- Approved clinic appointment and private chat workflow; video/audio provider is optional
 - AI provider API keys and approved models
-- Private object storage credentials, such as S3
-- SMTP Gmail app password for email notifications
+- Local private media backup process
+- OpenWA WhatsApp session, API key, and public site URL
 - Production error monitoring and uptime service
 
 ### Business decisions
@@ -201,7 +199,7 @@ MediMart uses MySQL and excludes Redis. Use Windows Task Scheduler or a MySQL-ba
 - Prescription acceptance, pharmacist approval, substitution, and expiry policies
 - Cold-chain products and temperature rules
 - Refund, cancellation, recall, and reverse-pickup policies
-- Loyalty points and Care Plan rules
+- Loyalty points and future subscription rules
 - Languages to support, beginning with Hindi or Gujarati
 
 ### Compliance documents
@@ -221,3 +219,9 @@ MediMart uses MySQL and excludes Redis. Use Windows Task Scheduler or a MySQL-ba
 - Approved production product, vendor, lab, and doctor data
 
 Internal application work can proceed without these credentials. External integrations and production-monitoring features are not production-complete until their providers and policies are supplied.
+
+## Current implementation status
+
+Implemented locally: CSP/security headers, staff-MFA enforcement switch, non-root production DB guard, private upload validation hooks, signed Razorpay test webhooks with replay protection, append-only finance ledger, database-owned GST/fee settings, maker-checker approvals, SLA escalation, settlement/finance reporting, WhatsApp retry/dead-letter/opt-out handling, Google-only location support, and manual delivery/lab operations.
+
+Still requiring setup or operational evidence: monitoring/APM provider selection, backup retention and restore drills, and legal/tax/clinical approvals. This deployment uses `PRIVATE_MEDIA_ROOT`; S3 and ClamAV are not required. Google Maps billing/key restrictions are considered complete, Razorpay stays in test mode, OpenWA is the configured WhatsApp provider, and courier/lab/clinic integrations remain manual by design.

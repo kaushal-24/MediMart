@@ -9,6 +9,7 @@ from io import BytesIO
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, models, transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
@@ -20,12 +21,14 @@ from django.views.decorators.http import require_POST
 
 from cart.models import Cart, CartItem
 from cart.views import get_or_create_cart
+from accounts.models import UserProfile
 from extras.models import Notification
 from extras.services import create_notification
 from prescriptions.models import Prescription, PrescriptionItem
 from prescriptions.views import user_has_approved_prescription
 from vendors.models import BusinessLicense, VendorProduct
 from core.throttling import rate_limit
+from core.checkout import get_checkout_config
 
 from .forms import CheckoutForm, PaymentContactForm, ReturnRequestForm
 from .models import (
@@ -34,20 +37,26 @@ from .models import (
     InventoryBatch,
     InventoryMovement,
     Order,
+    BulkOrderReview,
     OrderChargeBreakdown,
     OrderItem,
     OrderStatusHistory,
     Payment,
+    FinanceLedgerEntry,
     PaymentEvent,
     PaymentReconciliation,
     Refund,
     ReturnRequest,
 )
 from .services import complete_refund
+from .pricing import calculate_order_charges
 
 
 class CheckoutStockError(Exception):
     pass
+
+
+User = get_user_model()
 
 
 RETURN_TERMINAL_STATUSES = {
@@ -170,16 +179,13 @@ def get_user_cart_items(user):
 
 
 def calculate_cart_totals(items, coupon=None):
-    subtotal = sum(item.total_price for item in items)
-    discount = Decimal("0.00")
-    if coupon:
-        discount = coupon.calculate_discount(subtotal)
-    if subtotal == 0 or settings.FREE_DELIVERY:
-        delivery_charge = Decimal("0.00")
-    else:
-        delivery_charge = Decimal(str(settings.DELIVERY_FEE))
-    total_amount = subtotal - discount + delivery_charge
-    return subtotal, discount, delivery_charge, total_amount
+    charges = calculate_order_charges(items, coupon)
+    return (
+        charges["subtotal"],
+        charges["discount"],
+        charges["delivery_charge"],
+        charges["total_amount"],
+    )
 
 
 def get_valid_coupon(code, user, subtotal):
@@ -272,9 +278,10 @@ def get_product_safety_blocking_message(offer, quantity, state=""):
 
 
 def get_cod_ineligibility(items, address, total_amount):
-    if total_amount > Decimal(str(settings.COD_MAX_ORDER_VALUE)):
-        return f"Cash on Delivery is available only for orders up to ₹{settings.COD_MAX_ORDER_VALUE}."
-    if str(address.pincode).strip() in settings.COD_BLOCKED_PINCODES:
+    checkout_config = get_checkout_config()
+    if total_amount > checkout_config.cod_max_order_value:
+        return f"Cash on Delivery is available only for orders up to ₹{checkout_config.cod_max_order_value}."
+    if str(address.pincode).strip() in checkout_config.cod_blocked_pincodes:
         return "Cash on Delivery is not available for this delivery pincode."
     if any(item.vendor_product.product.cold_chain_required for item in items):
         return "Cash on Delivery is unavailable for cold-chain products."
@@ -358,6 +365,12 @@ def checkout(request):
             except CheckoutStockError as exc:
                 messages.error(request, str(exc))
                 return redirect("cart:cart_detail")
+            if payment_method == Order.PaymentMethod.RAZORPAY:
+                messages.info(
+                    request,
+                    f"Checkout {order.order_number} is ready. Complete payment to place your order.",
+                )
+                return redirect("orders:payment_start", pk=order.pk)
             create_notification(
                 request.user,
                 "Order placed",
@@ -366,8 +379,6 @@ def checkout(request):
                 order.get_absolute_url() if hasattr(order, "get_absolute_url") else "",
             )
             messages.success(request, f"Order {order.order_number} placed successfully.")
-            if payment_method == Order.PaymentMethod.RAZORPAY:
-                return redirect("orders:payment_start", pk=order.pk)
             return redirect("orders:order_detail", pk=order.pk)
 
     for field_errors in form.errors.values():
@@ -444,12 +455,16 @@ def create_order_from_cart(
             raise CheckoutStockError("You have already used this coupon.")
         if subtotal < coupon.minimum_order:
             raise CheckoutStockError(f"Minimum order for this coupon is ₹{coupon.minimum_order}.")
-    discount = coupon.calculate_discount(subtotal) if coupon else Decimal("0.00")
-    if subtotal == 0 or settings.FREE_DELIVERY:
-        delivery_charge = Decimal("0.00")
-    else:
-        delivery_charge = Decimal(str(settings.DELIVERY_FEE))
-    total_amount = subtotal - discount + delivery_charge
+    charges = calculate_order_charges(
+        [item for item, _, _ in locked_lines],
+        coupon,
+        subtotal=subtotal,
+        customer_state=address.state,
+    )
+    subtotal = charges["subtotal"]
+    discount = charges["discount"]
+    delivery_charge = charges["delivery_charge"]
+    total_amount = charges["total_amount"]
     cod_error = get_cod_ineligibility(items, address, total_amount) if payment_method == Order.PaymentMethod.COD else ""
     if cod_error:
         raise CheckoutStockError(cod_error)
@@ -521,7 +536,11 @@ def create_order_from_cart(
     OrderStatusHistory.objects.create(
         order=order,
         status=order.order_status,
-        note="Order placed by customer.",
+        note=(
+            "Order placed by customer."
+            if payment_method == Order.PaymentMethod.COD
+            else "Payment pending; the order will be placed after successful payment."
+        ),
         actor=user,
     )
     Payment.objects.create(
@@ -535,13 +554,61 @@ def create_order_from_cart(
         order=order,
         subtotal=subtotal,
         discount=discount,
+        tax_amount=charges["tax_amount"],
+        cgst_amount=charges["cgst_amount"],
+        sgst_amount=charges["sgst_amount"],
+        igst_amount=charges["igst_amount"],
+        handling_charge=charges["handling_charge"],
+        platform_fee=charges["platform_fee"],
         delivery_charge=delivery_charge,
+        cold_chain_charge=charges["cold_chain_charge"],
+        commission_amount=charges["commission_amount"],
+        finance_test_mode=charges["finance_test_mode"],
         total_amount=total_amount,
     )
     if coupon:
         CouponUsage.objects.create(coupon=coupon, user=user, order=order)
 
+    if payment_method == Order.PaymentMethod.COD:
+        _queue_bulk_order_review(order, user)
+
     return order
+
+
+def _queue_bulk_order_review(order, customer):
+    """Create bulk verification only after the order is eligible for fulfilment."""
+    if hasattr(order, "bulk_review"):
+        return
+    if not order.items.filter(quantity__gte=settings.BULK_ORDER_QUANTITY_THRESHOLD).exists():
+        return
+
+    BulkOrderReview.objects.create(
+        order=order,
+        threshold=settings.BULK_ORDER_QUANTITY_THRESHOLD,
+    )
+    create_notification(
+        customer,
+        "Bulk order verification required",
+        f"Order {order.order_number} contains a bulk quantity and is waiting for pharmacy verification before fulfilment.",
+        Notification.NotificationType.ORDER,
+        order.get_absolute_url(),
+    )
+    reviewers = User.objects.filter(
+        is_active=True,
+        profile__role__in=[
+            UserProfile.Role.PHARMACIST,
+            UserProfile.Role.PHARMACY,
+            UserProfile.Role.COMPLIANCE_OFFICER,
+        ],
+    ).distinct()
+    for reviewer in reviewers:
+        create_notification(
+            reviewer,
+            "Bulk order needs verification",
+            f"Review bulk order {order.order_number} before fulfilment.",
+            Notification.NotificationType.ORDER,
+            order.get_absolute_url(),
+        )
 
 
 def _reserve_inventory_batches(offer, quantity, reference, actor=None):
@@ -868,6 +935,7 @@ def order_detail(request, pk):
             "order": order,
             "can_cancel": can_cancel,
             "tracking_timeline": tracking_timeline,
+            "charge_breakdown": getattr(order, "charge_breakdown", None),
             **_payment_contact_context(order),
         },
     )
@@ -956,15 +1024,22 @@ def invoice_context(order):
         )
 
     return {
+        "invoice_prefix": get_checkout_config().invoice_prefix,
+        "gstin": get_checkout_config().gstin,
         "seller_profiles": seller_profiles,
         "invoice_totals": {
             "subtotal": charge_breakdown.subtotal if charge_breakdown else order.subtotal,
             "discount": charge_breakdown.discount if charge_breakdown else order.discount,
             "tax_amount": charge_breakdown.tax_amount if charge_breakdown else Decimal("0.00"),
+            "cgst_amount": charge_breakdown.cgst_amount if charge_breakdown else Decimal("0.00"),
+            "sgst_amount": charge_breakdown.sgst_amount if charge_breakdown else Decimal("0.00"),
+            "igst_amount": charge_breakdown.igst_amount if charge_breakdown else Decimal("0.00"),
             "handling_charge": charge_breakdown.handling_charge if charge_breakdown else Decimal("0.00"),
             "platform_fee": charge_breakdown.platform_fee if charge_breakdown else Decimal("0.00"),
             "delivery_charge": charge_breakdown.delivery_charge if charge_breakdown else order.delivery_charge,
             "cold_chain_charge": charge_breakdown.cold_chain_charge if charge_breakdown else Decimal("0.00"),
+            "commission_amount": charge_breakdown.commission_amount if charge_breakdown else Decimal("0.00"),
+            "finance_test_mode": charge_breakdown.finance_test_mode if charge_breakdown else True,
             "total_amount": charge_breakdown.total_amount if charge_breakdown else order.total_amount,
         },
     }
@@ -1276,10 +1351,48 @@ def settle_payment(
             "reconciled_at": timezone.now(),
         },
     )
+    from .services import _record_ledger_entry
+    _record_ledger_entry(
+        reference=f"payment:{payment.pk}:captured",
+        entry_type=FinanceLedgerEntry.EntryType.PAYMENT,
+        direction=FinanceLedgerEntry.Direction.CREDIT,
+        amount=payment.captured_amount or payment.amount,
+        order=order,
+        payment=payment,
+        description=f"Payment captured for {order.order_number}.",
+        actor=actor,
+        metadata={"gateway_payment_id": gateway_payment_id, "event_type": event_type},
+    )
+    breakdown = getattr(order, "charge_breakdown", None)
+    for field_name, entry_type, label in (
+        ("tax_amount", FinanceLedgerEntry.EntryType.TAX, "GST/tax"),
+        ("handling_charge", FinanceLedgerEntry.EntryType.FEE, "Handling fee"),
+        ("platform_fee", FinanceLedgerEntry.EntryType.FEE, "Platform fee"),
+        ("commission_amount", FinanceLedgerEntry.EntryType.COMMISSION, "Seller commission"),
+    ):
+        amount = getattr(breakdown, field_name, 0) if breakdown else 0
+        _record_ledger_entry(
+            reference=f"payment:{payment.pk}:{field_name}",
+            entry_type=entry_type,
+            direction=FinanceLedgerEntry.Direction.DEBIT,
+            amount=amount,
+            order=order,
+            payment=payment,
+            description=f"{label} for {order.order_number}.",
+            actor=actor,
+        )
     order.payment_status = Order.PaymentStatus.PAID
     order.order_status = Order.OrderStatus.CONFIRMED
     order.stock_reserved_until = None
     order.save(update_fields=["payment_status", "order_status", "stock_reserved_until", "updated_at"])
+    create_notification(
+        order.customer,
+        "Order placed",
+        f"Your order {order.order_number} was placed successfully after payment confirmation.",
+        Notification.NotificationType.ORDER,
+        order.get_absolute_url(),
+    )
+    _queue_bulk_order_review(order, order.customer)
     record_payment_event(
         payment,
         event_type,
@@ -1320,7 +1433,7 @@ def payment_webhook(request):
         ).select_related("payment__order").first()
         if not refund_record:
             return JsonResponse({"ok": True, "ignored": True})
-        provider_event_id = request.headers.get("X-Razorpay-Event-Id") or None
+        provider_event_id = request.headers.get("X-Razorpay-Event-Id") or payload.get("id") or None
         if provider_event_id and PaymentEvent.objects.filter(event_id=provider_event_id).exists():
             return JsonResponse({"ok": True, "duplicate": True})
         with transaction.atomic():
@@ -1343,7 +1456,7 @@ def payment_webhook(request):
 
     entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
     gateway_order_id = entity.get("order_id", "")
-    provider_event_id = request.headers.get("X-Razorpay-Event-Id") or None
+    provider_event_id = request.headers.get("X-Razorpay-Event-Id") or payload.get("id") or None
     if provider_event_id and PaymentEvent.objects.filter(event_id=provider_event_id).exists():
         return JsonResponse({"ok": True, "duplicate": True})
     payment = Payment.objects.filter(gateway_order_id=gateway_order_id).select_related("order").first()
@@ -1444,7 +1557,11 @@ def _safe_gateway_metadata(gateway_data):
 
 
 def razorpay_is_configured():
-    return bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET)
+    configured = bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET)
+    checkout_config = get_checkout_config()
+    if configured and checkout_config.finance_test_mode:
+        return str(settings.RAZORPAY_KEY_ID).startswith("rzp_test_")
+    return configured
 
 
 def get_razorpay_client():
@@ -1561,6 +1678,9 @@ def build_invoice_pdf(order, stream):
         ("Subtotal", invoice_data["invoice_totals"]["subtotal"]),
         ("Discount", invoice_data["invoice_totals"]["discount"]),
         ("Tax / GST", invoice_data["invoice_totals"]["tax_amount"]),
+        ("CGST", invoice_data["invoice_totals"]["cgst_amount"]),
+        ("SGST", invoice_data["invoice_totals"]["sgst_amount"]),
+        ("IGST", invoice_data["invoice_totals"]["igst_amount"]),
         ("Handling", invoice_data["invoice_totals"]["handling_charge"]),
         ("Platform fee", invoice_data["invoice_totals"]["platform_fee"]),
         ("Delivery", invoice_data["invoice_totals"]["delivery_charge"]),

@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import (
     AuthenticationForm,
     PasswordChangeForm,
-    PasswordResetForm,
     SetPasswordForm,
     UserCreationForm,
 )
@@ -79,7 +78,7 @@ class UserRegistrationForm(BootstrapFormMixin, UserCreationForm):
         ],
         help_text="Delivery staff and admin accounts should be created by the site owner.",
     )
-    phone_number = forms.CharField(max_length=20, required=False)
+    phone_number = forms.CharField(max_length=20, required=True)
     email = forms.EmailField(required=True)
 
     class Meta:
@@ -110,6 +109,15 @@ class UserRegistrationForm(BootstrapFormMixin, UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
+
+    def clean_phone_number(self):
+        value = self.cleaned_data["phone_number"]
+        digits = "".join(character for character in value if character.isdigit())
+        if digits.startswith("91") and len(digits) == 12:
+            digits = digits[2:]
+        if len(digits) != 10 or digits[0] not in "6789":
+            raise forms.ValidationError("Enter a valid 10-digit Indian mobile number for WhatsApp verification.")
+        return digits
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -162,6 +170,10 @@ class UserProfileForm(BootstrapFormMixin, forms.Form):
         required=False,
     )
     profile_picture = forms.ImageField(required=False)
+    whatsapp_notifications_enabled = forms.BooleanField(
+        required=False,
+        label="Send account notifications to WhatsApp",
+    )
 
     def __init__(self, *args, user=None, profile=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -176,6 +188,7 @@ class UserProfileForm(BootstrapFormMixin, forms.Form):
                     "phone_number": profile.phone_number,
                     "date_of_birth": profile.date_of_birth,
                     "gender": profile.gender,
+                    "whatsapp_notifications_enabled": profile.whatsapp_notifications_enabled,
                 }
             )
         self.apply_bootstrap_classes()
@@ -195,6 +208,7 @@ class UserProfileForm(BootstrapFormMixin, forms.Form):
         self.profile.phone_number = self.cleaned_data["phone_number"]
         self.profile.date_of_birth = self.cleaned_data["date_of_birth"]
         self.profile.gender = self.cleaned_data["gender"]
+        self.profile.whatsapp_notifications_enabled = self.cleaned_data["whatsapp_notifications_enabled"]
         if self.cleaned_data.get("profile_picture"):
             self.profile.profile_picture = self.cleaned_data["profile_picture"]
         self.profile.save()
@@ -226,8 +240,6 @@ class AddressForm(BootstrapFormMixin, forms.ModelForm):
             "latitude",
             "longitude",
             "geocoding_place_id",
-            "geocoding_osm_type",
-            "geocoding_osm_id",
             "geocoding_display_name",
             "geocoding_payload",
             "location_source",
@@ -245,8 +257,6 @@ class AddressForm(BootstrapFormMixin, forms.ModelForm):
             "longitude": forms.HiddenInput(),
             "country_code": forms.HiddenInput(),
             "geocoding_place_id": forms.HiddenInput(),
-            "geocoding_osm_type": forms.HiddenInput(),
-            "geocoding_osm_id": forms.HiddenInput(),
             "geocoding_display_name": forms.HiddenInput(),
             "geocoding_payload": forms.HiddenInput(),
             "location_source": forms.HiddenInput(),
@@ -291,10 +301,29 @@ class StyledPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
         self.apply_bootstrap_classes()
 
 
-class StyledPasswordResetForm(BootstrapFormMixin, PasswordResetForm):
+class WhatsAppPasswordResetRequestForm(BootstrapFormMixin, forms.Form):
+    phone_number = forms.CharField(
+        label="WhatsApp phone number",
+        max_length=20,
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "tel",
+                "placeholder": "Enter your 10-digit WhatsApp number",
+                "inputmode": "tel",
+            }
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap_classes()
+
+    def clean_phone_number(self):
+        value = self.cleaned_data["phone_number"]
+        digits = _normalise_phone(value)
+        if len(digits) != 10 or digits[0] not in "6789":
+            raise forms.ValidationError("Enter the valid 10-digit Indian WhatsApp number saved on your account.")
+        return digits
 
 
 class StyledSetPasswordForm(BootstrapFormMixin, SetPasswordForm):

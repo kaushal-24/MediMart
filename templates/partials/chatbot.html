@@ -1,6 +1,6 @@
 {% load static %}
 
-<div class="medimart-chatbot" data-chatbot data-endpoint="{% url 'assistant:chat' %}">
+<div class="medimart-chatbot" data-chatbot data-endpoint="{% url 'assistant:chat' %}" data-feedback-endpoint="{% url 'extras:assistant_feedback' %}">
     <button class="medimart-chatbot-toggle" type="button" data-chatbot-toggle aria-expanded="false" aria-controls="medimartChatbotPanel" title="Open MediMart assistant">
         <img src="{% static 'images/MediMart-chatbot-logo-transparent.png' %}" alt="" aria-hidden="true">
         <span class="visually-hidden">Open MediMart assistant</span>
@@ -20,6 +20,12 @@
         </header>
         <div class="medimart-chatbot-messages" data-chatbot-messages aria-live="polite">
             <div class="medimart-chatbot-message is-assistant">Hi. I can help with products and your order status. Please do not share passwords, OTPs, or payment details.</div>
+        </div>
+        <div class="medimart-chatbot-quick-actions" aria-label="Common assistant requests">
+            <button type="button" data-chatbot-quick-action="Find a product">Find a product</button>
+            <button type="button" data-chatbot-quick-action="Track my order">Track my order</button>
+            <button type="button" data-chatbot-quick-action="Book a doctor consultation">Book a doctor</button>
+            <button type="button" data-chatbot-quick-action="Contact support">Contact support</button>
         </div>
         <form class="medimart-chatbot-form" data-chatbot-form>
             {% csrf_token %}

@@ -32,13 +32,13 @@
                                     <p class="text-secondary mb-2">{{ notification.message }}</p>
                                     <span class="small text-secondary">{{ notification.get_notification_type_display }} · {{ notification.created_at|date:"M d, Y h:i A" }}</span>
                                 </div>
-                                {% if not notification.is_read %}
+                                {% if notification.link %}
+                                    <a class="btn btn-sm btn-outline-success notification-open-button align-self-md-start" href="{% url 'extras:open_notification' notification.pk %}">Open</a>
+                                {% elif not notification.is_read %}
                                     <form method="post" action="{% url 'extras:mark_notification_read' notification.pk %}">
                                         {% csrf_token %}
-                                        <button class="btn btn-sm btn-outline-success" type="submit">Mark Read</button>
+                                        <button class="btn btn-sm btn-outline-success" type="submit">Mark read</button>
                                     </form>
-                                {% elif notification.link %}
-                                    <a class="btn btn-sm btn-outline-primary align-self-md-start" href="{{ notification.link }}">Open</a>
                                 {% endif %}
                             </div>
                         </article>

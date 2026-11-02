@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout Pricing Settings | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container">
+        <a class="management-back" href="{% url 'dashboards:admin_dashboard' %}"><i class="bi bi-arrow-left"></i> Operations Center</a>
+        <p class="eyebrow mt-3 mb-2">Finance and checkout</p>
+        <h1 class="h2 fw-bold mb-2">Checkout pricing settings</h1>
+        <p class="text-secondary mb-0">Control customer-visible charges and cash-on-delivery eligibility.</p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <aside class="col-lg-3">{% include "accounts/_dashboard_nav.html" %}</aside>
+        <div class="col-lg-9">
+            <form class="content-panel" method="post" novalidate>
+                {% csrf_token %}
+                {% include "accounts/form_errors.html" with form=form %}
+                <div class="panel-heading mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">Customer charges</p>
+                        <h2>Fees and tax</h2>
+                    </div>
+                    <span class="badge text-bg-light">Admin controlled</span>
+                </div>
+                <div class="row g-3">
+                    {% for field in form %}
+                    <div class="{% if field.name == 'cod_blocked_pincodes' %}col-12{% else %}col-md-6{% endif %}">
+                        {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-check mt-3">{{ field }}<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                        {% else %}
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% endif %}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-2"></i>Save checkout settings</button>
+                    <a class="btn btn-outline-secondary" href="{% url 'dashboards:admin_dashboard' %}">Cancel</a>
+                </div>
+                {% if settings_record.updated_at %}<p class="small text-secondary mt-3 mb-0">Last updated {{ settings_record.updated_at|date:"d M Y, H:i" }}{% if settings_record.updated_by %} by {{ settings_record.updated_by.get_full_name|default:settings_record.updated_by.username }}{% endif %}.</p>{% endif %}
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

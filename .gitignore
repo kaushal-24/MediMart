@@ -13,8 +13,14 @@ private_media/
 test_private_media/
 staticfiles/
 backups/mysql/
+backups/*.sql
+backups/*.zip
 ROLE_ACCOUNT_CREDENTIALS.md
 *.log
 .idea/
 .vscode/
 *.md
+*.docx
+*.pdf
+*.md
+*.log

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Consultation room | MediMart{% endblock %}
+{% block content %}
+<section class="container py-5"><div class="content-panel mx-auto" style="max-width: 760px;"><p class="eyebrow">Private consultation room</p><h1 class="h3 fw-bold">Dr. {{ consultation.doctor.full_name }}</h1><p class="text-secondary">Room {{ room_id }} · {{ consultation.get_mode_display }}</p>{% if provider_configured %}<p class="text-secondary">Your configured consultation provider should open this room from the consultation link.</p>{% else %}<div class="alert alert-warning"><strong>Audio/video provider not configured.</strong><p class="mb-0 mt-2">The secure consultation record and chat are available now. Add <code>CONSULTATION_ROOM_BASE_URL</code> to connect a managed video/audio provider before using this mode with patients.</p></div>{% endif %}<a class="btn btn-success" href="{% url 'healthcare:consultation_detail' consultation.pk %}">Open secure consultation chat</a></div></section>
+{% endblock %}

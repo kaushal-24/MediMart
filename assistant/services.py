@@ -9,9 +9,11 @@ from urllib.parse import quote, urlparse
 from django.core.cache import cache
 from django.conf import settings
 from django.db.models import Q
+from django.urls import reverse
 
 from orders.models import Order
 from products.models import Product
+from products.services import product_keyword_query
 from healthcare.models import LabTest
 
 
@@ -52,8 +54,8 @@ _HEALTHCARE_SEARCH_ALIASES = {
 }
 
 _MODEL_COOLDOWN_CACHE_PREFIX = "assistant:model-cooldown"
-_AI_RESPONSE_CACHE_PREFIX = "assistant:response"
-_AI_SEARCH_CACHE_PREFIX = "assistant:search-plan"
+_AI_RESPONSE_CACHE_PREFIX = "assistant:response:v3"
+_AI_SEARCH_CACHE_PREFIX = "assistant:search-plan:v2"
 _AI_DEDUP_LOCK_PREFIX = "assistant:dedup"
 _RETRYABLE_HTTP_CODES = {404, 408, 409, 429, 500, 502, 503, 504}
 _QUOTA_ERROR_TERMS = ("quota", "rate limit", "rate_limit", "resource exhausted", "too many requests", "limit")
@@ -77,11 +79,27 @@ def answer_question(user, question):
 
     private_answer = _answer_order_question(user, lowered)
     if private_answer:
-        return {"answer": private_answer, "source": "local"}
+        return {
+            "answer": private_answer,
+            "source": "local",
+            "links": _account_links_for_question(user, lowered),
+        }
 
     healthcare_answer = _answer_healthcare_question(user, lowered)
     if healthcare_answer:
-        return {"answer": healthcare_answer, "source": "local"}
+        return {
+            "answer": healthcare_answer,
+            "source": "local",
+            "links": _account_links_for_question(user, lowered),
+        }
+
+    workflow_answer = _answer_workflow_question(user, lowered)
+    if workflow_answer:
+        return workflow_answer
+
+    faq_answer = _answer_faq_question(user, lowered)
+    if faq_answer:
+        return faq_answer
 
     response_cache_key = _assistant_cache_key(_AI_RESPONSE_CACHE_PREFIX, question)
     cached_result = cache.get(response_cache_key)
@@ -103,13 +121,13 @@ def answer_question(user, question):
             try:
                 answer = _call_custom_ai(question, context)
                 if answer:
-                    result = {"answer": _redact_sensitive_output(answer), "source": "custom_ai"}
+                    result = {"answer": _redact_sensitive_output(answer), "source": "custom_ai", "links": _catalog_links(context)}
                     cache.set(response_cache_key, result, timeout=_chatbot_response_cache_seconds())
                     return result
             except (OSError, ValueError, urllib.error.URLError) as exc:
                 logger.warning("AI assistant provider unavailable after model failover: %s", _provider_error_label(exc))
 
-        result = {"answer": _local_fallback(question, context), "source": "local"}
+        result = {"answer": _local_fallback(question, context), "source": "local", "links": _catalog_links(context)}
         cache.set(response_cache_key, result, timeout=_chatbot_fallback_cache_seconds())
         return result
     finally:
@@ -250,6 +268,186 @@ def _expand_healthcare_terms(question):
     return unique[:12]
 
 
+def _internal_link(user, label, route_name, *, args=None, meta=""):
+    """Build a same-origin action link, requiring sign-in where necessary."""
+    destination = reverse(route_name, args=args or [])
+    if user is None:
+        destination = f"{reverse('accounts:login')}?next={quote(destination, safe='')}"
+        label = f"Sign in to {label}"
+        meta = meta or "Account required"
+    return {"label": label, "url": destination, "meta": meta}
+
+
+def _account_links_for_question(user, lowered_question):
+    """Return safe links for the account area mentioned by the customer."""
+    links = []
+    if any(term in lowered_question for term in ("order", "delivery", "shipment", "payment")):
+        if user is None:
+            links.append(_internal_link(user, "open My Orders", "orders:order_list"))
+        else:
+            orders = Order.objects.filter(customer=user).only(
+                "pk", "order_number", "order_status", "created_at"
+            ).order_by("-created_at")[:3]
+            for order in orders:
+                links.append(
+                    {
+                        "label": f"Open order {order.order_number}",
+                        "url": reverse("orders:order_detail", args=[order.pk]),
+                        "meta": order.get_order_status_display(),
+                    }
+                )
+            if not links:
+                links.append(_internal_link(user, "open My Orders", "orders:order_list"))
+
+    if any(term in lowered_question for term in ("lab", "test", "report", "diagnostic")):
+        if user is not None:
+            from healthcare.models import LabBooking
+
+            booking = LabBooking.objects.filter(user=user).order_by("-created_at").first()
+            if booking:
+                links.append(
+                    {
+                        "label": "Open latest lab booking",
+                        "url": reverse("healthcare:lab_booking_detail", args=[booking.pk]),
+                        "meta": booking.get_status_display(),
+                    }
+                )
+        links.append(_internal_link(user, "browse lab tests", "healthcare:labs"))
+
+    if any(term in lowered_question for term in ("consultation", "consult", "doctor", "appointment")):
+        if user is not None:
+            from healthcare.models import Consultation
+
+            consultation = Consultation.objects.filter(user=user).order_by("-created_at").first()
+            if consultation:
+                links.append(
+                    {
+                        "label": "Open latest consultation",
+                        "url": reverse("healthcare:consultation_detail", args=[consultation.pk]),
+                        "meta": consultation.get_status_display(),
+                    }
+                )
+        links.append(_internal_link(user, "book a doctor", "healthcare:consultation_create"))
+
+    return _unique_links(links)
+
+
+def _answer_workflow_question(user, lowered_question):
+    """Handle common customer workflows locally and provide the next safe action."""
+    links = []
+    answer = ""
+    if lowered_question.strip() in {"find a product", "browse products", "show products"}:
+        answer = "Tell me the product name, health need, category, or keyword and I will search the MediMart catalogue."
+        links = [_internal_link(user, "browse all products", "products:product_list")]
+    elif any(term in lowered_question for term in ("return", "refund", "exchange")):
+        answer = (
+            "I can help you start a return. Open your order, choose the eligible item, select a reason, "
+            "and submit the request. The return status and refund updates stay in your account."
+        )
+        links = [
+            _internal_link(user, "open Returns & refunds", "orders:return_list"),
+            _internal_link(user, "open My Orders", "orders:order_list"),
+        ]
+    elif any(term in lowered_question for term in ("support", "help", "complaint", "issue", "ticket")):
+        answer = "I can take you to MediMart support, where you can create a ticket and continue the conversation with the support team."
+        links = [_internal_link(user, "contact support", "extras:support_ticket_list")]
+    elif any(term in lowered_question for term in ("nearby pharmacy", "near me pharmacy", "chemist", "medical shop")):
+        answer = "Choose your delivery location first, then MediMart will show approved pharmacies and general nearby pharmacies with map links."
+        links = [_internal_link(user, "find pharmacies near you", "core:nearby_pharmacies", meta="Uses your selected location")]
+    elif "prescription" in lowered_question and any(term in lowered_question for term in ("upload", "send", "add", "submit")):
+        answer = "Upload a clear prescription from the secure prescription workspace. The clinical review team will review it before restricted medicines can be processed."
+        links = [_internal_link(user, "upload a prescription", "prescriptions:prescription_upload")]
+    elif any(term in lowered_question for term in ("book a doctor", "book doctor", "find a doctor", "doctor appointment", "consultation")):
+        answer = "You can choose a verified doctor, describe the reason for the consultation, and continue through the payment and confirmation steps."
+        links = [_internal_link(user, "book a consultation", "healthcare:consultation_create")]
+    elif any(term in lowered_question for term in ("lab test", "blood test", "diagnostic test", "book a test")):
+        answer = "Browse available lab tests, check home-collection availability, and choose a test to start booking."
+        links = [_internal_link(user, "browse lab tests", "healthcare:labs")]
+    elif "cart" in lowered_question:
+        answer = "I can open your cart so you can review quantities, delivery charges, and continue to payment."
+        links = [_internal_link(user, "open your cart", "cart:cart_detail")]
+    elif any(term in lowered_question for term in ("wishlist", "saved for later", "save product")):
+        answer = "Your saved products are kept in Saved for Later."
+        links = [_internal_link(user, "open Saved for Later", "cart:wishlist_detail")]
+    elif any(term in lowered_question for term in ("notification", "notifications")):
+        answer = "Open Notifications to see account, order, prescription, consultation, lab, and support updates."
+        links = [_internal_link(user, "open Notifications", "extras:notification_list")]
+    elif any(term in lowered_question for term in ("profile", "account details", "change my details", "address")):
+        answer = "You can update your profile and delivery addresses from your account workspace."
+        links = [
+            _internal_link(user, "open My Profile", "accounts:profile"),
+            _internal_link(user, "manage addresses", "accounts:address_list"),
+        ]
+    elif any(term in lowered_question for term in ("track my order", "track order", "where is my order")):
+        answer = "Sign in to open your orders and see the latest payment, fulfilment, shipment, and delivery updates."
+        links = [_internal_link(user, "open My Orders", "orders:order_list")]
+
+    if not answer:
+        return None
+    return {"answer": answer, "source": "local", "links": _unique_links(links)}
+
+
+def _unique_links(links):
+    unique = []
+    seen = set()
+    for link in links:
+        url = link.get("url")
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        unique.append(link)
+    return unique[:6]
+
+
+def _answer_faq_question(user, lowered_question):
+    """Answer predictable support questions without spending an AI request."""
+    if any(term in lowered_question for term in ("payment method", "how to pay", "secure payment", "pay for")):
+        return {
+            "answer": "At checkout, review the order total and choose one of the payment methods enabled for your account. An order is placed only after payment confirmation; if payment fails, the order is not confirmed.",
+            "source": "local",
+            "links": _unique_links(
+                [
+                    _internal_link(user, "open your cart", "cart:cart_detail"),
+                    _internal_link(user, "contact support", "extras:support_ticket_list"),
+                ]
+            ),
+        }
+    if any(term in lowered_question for term in ("delivery time", "how long delivery", "when will it arrive", "delivery fee")):
+        return {
+            "answer": "Delivery time and charges depend on the selected location, seller, product availability, and checkout fees. Select your location and open a product page to see available delivery information before paying.",
+            "source": "local",
+            "links": [
+                _internal_link(user, "choose your delivery location", "core:home"),
+                _internal_link(user, "browse products", "products:product_list"),
+            ],
+        }
+    if "prescription" in lowered_question and any(term in lowered_question for term in ("need", "required", "how", "what", "medicine")):
+        return {
+            "answer": "Some medicines require prescription review. Upload a clear prescription with the patient details visible; MediMart will keep it in the secure prescription workspace and review it before eligible restricted items are processed.",
+            "source": "local",
+            "links": [_internal_link(user, "open prescriptions", "prescriptions:prescription_list")],
+        }
+    if any(term in lowered_question for term in ("symptom", "diagnose", "dosage", "dose", "side effect")):
+        return {
+            "answer": "I can help you find relevant MediMart products and healthcare services, but I cannot diagnose, prescribe, or choose a dose. For personal medical advice, use a verified doctor consultation or contact a qualified clinician.",
+            "source": "local",
+            "links": [
+                _internal_link(user, "book a doctor consultation", "healthcare:consultation_create"),
+                _internal_link(user, "browse health guides", "extras:blog_list"),
+            ],
+        }
+    if any(term in lowered_question for term in ("bulk order", "wholesale", "large order", "quantity")):
+        return {
+            "answer": "Bulk orders can require pharmacy or compliance verification before fulfilment. Add the items to your cart and contact support with the order details so the team can review availability and requirements.",
+            "source": "local",
+            "links": [
+                _internal_link(user, "open your cart", "cart:cart_detail"),
+                _internal_link(user, "contact support", "extras:support_ticket_list"),
+            ],
+        }
+    return None
+
+
 def _answer_order_question(user, lowered_question):
     if user is None or not any(word in lowered_question for word in ("order", "delivery", "shipment", "payment")):
         return ""
@@ -329,17 +527,14 @@ def _public_catalog_context(question):
     products = Product.objects.filter(is_active=True).select_related("category").only(
         "name", "description", "selling_price", "category__name"
     )
-    if terms:
-        query = Q()
-        for term in terms:
-            query |= Q(name__icontains=term) | Q(description__icontains=term) | Q(category__name__icontains=term)
-        products = products.filter(query)
+    products = products.filter(product_keyword_query([question, *terms])).distinct()
     rows = []
     for product in products.order_by("name")[:6]:
         rows.append(
             {
                 "name": product.name,
                 "type": "product",
+                "url": product.get_absolute_url(),
                 "category": product.category.name if product.category else "Healthcare",
                 "price_inr": str(product.selling_price),
                 "description": (product.description or "")[:240],
@@ -368,6 +563,7 @@ def _public_catalog_context(question):
             {
                 "name": lab_test.name,
                 "type": "lab_test",
+                "url": reverse("healthcare:lab_booking_for_test", args=[lab_test.pk]),
                 "category": lab_test.get_category_display(),
                 "price_inr": str(lab_test.price),
                 "description": (lab_test.description or lab_test.preparation or "")[:240],
@@ -376,13 +572,25 @@ def _public_catalog_context(question):
     return rows[:12]
 
 
+def _catalog_links(context):
+    """Return explicit, safe catalogue links for the chatbot UI."""
+    return [
+        {"label": row["name"], "url": row.get("url", ""), "meta": f"{row['type'].replace('_', ' ').title()} · ₹{row.get('price_inr', '')}".rstrip(" · ₹")}
+        for row in context
+        if row.get("url")
+    ][:6]
+
+
 def _call_custom_ai(question, context, *, system_instruction=None):
     system_instruction = system_instruction or (
         "You are MediMart's support assistant. Answer concisely and safely. "
         "Never request, reveal, infer, or invent passwords, OTPs, payment credentials, "
         "addresses, phone numbers, emails, medical records, prescriptions, API keys, or internal database details. "
         "Do not diagnose or replace a clinician. For emergencies, advise local emergency services. "
-        "Use only the public catalog context supplied below; say when information is unavailable."
+        "Use only the public catalog context supplied below; say when information is unavailable. "
+        "Never use markdown tables, pipe-separated tables, raw URLs, or markdown link syntax. "
+        "For catalog results, use a short readable bullet list with the product name, category, and price; "
+        "the MediMart interface adds the clickable product buttons."
     )
     messages = [
         {

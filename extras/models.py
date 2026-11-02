@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -42,13 +43,16 @@ class Notification(models.Model):
 
 class NotificationDelivery(models.Model):
     class Channel(models.TextChoices):
-        EMAIL = "email", "Email"
+        WHATSAPP = "whatsapp", "WhatsApp"
+        # Kept for historical rows and migration compatibility; new deliveries never use email.
+        EMAIL = "email", "Legacy email (disabled)"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PROCESSING = "processing", "Processing"
         SENT = "sent", "Sent"
         FAILED = "failed", "Failed"
+        DEAD_LETTER = "dead_letter", "Dead letter"
 
     notification = models.ForeignKey(
         Notification,
@@ -81,6 +85,31 @@ class NotificationDelivery(models.Model):
 
     def __str__(self):
         return f"{self.notification_id}: {self.channel} to {self.destination}"
+
+
+class AssistantFeedback(models.Model):
+    """Minimal, privacy-conscious feedback for improving assistant responses."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="assistant_feedback",
+        blank=True,
+        null=True,
+    )
+    helpful = models.BooleanField()
+    source = models.CharField(max_length=30, default="local")
+    context = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["helpful", "created_at"], name="assistant_feedback_idx"),
+        ]
+
+    def __str__(self):
+        return f"Assistant feedback: {'helpful' if self.helpful else 'not helpful'}"
 
 
 class SupportTicket(models.Model):
@@ -304,6 +333,13 @@ class ContentIssue(models.Model):
 
 
 class DoctorProfile(models.Model):
+    FALLBACK_PROFILE_IMAGES = (
+        "images/doctor-profile-1.png",
+        "images/doctor-profile-2.png",
+        "images/doctor-profile-3.png",
+        "images/doctor-profile-4.png",
+    )
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -314,6 +350,12 @@ class DoctorProfile(models.Model):
     registration_number = models.CharField(max_length=100, blank=True)
     medical_council = models.CharField(max_length=160, blank=True)
     qualification = models.CharField(max_length=200, blank=True)
+    profile_image = models.ImageField(
+        upload_to="doctors/profile/",
+        validators=[validate_public_image],
+        blank=True,
+        null=True,
+    )
     qualification_document = models.FileField(
         upload_to="doctors/credentials/",
         storage=private_media_storage,
@@ -354,6 +396,14 @@ class DoctorProfile(models.Model):
 
     def __str__(self):
         return self.full_name
+
+    @property
+    def display_image_url(self):
+        """Return the doctor's uploaded photo or a stable generic profile image."""
+        if self.profile_image:
+            return self.profile_image.url
+        fallback = self.FALLBACK_PROFILE_IMAGES[(self.pk or 0) % len(self.FALLBACK_PROFILE_IMAGES)]
+        return static(fallback)
 
 
 class PharmacistProfile(models.Model):

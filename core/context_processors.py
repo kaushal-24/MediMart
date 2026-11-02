@@ -1,3 +1,6 @@
+from django.conf import settings
+
+
 def site_location(request):
     location = request.session.get("site_location")
     if not location and request.user.is_authenticated:
@@ -8,9 +11,12 @@ def site_location(request):
                 "city": profile.preferred_city,
                 "state": profile.preferred_state,
                 "pincode": profile.preferred_pincode,
+            "latitude": str(profile.preferred_latitude or ""),
+            "longitude": str(profile.preferred_longitude or ""),
             }
 
     return {
         "site_location": location or {},
         "site_location_label": (location or {}).get("label", "Select delivery location"),
+        "google_maps_browser_api_key": getattr(settings, "GOOGLE_MAPS_BROWSER_API_KEY", ""),
     }

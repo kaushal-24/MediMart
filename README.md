@@ -124,7 +124,7 @@ This section was appended without removing or replacing any earlier README conte
 
 The verified current foundation includes MySQL on port 3306, no Redis dependency, pharmacist prescription review, regulated-product controls, batch traceability, cold-chain quarantine, Razorpay webhook/idempotency handling, product variants, moderated product questions and reviews, lab slot cancellation/rescheduling, delivery OTP and private proof capture, per-user capability overrides, private media support, role dashboards, and 111 passing Django tests.
 
-The project is not declared production-complete until legal review, provider contracts, live payment/courier/lab/consultation credentials, object storage, monitoring, backup restore drills, and operational ownership are supplied. Never use the MySQL root account in production; create a dedicated database user and keep all secrets in `.env`.
+The project is not declared production-complete until legal review, provider contracts, live payment credentials, monitoring, backup restore drills, and operational ownership are supplied. The current deployment intentionally uses local private media and manual courier/lab/clinic workflows. Never use the MySQL root account in production; create a dedicated database user and keep all secrets in `.env`.
 
 ### Additive single-model AI policy
 
@@ -141,9 +141,9 @@ AI chat and AI catalogue search use Groq's OpenAI-compatible Chat Completions en
 - Razorpay live/test keys and webhook secret in `.env`
 - Courier API account, documentation, and credentials
 - Lab partner API or confirmed manual lab workflow
-- Doctor consultation provider or chat/video API
+- Approved clinic appointment and private chat workflow; video/audio provider is optional
 - AI provider API keys and approved models
-- Private object storage credentials, such as S3
+- Local private media directory backup and malware-scanning process
 - SMTP Gmail app password for email notifications
 - Production error monitoring and uptime service
 
@@ -155,7 +155,7 @@ AI chat and AI catalogue search use Groq's OpenAI-compatible Chat Completions en
 - Prescription acceptance, pharmacist approval, substitution, and expiry policies
 - Cold-chain products and temperature rules
 - Refund, cancellation, recall, and reverse-pickup policies
-- Loyalty points and Care Plan rules
+- Loyalty points and other future subscription rules
 - Languages to support, beginning with Hindi or Gujarati
 
 ### Compliance documents
@@ -175,3 +175,8 @@ AI chat and AI catalogue search use Groq's OpenAI-compatible Chat Completions en
 - Approved production product, vendor, lab, and doctor data
 
 Internal database models, workflows, dashboards, admin tools, validation, tests, and UI can be completed without these credentials. External courier, lab, payment, consultation, storage, legal, and production-monitoring features cannot be genuinely production-complete until their providers and policies are supplied.
+
+
+cd C:\xampp\htdocs\MediMart\OPENWA\OpenWA
+npm install
+npm run dev

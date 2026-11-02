@@ -50,6 +50,14 @@ OPERATIONS_ROLES = {
     UserProfile.Role.PHARMACIST,
 }
 
+# Staff accounts can access regulated records and operational actions, so MFA
+# is required for them when STAFF_MFA_REQUIRED is enabled in settings.
+STAFF_MFA_ROLES = OPERATIONS_ROLES | {
+    UserProfile.Role.DELIVERY_STAFF,
+    UserProfile.Role.DOCTOR,
+    UserProfile.Role.ADMIN,
+}
+
 
 # Keep business capabilities separate from URL decorators. This gives every
 # dashboard and management section one auditable permission vocabulary.
@@ -100,6 +108,13 @@ CAPABILITY_ROLES = {
         UserProfile.Role.ADMIN,
         UserProfile.Role.OPERATIONS_MANAGER,
         UserProfile.Role.PHLEBOTOMIST,
+    },
+    "bulk.review": {
+        UserProfile.Role.ADMIN,
+        UserProfile.Role.OPERATIONS_MANAGER,
+        UserProfile.Role.COMPLIANCE_OFFICER,
+        UserProfile.Role.PHARMACIST,
+        UserProfile.Role.PHARMACY,
     },
     "clinical.doctor_operations": {
         UserProfile.Role.ADMIN,

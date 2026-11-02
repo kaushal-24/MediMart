@@ -1,6 +1,3 @@
-from decimal import Decimal
-
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -12,6 +9,7 @@ from django.views.decorators.http import require_POST
 
 from orders.forms import CheckoutForm
 from orders.models import Coupon, CouponUsage
+from orders.pricing import calculate_order_charges
 from products.models import Product
 from prescriptions.views import user_has_approved_prescription
 from vendors.models import VendorProduct
@@ -68,19 +66,21 @@ def _cart_context(user, coupon_code=""):
     )
     subtotal = sum(item.total_price for item in items)
     coupon, coupon_error = _valid_cart_coupon(coupon_code, user, subtotal)
-    discount = coupon.calculate_discount(subtotal) if coupon else Decimal("0.00")
-    delivery_fee = (
-        Decimal("0.00")
-        if subtotal == 0 or settings.FREE_DELIVERY
-        else Decimal(str(settings.DELIVERY_FEE))
-    )
+    charges = calculate_order_charges(items, coupon)
     return {
         "cart": cart,
         "items": items,
-        "subtotal": subtotal,
-        "discount": discount,
-        "delivery_fee": delivery_fee,
-        "final_total": subtotal - discount + delivery_fee,
+        "subtotal": charges["subtotal"],
+        "discount": charges["discount"],
+        "tax_amount": charges["tax_amount"],
+        "tax_rate_percent": charges["tax_rate_percent"],
+        "gst_enabled": charges["gst_enabled"],
+        "handling_charge": charges["handling_charge"],
+        "platform_fee": charges["platform_fee"],
+        "delivery_fee": charges["delivery_charge"],
+        "cold_chain_required": charges["cold_chain_required"],
+        "cold_chain_charge": charges["cold_chain_charge"],
+        "final_total": charges["total_amount"],
         "cart_item_count": sum(item.quantity for item in items),
         "coupon_code": coupon.code if coupon else coupon_code.strip().upper(),
         "coupon_error": coupon_error,

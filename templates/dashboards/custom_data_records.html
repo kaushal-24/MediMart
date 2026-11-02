@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | Custom Data Manager{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div>
+            <a class="management-back" href="{% url 'dashboards:custom_data_home' %}"><i class="bi bi-arrow-left"></i> Custom data manager</a>
+            <p class="eyebrow mb-2 mt-3">Custom CRUD</p>
+            <h1 class="h2 fw-bold mb-2">{{ title }}</h1>
+            <p class="text-secondary mb-0">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}.</p>
+        </div>
+        {% if create_url %}<a class="btn btn-success" href="{{ create_url }}"><i class="bi bi-plus-lg me-2"></i>Add {{ title|lower }}</a>{% endif %}
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="content-panel">
+        <form method="get" class="management-toolbar mb-4" role="search">
+            <div class="management-search"><i class="bi bi-search"></i><input name="q" value="{{ query }}" type="search" placeholder="Search {{ title|lower }}" aria-label="Search {{ title|lower }}"><button class="btn btn-outline-success" type="submit">Search</button></div>
+            <a class="btn btn-outline-secondary" href="{% url 'dashboards:custom_data_records' app_label model_name %}">Clear</a>
+        </form>
+        {% if rows %}
+        <div class="table-responsive">
+            <table class="table align-middle operations-table management-table mb-0">
+                <thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}{% if can_mutate %}<th class="text-end">Actions</th>{% endif %}</tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% for value in row.values %}<td>{% if forloop.first %}<strong>{{ value }}</strong>{% else %}{{ value }}{% endif %}</td>{% endfor %}
+                        {% if can_mutate %}<td><div class="management-actions justify-content-end"><a class="btn btn-sm btn-outline-success" href="{{ row.edit_url }}" title="Edit"><i class="bi bi-pencil"></i><span class="visually-hidden">Edit</span></a><form method="post" action="{{ row.delete_url }}" onsubmit="return window.confirm('Delete this record permanently?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit" title="Delete"><i class="bi bi-trash"></i><span class="visually-hidden">Delete</span></button></form></div></td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<div class="empty-state"><i class="bi bi-inbox"></i><h2 class="h5 fw-semibold">No records found</h2><p>Try another search or add the first record.</p>{% if create_url %}<a class="btn btn-success" href="{{ create_url }}">Add {{ title|lower }}</a>{% endif %}</div>{% endif %}
+    </div>
+    {% include "partials/pagination.html" with page_obj=page_obj %}
+</section>
+{% endblock %}

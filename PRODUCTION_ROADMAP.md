@@ -12,7 +12,7 @@ This roadmap separates implemented application behavior from infrastructure and 
 2. Private medical media
    - Store prescriptions, seller documents, and support attachments in a private object-storage bucket.
    - Serve files only through short-lived signed URLs after an ownership or staff permission check.
-   - Add malware scanning, retention rules, deletion workflows, and access audit logs.
+   - Add retention rules, deletion workflows, and access audit logs for private uploads.
 
 3. Fulfillment and serviceability
    - Add warehouses, serviceable pincodes, courier partners, shipment records, tracking events, and promised delivery windows.
@@ -69,13 +69,13 @@ No roadmap item should be marked complete from documentation alone. Completion r
 
 ### Required integrations
 
-- Razorpay live/test keys and webhook secret in `.env`
+- Razorpay test keys and webhook secret in `.env` for the current deployment; live keys remain a later release gate.
 - Courier API account, documentation, and credentials
 - Lab partner API or confirmed manual lab workflow
 - Doctor consultation provider or chat/video API
 - AI provider API keys and approved models
-- Private object storage credentials, such as S3
-- SMTP Gmail app password for email notifications
+- Local private-media backup destination
+- OpenWA/Meta WhatsApp credentials and delivery policy
 - Production error monitoring and uptime service
 
 ### Business decisions
@@ -86,7 +86,7 @@ No roadmap item should be marked complete from documentation alone. Completion r
 - Prescription acceptance, pharmacist approval, substitution, and expiry policies
 - Cold-chain products and temperature rules
 - Refund, cancellation, recall, and reverse-pickup policies
-- Loyalty points and Care Plan rules
+- Loyalty points and future subscription rules
 - Languages to support, beginning with Hindi or Gujarati
 
 ### Compliance documents
@@ -106,3 +106,9 @@ No roadmap item should be marked complete from documentation alone. Completion r
 - Approved production product, vendor, lab, and doctor data
 
 Internal database and workflow delivery can continue without these credentials. Provider-dependent, legal, and production-monitoring work cannot be marked complete until the inputs are supplied.
+
+## Current implementation status
+
+The application now includes the local implementation of CSP/security headers, staff MFA enforcement, non-root production DB protection, upload validation, Razorpay test replay protection, append-only finance ledger records, database-owned GST/fee settings, maker-checker approvals, SLA escalation, finance/settlement reporting, WhatsApp retry/dead-letter/opt-out handling, Google-only location support, local health alerting, and manual delivery/lab operations. Monitoring provider selection, backup scheduling, restore evidence, and legal/clinical/tax approvals remain release gates.
+
+This deployment uses local private media backups. S3 and Care Plan are not active project features.

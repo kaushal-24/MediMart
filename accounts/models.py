@@ -62,6 +62,7 @@ class UserProfile(models.Model):
     location_updated_at = models.DateTimeField(blank=True, null=True)
     mfa_secret = EncryptedCharField(max_length=512, blank=True)
     mfa_enabled = models.BooleanField(default=False)
+    whatsapp_notifications_enabled = models.BooleanField(default=True)
 
     class Meta:
         indexes = [

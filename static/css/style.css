@@ -816,6 +816,41 @@
     color: #fff;
     background: var(--medimart-primary);
 }
+.medimart-chatbot-links { display: grid; gap: .4rem; margin-top: .65rem; }
+.medimart-chatbot-link { display: flex; align-items: center; gap: .65rem; padding: .55rem .65rem; border: 1px solid var(--mm-line, rgba(0,0,0,.12)); border-radius: .45rem; color: var(--mm-green, #00a86b); background: transparent; text-decoration: none; font-size: .86rem; }
+.medimart-chatbot-link:hover, .medimart-chatbot-link:focus { text-decoration: none; border-color: var(--mm-green, #00a86b); }
+.medimart-chatbot-link-copy { display: grid; gap: .12rem; min-width: 0; }
+.medimart-chatbot-link-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.medimart-chatbot-link-copy small { color: var(--medimart-muted); font-size: .74rem; }
+.medimart-chatbot-link > .bi { margin-left: auto; flex: 0 0 auto; }
+.medimart-chatbot-feedback { display: flex; align-items: center; gap: .35rem; margin-top: .65rem; color: var(--medimart-muted); font-size: .72rem; }
+.medimart-chatbot-feedback button { padding: .18rem .45rem; border: 1px solid var(--medimart-border); border-radius: .35rem; color: var(--medimart-muted); background: transparent; font-size: .7rem; }
+.medimart-chatbot-feedback button:hover, .medimart-chatbot-feedback button:focus-visible { border-color: var(--medimart-primary); color: var(--medimart-primary); }
+.medimart-chatbot-quick-actions { display: flex; flex-wrap: wrap; gap: .4rem; padding: .65rem .75rem 0; background: var(--medimart-surface); }
+.medimart-chatbot-quick-actions button { padding: .35rem .55rem; border: 1px solid var(--medimart-border-strong); border-radius: 999px; color: var(--medimart-dark); background: var(--medimart-surface-muted); font-size: .74rem; }
+.medimart-chatbot-quick-actions button:hover, .medimart-chatbot-quick-actions button:focus-visible { border-color: var(--medimart-primary); color: var(--medimart-primary); }
+.medimart-chatbot-result-list { display: grid; gap: .55rem; width: min(100%, 25rem); }
+.medimart-chatbot-result-intro { margin: 0 0 .1rem; }
+.medimart-chatbot-result { padding: .7rem; border: 1px solid var(--medimart-border); border-radius: .55rem; background: var(--medimart-surface-muted); }
+.medimart-chatbot-result-heading, .medimart-chatbot-result-details { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.medimart-chatbot-result-heading { color: var(--medimart-dark); }
+.medimart-chatbot-result-number { color: var(--medimart-primary); font-size: .72rem; font-weight: 700; letter-spacing: .06em; }
+.medimart-chatbot-result-details { margin: .35rem 0 .6rem; color: var(--medimart-muted); font-size: .78rem; }
+.medimart-chatbot-result-details strong { color: var(--medimart-dark); font-size: .9rem; }
+.medimart-chatbot-result-link { display: inline-flex; align-items: center; justify-content: center; min-height: 2rem; padding: .35rem .7rem; border-radius: .4rem; color: #fff; background: var(--medimart-primary); font-size: .8rem; font-weight: 700; text-decoration: none; }
+.medimart-chatbot-result-link:hover, .medimart-chatbot-result-link:focus { color: #fff; filter: brightness(.95); text-decoration: none; }
+
+.catalog-page-size-form { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
+.catalog-page-size-form .form-select { width: auto; min-width: 8.5rem; }
+.catalog-location-note { padding: .7rem .85rem; color: var(--mm-ink-soft); background: var(--mm-panel-soft); border: 1px solid var(--mm-line); border-radius: .5rem; font-size: .86rem; }
+.catalog-location-note a { color: var(--mm-green); font-weight: 700; text-decoration: none; }
+.catalog-location-note a:hover, .catalog-location-note a:focus-visible { text-decoration: underline; }
+.product-location-match { display: block; margin-top: .2rem; color: var(--mm-green); font-size: .72rem; }
+
+@media (max-width: 575.98px) {
+    .catalog-page-size-form { width: 100%; justify-content: flex-end; }
+    .catalog-page-size-form .form-select { flex: 1; }
+}
 
 .medimart-chatbot-form {
     display: flex;
@@ -1139,8 +1174,7 @@ body {
 .category-image img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    padding: 0.6rem;
+    object-fit: cover;
 }
 
 .hero-product strong,
@@ -1497,6 +1531,13 @@ body {
     text-decoration: none;
 }
 
+/* Data-area tiles are direct links, so they do not need a second arrow cue. */
+.admin-link > .bi-chevron-right,
+.admin-link > .bi-arrow-right,
+.admin-link > .bi-arrow-up-right {
+    display: none;
+}
+
 .admin-link:hover {
     color: var(--medimart-primary);
     border-color: var(--medimart-primary);
@@ -1701,6 +1742,40 @@ body {
     border-radius: 0.5rem;
     background: var(--medimart-surface);
     box-shadow: 0 0.75rem 1.75rem var(--medimart-shadow-soft);
+}
+
+.vendor-logo {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border);
+    border-radius: .5rem;
+    color: var(--medimart-primary);
+    background: var(--medimart-surface-muted);
+}
+
+.vendor-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vendor-logo-card {
+    width: 100%;
+    height: 8rem;
+}
+
+.vendor-logo-sm {
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: 0 0 3.5rem;
+}
+
+.vendor-dashboard-heading,
+.vendor-detail-heading {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .seller-summary {
@@ -1916,6 +1991,20 @@ body {
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 0.75rem;
+}
+
+.summary-label-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.summary-label-note {
+    color: var(--medimart-muted);
+    font-size: 0.72rem;
+    font-weight: 400;
+    line-height: 1.25;
 }
 
 .summary-total {
@@ -2863,6 +2952,67 @@ body {
     padding: 2.25rem 0;
 }
 
+.operations-header-layout {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.operations-header-top {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.operations-header-copy {
+    min-width: 0;
+    flex: 1 1 32rem;
+}
+
+.operations-header-actions {
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.operations-header-actions .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.operations-header-description {
+    width: 100%;
+}
+
+@media (min-width: 1200px) {
+    .operations-header-actions {
+        flex-wrap: nowrap !important;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .operations-header-top {
+        flex-direction: column !important;
+    }
+
+    .operations-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .operations-header-actions {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .operations-header-actions .btn {
+        width: 100%;
+    }
+}
+
 .operations-metrics {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -3542,6 +3692,33 @@ body {
     background: var(--medimart-soft);
 }
 
+.care-avatar {
+    overflow: hidden;
+    flex: 0 0 2.75rem;
+}
+
+.care-avatar img,
+.doctor-card-image img,
+.doctor-profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.doctor-card-image {
+    height: 12rem;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: var(--medimart-surface-muted);
+}
+
+.doctor-profile-image {
+    height: 16rem;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: var(--medimart-surface-muted);
+}
+
 .article-list > a {
     display: flex;
     justify-content: space-between;
@@ -3618,6 +3795,73 @@ body {
     flex: 1;
     border-top: 1px solid var(--medimart-border);
     content: "";
+}
+
+.location-search-block {
+    position: relative;
+}
+
+.location-suggestions {
+    position: absolute;
+    z-index: 1060;
+    top: calc(100% - 1.4rem);
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border);
+    border-radius: .45rem;
+    background: var(--medimart-surface, #fff);
+    box-shadow: 0 .6rem 1.5rem rgba(0, 0, 0, .16);
+}
+
+.location-suggestion {
+    display: block;
+    width: 100%;
+    padding: .7rem .85rem;
+    border: 0;
+    border-bottom: 1px solid var(--medimart-border);
+    background: transparent;
+    color: var(--medimart-ink);
+    text-align: left;
+}
+
+.location-suggestion:last-child { border-bottom: 0; }
+.location-suggestion:hover, .location-suggestion:focus-visible { background: var(--medimart-surface-muted); }
+.location-suggestion strong, .location-suggestion small { display: block; }
+.location-suggestion small { margin-top: .15rem; color: var(--medimart-muted); }
+
+.location-map-canvas {
+    min-height: 250px;
+    overflow: hidden;
+    border: 1px solid var(--medimart-border);
+    border-radius: .6rem;
+    background: var(--medimart-surface-muted);
+}
+
+.location-map-confirm {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    box-shadow: 0 .35rem .8rem rgba(0, 0, 0, .2);
+}
+
+.location-map { position: relative; }
+.location-results-map { padding: 1.15rem; border: 1px solid var(--medimart-border); border-radius: .6rem; background: var(--medimart-surface-muted); }
+.nearby-pharmacy-card { min-height: 100%; }
+.nearby-pharmacy-card .card-body { min-height: 18rem; }
+.nearby-pharmacy-card__heading { min-height: 4.7rem; }
+.nearby-pharmacy-card__heading h2,
+.nearby-pharmacy-card__heading h3 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.nearby-pharmacy-card__heading p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.nearby-pharmacy-card__details { min-height: 6.2rem; }
+.location-map-empty { padding: 2rem 1rem; color: var(--medimart-muted); text-align: center; }
+.map-info-window { display: grid; gap: .25rem; min-width: 150px; color: #15232a; }
+.map-info-window small { color: #52636b; }
+.map-info-window a { color: #087f58; font-weight: 700; }
+
+@media (max-width: 575.98px) {
+    .location-autofill { align-items: stretch; flex-direction: column; }
+    .location-map-canvas { min-height: 210px; }
 }
 
 [data-bs-theme="dark"] .commerce-hero::before {
@@ -5113,6 +5357,31 @@ h1, h2, h3, h4, h5, h6 {
     --bs-btn-hover-border-color: var(--mm-green);
 }
 
+.payment-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .75rem;
+}
+
+.payment-actions .btn {
+    margin: 0;
+    max-width: 100%;
+}
+
+.payment-back-link {
+    color: var(--mm-ink-soft);
+    border: 1px solid var(--mm-line);
+    background: transparent;
+}
+
+.payment-back-link:hover,
+.payment-back-link:focus-visible {
+    color: var(--mm-ink);
+    border-color: var(--mm-ink-soft);
+    background: var(--mm-panel-soft);
+}
+
 /* Keep pagination readable instead of collapsing it into one segmented strip. */
 .medimart-pagination .pagination {
     gap: .42rem;
@@ -6381,6 +6650,46 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
 }
 
+/* Keep the destination affordance visible on every compact clickable list row. */
+.dashboard-nav .list-group-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.dashboard-nav .list-group-item::after,
+.seller-offer-list > a::after {
+    content: "\f285";
+    display: inline-block;
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--mm-ink-soft, var(--medimart-muted));
+    font-family: "bootstrap-icons";
+    font-size: .9rem;
+    line-height: 1;
+}
+
+.dashboard-nav .list-group-item:hover::after,
+.dashboard-nav .list-group-item.active::after,
+.seller-offer-list > a:hover::after {
+    color: var(--mm-green, var(--medimart-primary));
+}
+
+.equipment-row > .bi-chevron-right,
+.article-list > a > .bi-arrow-up-right {
+    display: inline-block;
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--mm-ink-soft, var(--medimart-muted));
+    font-size: .95rem;
+    line-height: 1;
+}
+
+.equipment-row:hover > .bi-chevron-right,
+.article-list > a:hover > .bi-arrow-up-right {
+    color: var(--mm-green, var(--medimart-primary));
+}
+
 .care-empty-state {
     display: flex;
     min-height: 100%;
@@ -6579,4 +6888,62 @@ h1, h2, h3, h4, h5, h6 {
 
 [data-bs-theme="light"] .auth-assurance-list li {
     border-top-color: var(--mm-line);
+}
+
+/* Keep native dropdown arrows visible after the theme background shorthand. */
+select.form-select,
+select.form-control,
+select {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background-image: none;
+    padding-right: .75rem;
+}
+
+[data-bs-theme="dark"] select.form-select,
+[data-bs-theme="dark"] select.form-control,
+[data-bs-theme="dark"] select {
+    color-scheme: dark;
+}
+
+[data-bs-theme="light"] select.form-select,
+[data-bs-theme="light"] select.form-control,
+[data-bs-theme="light"] select {
+    color-scheme: light;
+}
+
+.admin-data-panel > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-data-panel > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-data-panel > summary::after {
+    content: "\\f282";
+    flex: 0 0 auto;
+    color: var(--mm-green, var(--medimart-primary));
+    font-family: "bootstrap-icons";
+    font-size: 1rem;
+    transition: transform 180ms ease;
+}
+
+.admin-data-panel[open] > summary::after {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 575.98px) {
+    .admin-data-panel > summary {
+        align-items: flex-start;
+    }
+
+    .admin-data-panel > summary .btn {
+        display: none;
+    }
 }

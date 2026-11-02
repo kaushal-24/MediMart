@@ -194,6 +194,30 @@ class OrderItem(models.Model):
         ]
 
 
+class BulkOrderReview(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending verification"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        CLARIFICATION = "clarification", "Customer clarification needed"
+
+    order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="bulk_review")
+    threshold = models.PositiveIntegerField(default=10)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="bulk_order_reviews")
+    review_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["status", "created_at"]
+        indexes = [models.Index(fields=["status", "created_at"], name="bulk_review_status_idx")]
+
+    def __str__(self):
+        return f"Bulk review for {self.order.order_number}"
+
+
 class OrderStatusHistory(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_history")
     status = models.CharField(max_length=30, choices=Order.OrderStatus.choices)
@@ -487,8 +511,10 @@ class Shipment(models.Model):
         IN_TRANSIT = "in_transit", "In transit"
         OUT_FOR_DELIVERY = "out_for_delivery", "Out for delivery"
         DELIVERED = "delivered", "Delivered"
+        NDR = "ndr", "Delivery exception"
         EXCEPTION = "exception", "Exception"
         RETURNED = "returned", "Returned"
+        RTO = "rto", "Returned to origin"
 
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="shipment")
     warehouse = models.ForeignKey(
@@ -499,11 +525,18 @@ class Shipment(models.Model):
         null=True,
     )
     courier_name = models.CharField(max_length=120, blank=True)
+    carrier_code = models.CharField(max_length=40, blank=True)
     tracking_number = models.CharField(max_length=120, blank=True, db_index=True)
+    tracking_url = models.URLField(blank=True)
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING)
     promised_at = models.DateTimeField(blank=True, null=True)
     shipped_at = models.DateTimeField(blank=True, null=True)
     delivered_at = models.DateTimeField(blank=True, null=True)
+    last_location = models.CharField(max_length=180, blank=True)
+    exception_reason = models.CharField(max_length=255, blank=True)
+    delivery_attempts = models.PositiveSmallIntegerField(default=0)
+    cod_collected_at = models.DateTimeField(blank=True, null=True)
+    cod_cash_reference = models.CharField(max_length=120, blank=True)
     delivery_otp_hash = models.CharField(max_length=128, blank=True)
     delivery_otp_issued_at = models.DateTimeField(blank=True, null=True)
     delivery_otp_verified_at = models.DateTimeField(blank=True, null=True)
@@ -581,10 +614,15 @@ class OrderChargeBreakdown(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cgst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    sgst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    igst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     handling_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     platform_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     delivery_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cold_chain_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    finance_test_mode = models.BooleanField(default=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -618,6 +656,57 @@ class PaymentReconciliation(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["status", "-created_at"], name="payment_reconcile_status_idx")]
+
+
+class FinanceLedgerEntry(models.Model):
+    """Append-only record of money movements created by payment workflows."""
+
+    class EntryType(models.TextChoices):
+        PAYMENT = "payment", "Payment"
+        REFUND = "refund", "Refund"
+        TAX = "tax", "Tax"
+        FEE = "fee", "Fee"
+        COMMISSION = "commission", "Commission"
+        COD_COLLECTION = "cod_collection", "COD collection"
+        SETTLEMENT = "settlement", "Settlement"
+        CHARGEBACK = "chargeback", "Chargeback"
+        CREDIT_NOTE = "credit_note", "Credit note"
+
+    class Direction(models.TextChoices):
+        CREDIT = "credit", "Credit"
+        DEBIT = "debit", "Debit"
+
+    entry_reference = models.CharField(max_length=160, unique=True)
+    entry_type = models.CharField(max_length=30, choices=EntryType.choices)
+    direction = models.CharField(max_length=10, choices=Direction.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default="INR")
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, blank=True, null=True, related_name="ledger_entries")
+    payment = models.ForeignKey(Payment, on_delete=models.PROTECT, blank=True, null=True, related_name="ledger_entries")
+    description = models.CharField(max_length=255)
+    metadata = models.JSONField(default=dict, blank=True)
+    finance_test_mode = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="finance_ledger_entries")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["entry_type", "-created_at"], name="finance_ledger_type_idx"),
+            models.Index(fields=["order", "-created_at"], name="finance_ledger_order_idx"),
+        ]
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name="finance_ledger_amount_positive")]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("Finance ledger entries are immutable.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Finance ledger entries cannot be deleted.")
+
+    def __str__(self):
+        return f"{self.entry_reference} ({self.amount} {self.currency})"
 
 
 class PaymentSettlement(models.Model):

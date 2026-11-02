@@ -23,6 +23,8 @@ python manage.py process_refunds --limit 50
 
 Recommended cadence: reservations every 5 minutes, notifications every minute, refunds every 5 minutes.
 
+For Windows Task Scheduler, use `ops/process_notifications.ps1` for WhatsApp retry processing and `ops/backup_mediMart.ps1` for the database/private-media backup. Run each under a dedicated service account, prevent overlapping instances, and alert on non-zero exit codes. `ops/restore_backup.ps1` requires `-ConfirmRestore` and should be exercised against staging during restore drills.
+
 ## Private Files
 
 For an existing local installation, run this once after migration:
@@ -31,12 +33,12 @@ For an existing local installation, run this once after migration:
 python manage.py migrate_private_media
 ```
 
-The command copies legacy regulated files into `private_media` and leaves the source intact. Confirm secure downloads work, back up both locations, and remove legacy public copies through an approved maintenance procedure. Cloud transfers must place regulated prefixes under the private S3 location and must never make that prefix public.
+The command copies legacy regulated files into `private_media` and leaves the source intact. Confirm secure downloads work, back up both locations, and remove legacy public copies through an approved maintenance procedure.
 
 ## Recovery
 
 - Restore MySQL and private media from the same recovery point.
-- Rotate Razorpay, email, S3, and field-encryption credentials after suspected compromise.
+- Rotate Razorpay, WhatsApp, Google Maps, AI, and field-encryption credentials after suspected compromise.
 - Preserve `FIELD_ENCRYPTION_KEY`; losing it makes encrypted payout account numbers unreadable.
 - Review the immutable audit trail and payment event ledger before replaying failed operations.
 - Use `python manage.py reset_demo_data --confirm-reset` only in local development. It is blocked when `DEBUG=False`.
@@ -45,9 +47,9 @@ The command copies legacy regulated files into `private_media` and leaves the so
 
 - Manual Indian licence evidence and compliance review procedure.
 - Pharmacy, prescription, medical-device, tax, privacy, return, and refund legal review.
-- Razorpay live account, signed webhook secret, reconciliation owner, and dispute process.
+- Razorpay test account for the current deployment; live account and signed webhook secret are later release gates.
 - Transactional email provider credentials and consent templates.
-- S3 lifecycle, malware scanning, backup retention, monitoring, alerting, and restore drill.
+- Private-media backup retention, monitoring, alerting, and restore drill.
 
 ## Additive 102-Item Operations Update
 
@@ -66,14 +68,13 @@ Do not accept a checklist item as complete until its workflow has an owner, data
 
 ### Required integrations
 
-- Razorpay live/test keys and webhook secret in `.env`
+- Razorpay test keys and webhook secret in `.env` for the current deployment
 - Courier API account, documentation, and credentials
 - Lab partner API or confirmed manual lab workflow
 - Doctor consultation provider or chat/video API
 - AI provider API keys and approved models
-- Private object storage credentials, such as S3
-- SMTP Gmail app password for email notifications
-- Production error monitoring and uptime service
+- Local private-media backup destination and restore process
+- Production error monitoring and uptime service, or the included webhook/Task Scheduler monitor during test mode
 
 ### Business decisions
 
@@ -83,7 +84,7 @@ Do not accept a checklist item as complete until its workflow has an owner, data
 - Prescription acceptance, pharmacist approval, substitution, and expiry policies
 - Cold-chain products and temperature rules
 - Refund, cancellation, recall, and reverse-pickup policies
-- Loyalty points and Care Plan rules
+- Loyalty points and future subscription rules
 - Languages to support, beginning with Hindi or Gujarati
 
 ### Compliance documents
@@ -102,4 +103,13 @@ Do not accept a checklist item as complete until its workflow has an owner, data
 - Admin, pharmacist, compliance, delivery, lab, and doctor operational accounts
 - Approved production product, vendor, lab, and doctor data
 
-Internal workflows may be developed without these credentials. External providers, legal approvals, and production monitoring remain launch prerequisites.
+Internal workflows may be developed without these credentials. Courier, lab, and clinic workflows are intentionally manual in the current deployment. External provider credentials, legal approvals, and production monitoring remain launch prerequisites.
+
+This deployment uses local `PRIVATE_MEDIA_ROOT`, not S3. Backup retention, monitoring, alerting, and restore evidence are required before public launch.
+
+### Scheduled operations
+
+- `ops/check_mediMart.ps1` probes liveness and database/cache/media readiness and can POST a JSON alert to `MEDIMART_ALERT_WEBHOOK`.
+- `ops/escalate_sla.ps1` runs `manage.py escalate_sla`, which alerts operations owners for overdue delivery, lab-report, and support SLAs through the in-app and WhatsApp notification paths.
+- `ops/backup_mediMart.ps1` creates the MySQL backup and private-media archive. Keep multiple generations and test restores.
+- `manage.py monitor_health` is the JSON health command and uses `MONITORING_ALERT_WEBHOOK` for application-level alerts.

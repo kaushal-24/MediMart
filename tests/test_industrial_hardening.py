@@ -8,6 +8,7 @@ import pyotp
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 from django.db import connection
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
@@ -17,7 +18,7 @@ from accounts.models import Address, UserProfile
 from core.throttling import rate_limit
 from extras.models import Notification, NotificationDelivery
 from extras.services import create_notification
-from orders.models import Order, OrderItem, Payment
+from orders.models import FinanceLedgerEntry, Order, OrderItem, Payment
 from prescriptions.models import Prescription, PrescriptionItem
 from products.models import Brand, Category, Product
 from reviews.views import can_user_review_product
@@ -119,7 +120,7 @@ class IndustrialHardeningTests(TestCase):
         self.vendor.refresh_from_db()
         self.assertEqual(self.vendor.bank_account_number, "123456789012")
 
-    def test_notification_creates_email_delivery_and_stays_in_app(self):
+    def test_notification_creates_whatsapp_delivery_and_stays_in_app(self):
         notification = create_notification(
             self.customer,
             "Order update",
@@ -129,8 +130,31 @@ class IndustrialHardeningTests(TestCase):
         channels = set(notification.deliveries.values_list("channel", flat=True))
         self.assertEqual(
             channels,
-            {NotificationDelivery.Channel.EMAIL},
+            {NotificationDelivery.Channel.WHATSAPP},
         )
+
+    def test_whatsapp_opt_out_keeps_in_app_notification_without_delivery(self):
+        self.profile.whatsapp_notifications_enabled = False
+        self.profile.save(update_fields=["whatsapp_notifications_enabled"])
+        notification = create_notification(
+            self.customer,
+            "Privacy preference",
+            "This remains available in the notification center.",
+        )
+        self.assertEqual(notification.deliveries.count(), 0)
+
+    def test_finance_ledger_entry_is_append_only(self):
+        entry = FinanceLedgerEntry.objects.create(
+            entry_reference="test:ledger:1",
+            entry_type=FinanceLedgerEntry.EntryType.PAYMENT,
+            direction=FinanceLedgerEntry.Direction.CREDIT,
+            amount=Decimal("10.00"),
+            description="Test payment",
+        )
+        with self.assertRaises(ValidationError):
+            entry.save()
+        with self.assertRaises(ValidationError):
+            entry.delete()
 
     def test_notification_toast_is_seen_once_but_remains_in_notification_center(self):
         Notification.objects.create(
@@ -148,6 +172,25 @@ class IndustrialHardeningTests(TestCase):
         self.assertContains(first_page, "One-time toast")
         self.assertNotContains(second_page, "One-time toast")
         self.assertContains(notification_page, "One-time toast")
+
+    def test_notification_open_marks_read_and_redirects_to_related_destination(self):
+        notification = Notification.objects.create(
+            user=self.customer,
+            title="Order update",
+            message="Your order is ready.",
+            notification_type=Notification.NotificationType.ORDER,
+            link=reverse("products:product_detail", kwargs={"slug": self.product.slug}),
+        )
+        self.client.force_login(self.customer)
+
+        response = self.client.get(reverse("extras:open_notification", args=[notification.pk]))
+
+        self.assertRedirects(
+            response,
+            reverse("products:product_detail", kwargs={"slug": self.product.slug}),
+        )
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_read)
 
     def test_mfa_challenges_login_and_accepts_current_totp(self):
         secret = pyotp.random_base32()

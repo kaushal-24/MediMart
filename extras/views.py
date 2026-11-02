@@ -1,16 +1,20 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import UserProfile
 from accounts.permissions import role_allowed
+from core.throttling import rate_limit
 
 from .forms import ContentIssueForm, DoctorProfileForm, SupportMessageForm, SupportTicketForm
-from .models import BlogCategory, BlogPost, ContentIssue, DoctorProfile, Notification, SupportTicket
+from .models import AssistantFeedback, BlogCategory, BlogPost, ContentIssue, DoctorProfile, Notification, SupportTicket
 from .services import create_notification
 
 
@@ -35,13 +39,54 @@ def notification_list(request):
     )
 
 
+@require_POST
+@rate_limit("assistant-feedback", 30, 60 * 60, json_response=True)
+def assistant_feedback(request):
+    try:
+        payload = json.loads(request.body or "{}")
+    except (TypeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "Invalid feedback request."}, status=400)
+
+    helpful = payload.get("helpful")
+    if helpful not in {True, False}:
+        return JsonResponse({"ok": False, "error": "Feedback must be helpful or not helpful."}, status=400)
+    AssistantFeedback.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        helpful=helpful,
+        source=str(payload.get("source") or "local").strip()[:30] or "local",
+        context=str(payload.get("context") or "").strip()[:80],
+    )
+    return JsonResponse({"ok": True})
+
+
 @login_required
 @require_POST
 def mark_notification_read(request, pk):
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
     notification.is_read = True
     notification.save(update_fields=["is_read"])
-    return redirect(notification.link or "extras:notification_list")
+    return redirect(_notification_destination(request, notification))
+
+
+@login_required
+def open_notification(request, pk):
+    """Mark a notification read and open the related MediMart destination."""
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+    return redirect(_notification_destination(request, notification))
+
+
+def _notification_destination(request, notification):
+    destination = notification.link or ""
+    if destination and not url_has_allowed_host_and_scheme(
+        destination,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        destination = ""
+    return destination or "extras:notification_list"
 
 
 @login_required
@@ -110,7 +155,7 @@ def support_ticket_detail(request, pk):
                     "Support replied",
                     f"MediMart support replied to ticket #{ticket.pk}.",
                     Notification.NotificationType.SUPPORT,
-                    "",
+                    ticket.get_absolute_url() if hasattr(ticket, "get_absolute_url") else "",
                 )
             messages.success(request, "Reply added.")
             return redirect("extras:support_ticket_detail", pk=ticket.pk)

@@ -1,3 +1,6 @@
+import json
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,6 +13,7 @@ from django.views.decorators.http import require_POST
 from accounts.permissions import has_capability
 from accounts.models import UserProfile
 from core.audit import record_audit
+from core.approvals import queue_approval
 from extras.models import Notification
 from extras.services import create_notification
 
@@ -245,6 +249,12 @@ def prescription_review(request, pk):
                     )
                     form_valid = False
         if form_valid and formset_valid:
+            requested_status = form.cleaned_data["status"]
+            approval_pending = settings.MAKER_CHECKER_REQUIRED and requested_status in {
+                Prescription.Status.APPROVED,
+                Prescription.Status.PARTIALLY_APPROVED,
+                Prescription.Status.REJECTED,
+            }
             with transaction.atomic():
                 prescription = form.save(commit=False)
                 prescription.validation_flags = prescription.compute_validation_flags(
@@ -266,8 +276,14 @@ def prescription_review(request, pk):
                     Prescription.Status.PARTIALLY_APPROVED,
                 }:
                     prescription.clinical_validation_status = "passed"
-                prescription.reviewed_by = request.user
-                prescription.reviewed_at = timezone.now()
+                if approval_pending:
+                    prescription.status = Prescription.Status.UNDER_REVIEW
+                    prescription.reviewed_by = None
+                    prescription.reviewed_at = None
+                    prescription.clinical_validation_status = "pending"
+                else:
+                    prescription.reviewed_by = request.user
+                    prescription.reviewed_at = timezone.now()
                 prescription.save()
                 saved_items = formset.save(commit=False)
                 for item in saved_items:
@@ -282,7 +298,7 @@ def prescription_review(request, pk):
                     reviewer=request.user,
                     decision=(
                         PrescriptionReview.Decision.UNDER_REVIEW
-                        if prescription.status == Prescription.Status.PENDING
+                        if prescription.status in {Prescription.Status.PENDING, Prescription.Status.UNDER_REVIEW}
                         else prescription.status
                     ),
                     pharmacy_license_number=getattr(
@@ -297,6 +313,25 @@ def prescription_review(request, pk):
                         "clinical_validation_status": prescription.clinical_validation_status,
                     },
                 )
+                if approval_pending:
+                    approval = queue_approval(
+                        prescription,
+                        "prescription.review",
+                        request.user,
+                        json.dumps({"requested_status": requested_status, "notes": prescription.review_notes or prescription.rejection_reason}),
+                    )
+                else:
+                    approval = None
+            if approval_pending:
+                record_audit(
+                    request,
+                    "approval.requested",
+                    prescription,
+                    "Prescription decision submitted for second-person approval.",
+                    {"approval_id": approval.pk, "requested_status": requested_status},
+                )
+                messages.info(request, "The prescription decision is waiting for a second authorized reviewer.")
+                return redirect("dashboards:approval_center")
             record_audit(
                 request,
                 "prescription.reviewed",

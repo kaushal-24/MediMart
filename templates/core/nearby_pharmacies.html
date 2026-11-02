@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Nearby pharmacies | MediMart{% endblock %}
+{% block content %}
+<main class="container py-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">LOCATION-AWARE CARE</p>
+            <h1 class="mb-2">Pharmacies near you</h1>
+            <p class="text-muted mb-0">Compare approved MediMart partners with general public pharmacy listings.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-success" href="#general-pharmacies">All nearby pharmacies</a>
+            <a class="btn btn-outline-success" href="{% url 'core:home' %}">Change location</a>
+        </div>
+    </div>
+    {% if location.label %}<p class="small text-muted mb-4">Showing results for <strong>{{ location.label }}</strong></p>{% endif %}
+    <section class="location-results-map mb-5" id="nearby-pharmacy-map" data-google-maps-key="{{ google_maps_browser_api_key }}">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div><p class="eyebrow mb-1">MAP VIEW</p><h2 class="h4 mb-0">Nearby pharmacy locations</h2></div>
+            <span class="small text-muted">MediMart partners and Google general listings are shown with different labels.</span>
+        </div>
+        <div class="location-map-canvas" aria-label="Map of nearby pharmacies"></div>
+        <div class="location-map-empty d-none">Add a Google Maps browser key to view the interactive map.</div>
+    </section>
+    {{ map_points|json_script:"nearbyMapPoints" }}
+    <div class="row g-3">
+        {% for item in pharmacies %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <article class="card h-100 border-0 shadow-sm nearby-pharmacy-card">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between gap-3 nearby-pharmacy-card__heading">
+                        <div><h2 class="h5 mb-1">{{ item.vendor.business_name }}</h2><p class="small text-muted mb-3">{{ item.vendor.city|default:item.vendor.address }}</p></div>
+                        <span class="badge text-bg-success align-self-start">Approved</span>
+                    </div>
+                    <dl class="row small mb-3 nearby-pharmacy-card__details"><dt class="col-5">Delivery</dt><dd class="col-7">{{ item.delivery_time }}</dd><dt class="col-5">Distance</dt><dd class="col-7">{% if item.distance is not None %}{{ item.distance|floatformat:1 }} km{% else %}Location pending{% endif %}</dd><dt class="col-5">Serviceability</dt><dd class="col-7">{{ item.serviceability }}</dd></dl>
+                    <a class="btn btn-success w-100 mt-auto" href="{{ item.maps_url }}" target="_blank" rel="noopener">Open in Google Maps</a>
+                </div>
+            </article>
+        </div>
+        {% empty %}<div class="col-12"><div class="alert alert-info">No approved pharmacy is mapped to this area yet. Try another location or contact support.</div></div>{% endfor %}
+    </div>
+
+    <section id="general-pharmacies" class="mt-5" aria-labelledby="generalPharmaciesHeading">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+            <div>
+                <p class="eyebrow mb-2">GENERAL LISTINGS</p>
+                <h2 id="generalPharmaciesHeading" class="h3 mb-1">All pharmacies near you</h2>
+                <p class="text-muted mb-0">Public Google Maps listings. These businesses are not reviewed or fulfilled by MediMart.</p>
+            </div>
+            <span class="badge text-bg-secondary">General</span>
+        </div>
+        {% if general_pharmacy_message and not general_pharmacies %}
+            <div class="alert alert-info">{{ general_pharmacy_message }}</div>
+        {% endif %}
+        <div class="row g-3">
+            {% for item in general_pharmacies %}
+            <div class="col-12 col-md-6 col-xl-4">
+                <article class="card h-100 border-0 shadow-sm nearby-pharmacy-card">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between gap-3 nearby-pharmacy-card__heading">
+                            <div>
+                                <h3 class="h5 mb-1">{{ item.name }}</h3>
+                                <p class="small text-muted mb-3">{{ item.address }}</p>
+                            </div>
+                            <span class="badge text-bg-secondary align-self-start">General</span>
+                        </div>
+                        <dl class="row small mb-3 nearby-pharmacy-card__details">
+                            <dt class="col-5">Distance</dt>
+                            <dd class="col-7">{% if item.distance is not None %}{{ item.distance|floatformat:1 }} km{% else %}Location unavailable{% endif %}</dd>
+                            {% if item.rating %}<dt class="col-5">Rating</dt><dd class="col-7">{{ item.rating }}{% if item.rating_count %} ({{ item.rating_count }}){% endif %}</dd>{% endif %}
+                            {% if item.phone %}<dt class="col-5">Phone</dt><dd class="col-7">{{ item.phone }}</dd>{% endif %}
+                            <dt class="col-5">Status</dt><dd class="col-7">{% if item.open_now is True %}Open now{% elif item.open_now is False %}Closed now{% else %}Hours unavailable{% endif %}</dd>
+                        </dl>
+                        <div class="d-flex gap-2 mt-auto"><a class="btn btn-outline-success flex-grow-1" href="{{ item.maps_url }}" target="_blank" rel="noopener">Directions</a>{% if item.website %}<a class="btn btn-outline-secondary" href="{{ item.website }}" target="_blank" rel="noopener" aria-label="Open {{ item.name }} website" title="Open website"><i class="bi bi-globe2" aria-hidden="true"></i></a>{% endif %}</div>
+                    </div>
+                </article>
+            </div>
+            {% empty %}
+                {% if not general_pharmacy_message %}<div class="col-12"><div class="alert alert-info">No general pharmacy listings were found near this location.</div></div>{% endif %}
+            {% endfor %}
+        </div>
+        {% if general_pharmacies %}<p class="small text-muted mt-3 mb-0">Listings and ratings are provided by Google. Verify availability, pricing, and licensing directly with the business.</p>{% endif %}
+    </section>
+</main>
+{% endblock %}

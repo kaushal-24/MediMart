@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from core.storage import private_media_storage
 from core.fields import EncryptedCharField
-from core.validators import validate_private_document
+from core.validators import validate_private_document, validate_public_image
 from products.models import Product
 
 
@@ -23,10 +23,21 @@ class Vendor(models.Model):
         related_name="vendor_profile",
     )
     business_name = models.CharField(max_length=160)
+    logo = models.ImageField(
+        upload_to="vendors/logos/",
+        validators=[validate_public_image],
+        blank=True,
+        null=True,
+    )
     owner_name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
     address = models.TextField()
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    pincode = models.CharField(max_length=6, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     gst_number = models.CharField(max_length=30, blank=True)
     license_number = models.CharField(max_length=60)
     business_type = models.CharField(max_length=40, choices=BusinessType.choices)
@@ -50,6 +61,7 @@ class Vendor(models.Model):
         indexes = [
             models.Index(fields=["is_approved", "is_active"], name="vendor_approval_active_idx"),
             models.Index(fields=["business_type", "is_active"], name="vendor_type_active_idx"),
+            models.Index(fields=["pincode", "business_type", "is_active"], name="vendor_location_idx"),
         ]
 
     def __str__(self):

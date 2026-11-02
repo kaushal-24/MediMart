@@ -14,7 +14,8 @@
                 <p class="text-secondary mb-0">Invoice for order {{ order.order_number }}</p>
             </div>
             <div class="text-md-end">
-                <strong>Invoice #INV-{{ order.order_number }}</strong>
+                <strong>Invoice #{{ invoice_prefix }}-{{ order.order_number }}</strong>
+                {% if gstin %}<p class="small text-secondary mb-0">GSTIN: {{ gstin }}</p>{% endif %}
                 <p class="text-secondary mb-0">{{ order.created_at|date:"M d, Y" }}</p>
             </div>
         </div>
@@ -81,6 +82,9 @@
                 <div class="summary-row"><span>Subtotal</span><strong>₹{{ invoice_totals.subtotal }}</strong></div>
                 <div class="summary-row"><span>Discount</span><strong>₹{{ invoice_totals.discount }}</strong></div>
                 <div class="summary-row"><span>Tax / GST</span><strong>₹{{ invoice_totals.tax_amount }}</strong></div>
+                {% if invoice_totals.cgst_amount %}<div class="summary-row small"><span>CGST</span><strong>₹{{ invoice_totals.cgst_amount }}</strong></div>{% endif %}
+                {% if invoice_totals.sgst_amount %}<div class="summary-row small"><span>SGST</span><strong>₹{{ invoice_totals.sgst_amount }}</strong></div>{% endif %}
+                {% if invoice_totals.igst_amount %}<div class="summary-row small"><span>IGST</span><strong>₹{{ invoice_totals.igst_amount }}</strong></div>{% endif %}
                 <div class="summary-row"><span>Handling</span><strong>₹{{ invoice_totals.handling_charge }}</strong></div>
                 <div class="summary-row"><span>Platform fee</span><strong>₹{{ invoice_totals.platform_fee }}</strong></div>
                 <div class="summary-row"><span>Delivery</span><strong>₹{{ invoice_totals.delivery_charge }}</strong></div>

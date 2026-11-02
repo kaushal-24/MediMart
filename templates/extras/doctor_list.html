@@ -17,6 +17,9 @@
             {% for doctor in doctors %}
                 <div class="col-md-6 col-xl-4">
                     <article class="vendor-card h-100">
+                        <div class="doctor-card-image mb-3">
+                            <img src="{{ doctor.display_image_url }}" alt="{{ doctor.full_name }}" loading="lazy" decoding="async">
+                        </div>
                         <div class="d-flex justify-content-between gap-3 mb-3">
                             <div>
                                 <h2 class="h5 fw-bold mb-1">{{ doctor.full_name }}</h2>

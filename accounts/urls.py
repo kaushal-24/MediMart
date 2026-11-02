@@ -7,8 +7,6 @@ from . import views
 from .forms import (
     StyledAuthenticationForm,
     StyledPasswordChangeForm,
-    StyledPasswordResetForm,
-    StyledSetPasswordForm,
 )
 
 
@@ -37,29 +35,17 @@ urlpatterns = [
     ),
     path(
         "password-reset/",
-        rate_limit("password-reset", 5, 60 * 60, methods={"POST"}, body_fields={"email"})(
-            auth_views.PasswordResetView.as_view(form_class=StyledPasswordResetForm)
-        ),
+        rate_limit("password-reset-whatsapp", 5, 60 * 60, methods={"POST"})(views.password_reset_request),
         name="password_reset",
     ),
-    path(
-        "password-reset/done/",
-        auth_views.PasswordResetDoneView.as_view(),
-        name="password_reset_done",
-    ),
-    path(
-        "reset/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(form_class=StyledSetPasswordForm),
-        name="password_reset_confirm",
-    ),
-    path(
-        "reset/done/",
-        auth_views.PasswordResetCompleteView.as_view(),
-        name="password_reset_complete",
-    ),
+    path("password-reset/done/", views.password_reset_done, name="password_reset_done"),
+    path("password-reset/verify/", views.password_reset_verify, name="password_reset_verify"),
+    path("reset/confirm/", views.password_reset_confirm, name="password_reset_confirm"),
+    path("reset/done/", views.password_reset_complete, name="password_reset_complete"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("profile/", views.profile, name="profile"),
     path("login/verify/", views.mfa_challenge, name="mfa_challenge"),
+    path("whatsapp/verify/", views.whatsapp_otp_verify, name="whatsapp_otp_verify"),
     path("profile/security/two-factor/", views.mfa_settings, name="mfa_settings"),
     path("addresses/", views.address_list, name="address_list"),
     path("addresses/add/", views.address_create, name="address_create"),

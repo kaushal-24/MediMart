@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Verify WhatsApp | MediMart{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-shell">
+        <aside class="auth-intro">
+            <a class="auth-brand" href="{% url 'core:home' %}"><img src="{% static 'images/MediMart-favicon-Logo.png' %}" alt=""> <span>MediMart</span></a>
+            <p class="eyebrow">WhatsApp verification</p>
+            <h1>One more step to keep your account protected.</h1>
+            <p>Enter the six-digit code sent to {{ masked_phone }}. The code expires shortly and can only be used once.</p>
+            <ul class="auth-assurance-list">
+                <li><i class="bi bi-whatsapp"></i><span><strong>Private delivery</strong><small>Sent through the configured OpenWA session</small></span></li>
+                <li><i class="bi bi-clock-history"></i><span><strong>Short-lived code</strong><small>Expired codes cannot be reused</small></span></li>
+                <li><i class="bi bi-shield-check"></i><span><strong>Protected account</strong><small>Your password is still required first</small></span></li>
+            </ul>
+        </aside>
+        <div class="auth-form-wrap">
+            <div class="auth-card">
+                <p class="eyebrow mb-2">{% if purpose == "signup" %}Finish registration{% else %}Finish sign in{% endif %}</p>
+                <h2 class="h3 fw-bold mb-2">Verify your WhatsApp number</h2>
+                <p class="text-secondary mb-4">We sent a code to <strong>{{ masked_phone }}</strong>.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <label class="form-label" for="whatsappOtpCode">6-digit verification code <span class="required-mark" title="Required">*</span></label>
+                    <input class="form-control form-control-lg text-center letter-spacing-wide" id="whatsappOtpCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus>
+                    <button class="btn btn-success btn-lg w-100 mt-4" type="submit">Verify WhatsApp code</button>
+                </form>
+                <form method="post" class="text-center mt-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resend">
+                    <button class="btn btn-link" type="submit">Send a new code</button>
+                </form>
+                <p class="small text-secondary text-center mb-0">Never share this code with anyone, including support staff.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

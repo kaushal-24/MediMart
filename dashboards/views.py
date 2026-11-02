@@ -1,11 +1,19 @@
+import csv
+import json
+from datetime import date, timedelta
+
+from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
+from django.forms import modelform_factory
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -19,15 +27,23 @@ from accounts.permissions import (
     role_required,
 )
 from core.audit import record_audit
+from core.approvals import apply_approval, queue_approval
+from core.checkout import get_checkout_settings_record
+from core.models import ApprovalRequest, AuditEvent, CheckoutSettings
+from core.services import google_maps_healthcheck
 from orders.views import CheckoutStockError, finalize_order_inventory_sale
 from orders.services import activate_recall_notice, create_return_refund, restock_return_inventory
 from orders.models import (
     Coupon,
+    BulkOrderReview,
     InventoryBatch,
     InventoryTemperatureLog,
     Order,
     OrderStatusHistory,
     Payment,
+    PaymentSettlement,
+    Chargeback,
+    FinanceLedgerEntry,
     RecallNotice,
     DispensingRecord,
     Refund,
@@ -48,10 +64,10 @@ from extras.models import (
     NotificationDelivery,
     SupportTicket,
 )
-from core.models import AuditEvent
 from extras.services import create_notification
 from vendors.models import BusinessLicense, Vendor, VendorProduct
-from healthcare.models import Consultation, LabBooking, LabCollectionSlot, LabPartner, LabTest
+from healthcare.models import Consultation, ConsultationPayment, LabBooking, LabCollectionSlot, LabPartner, LabTest
+from healthcare.services import refund_consultation_payment
 
 from .forms import (
     BlogManagementForm,
@@ -83,6 +99,7 @@ from .forms import (
     VendorManagementForm,
     VendorProductManagementForm,
     WarehouseManagementForm,
+    CheckoutSettingsForm,
 )
 
 User = get_user_model()
@@ -110,6 +127,7 @@ SECTION_CAPABILITIES = {
     "prescriptions": "clinical.prescription_review",
     "dispensing": "clinical.prescription_review",
     "quality_complaints": "support.manage",
+    "bulk_reviews": "bulk.review",
     "lab_tests": "clinical.lab_operations",
     "lab_partners": "clinical.lab_operations",
     "consultations": "clinical.manage",
@@ -136,6 +154,188 @@ SECTION_RULES = {
     section: CAPABILITY_ROLES[capability]
     for section, capability in SECTION_CAPABILITIES.items()
 }
+
+# The Operations Center presents business workflows, while this custom data
+# manager exposes every registered model in the same MediMart interface.
+ADMIN_DATA_MODELS = [
+    ("User accounts", "auth", "user", "people"),
+    ("User profiles", "accounts", "userprofile", "person-badge"),
+    ("Capability overrides", "accounts", "usercapabilityoverride", "shield-lock"),
+    ("Addresses", "accounts", "address", "geo-alt"),
+    ("Categories", "products", "category", "diagram-3"),
+    ("Brands", "products", "brand", "award"),
+    ("Products", "products", "product", "box-seam"),
+    ("Product images", "products", "productimage", "image"),
+    ("Product specifications", "products", "productspecification", "list-check"),
+    ("Product variants", "products", "productvariant", "boxes"),
+    ("Product substitutes", "products", "productsubstitute", "arrow-left-right"),
+    ("Product questions", "products", "productquestion", "question-circle"),
+    ("Clinical profiles", "products", "productclinicalprofile", "clipboard2-pulse"),
+    ("Clinical interactions", "products", "clinicalinteraction", "exclamation-diamond"),
+    ("Stock alerts", "products", "stockalert", "bell"),
+    ("Price alerts", "products", "pricealert", "tag"),
+    ("Sellers", "vendors", "vendor", "shop"),
+    ("Business licences", "vendors", "businesslicense", "patch-check"),
+    ("Seller offers", "vendors", "vendorproduct", "tags"),
+    ("Orders", "orders", "order", "bag-check"),
+    ("Order items", "orders", "orderitem", "list-ul"),
+    ("Bulk order reviews", "orders", "bulkorderreview", "clipboard-check"),
+    ("Order status history", "orders", "orderstatushistory", "clock-history"),
+    ("Payments", "orders", "payment", "credit-card"),
+    ("Payment events", "orders", "paymentevent", "journal-text"),
+    ("Order charge breakdowns", "orders", "orderchargebreakdown", "receipt"),
+    ("Payment reconciliations", "orders", "paymentreconciliation", "check2-square"),
+    ("Finance ledger", "orders", "financeledgerentry", "journal-check"),
+    ("Payment settlements", "orders", "paymentsettlement", "cash-stack"),
+    ("Chargebacks", "orders", "chargeback", "exclamation-octagon"),
+    ("Credit notes", "orders", "creditnote", "file-earmark-text"),
+    ("Coupon usage", "orders", "couponusage", "ticket"),
+    ("Refunds", "orders", "refund", "arrow-counterclockwise"),
+    ("Returns", "orders", "returnrequest", "arrow-return-left"),
+    ("Warehouses", "orders", "warehouse", "building"),
+    ("Inventory batches", "orders", "inventorybatch", "boxes"),
+    ("Temperature logs", "orders", "inventorytemperaturelog", "thermometer-half"),
+    ("Recalls", "orders", "recallnotice", "shield-exclamation"),
+    ("Shipments", "orders", "shipment", "truck"),
+    ("Shipment events", "orders", "shipmentevent", "signpost-split"),
+    ("Inventory movements", "orders", "inventorymovement", "arrow-left-right"),
+    ("Coupons", "orders", "coupon", "ticket-perforated"),
+    ("Prescriptions", "prescriptions", "prescription", "file-earmark-medical"),
+    ("Prescription reviews", "prescriptions", "prescriptionreview", "clipboard2-check"),
+    ("Doctors", "extras", "doctorprofile", "person-vcard"),
+    ("Pharmacists", "extras", "pharmacistprofile", "person-badge"),
+    ("Support tickets", "extras", "supportticket", "headset"),
+    ("Support messages", "extras", "supportmessage", "chat-left-text"),
+    ("Notifications", "extras", "notification", "bell"),
+    ("WhatsApp deliveries", "extras", "notificationdelivery", "send-check"),
+    ("Content issues", "extras", "contentissue", "flag"),
+    ("Health guides", "extras", "blogpost", "journal-medical"),
+    ("Guide categories", "extras", "blogcategory", "collection"),
+    ("Quality complaints", "extras", "qualitycomplaint", "exclamation-triangle"),
+    ("Dependents", "healthcare", "dependent", "people"),
+    ("Health records", "healthcare", "healthrecord", "file-medical"),
+    ("Lab partners", "healthcare", "labpartner", "hospital"),
+    ("Lab branches", "healthcare", "labbranch", "signpost"),
+    ("Lab tests", "healthcare", "labtest", "eyedropper"),
+    ("Lab bookings", "healthcare", "labbooking", "calendar2-week"),
+    ("Collection slots", "healthcare", "labcollectionslot", "clock-history"),
+    ("Lab sample events", "healthcare", "labsampleevent", "activity"),
+    ("Lab reports", "healthcare", "labreportvalue", "file-earmark-medical"),
+    ("Lab reference ranges", "healthcare", "labreferencerange", "rulers"),
+    ("Lab invoices", "healthcare", "labinvoice", "receipt"),
+    ("Lab refunds", "healthcare", "labrefund", "arrow-counterclockwise"),
+    ("Lab settlements", "healthcare", "labsettlement", "cash-stack"),
+    ("Lab disputes", "healthcare", "labdispute", "exclamation-octagon"),
+    ("Consultations", "healthcare", "consultation", "camera-video"),
+    ("Consultation messages", "healthcare", "consultationmessage", "chat-left-text"),
+    ("Doctor availability", "healthcare", "doctoravailability", "calendar3"),
+    ("Consultation payments", "healthcare", "consultationpayment", "credit-card"),
+    ("Consultation follow-ups", "healthcare", "consultationfollowup", "calendar-plus"),
+    ("Medication reminders", "healthcare", "medicationreminder", "alarm"),
+    ("Reviews", "reviews", "review", "star"),
+    ("Review helpful votes", "reviews", "reviewhelpfulvote", "hand-thumbs-up"),
+    ("Review abuse reports", "reviews", "reviewabusereport", "flag"),
+    ("Seller review replies", "reviews", "reviewsellerreply", "reply"),
+    ("Carts", "cart", "cart", "cart3"),
+    ("Cart items", "cart", "cartitem", "list-ul"),
+    ("Wishlists", "cart", "wishlist", "bookmark-heart"),
+    ("Wishlist items", "cart", "wishlistitem", "bookmark"),
+    ("Audit events", "core", "auditevent", "activity"),
+    ("Approval requests", "core", "approvalrequest", "person-check"),
+    ("Checkout settings", "core", "checkoutsettings", "sliders"),
+]
+
+
+CUSTOM_DATA_SPECIAL_URLS = {
+    ("auth", "user"): ("dashboards:management_records", "users"),
+    ("core", "checkoutsettings"): ("dashboards:checkout_settings", None),
+    # Workflow-owned records must be changed through their state-aware forms.
+    # This keeps inventory, payment, fulfilment, and clinical invariants intact.
+    ("orders", "order"): ("dashboards:management_records", "orders"),
+    ("orders", "inventorybatch"): ("dashboards:management_records", "inventory"),
+    ("orders", "shipment"): ("dashboards:management_records", "shipments"),
+    ("orders", "payment"): ("dashboards:management_records", "payments"),
+    ("orders", "refund"): ("dashboards:management_records", "refunds"),
+    ("orders", "returnrequest"): ("dashboards:management_records", "returns"),
+    ("healthcare", "labbooking"): ("dashboards:management_records", "lab_bookings"),
+    ("healthcare", "labcollectionslot"): ("dashboards:management_records", "lab_slots"),
+    ("healthcare", "consultation"): ("dashboards:management_records", "consultations"),
+    ("extras", "notification"): ("dashboards:management_records", "notifications"),
+}
+
+
+def _custom_data_links():
+    links = []
+    for label, app_label, model_name, icon in ADMIN_DATA_MODELS:
+        special_url = CUSTOM_DATA_SPECIAL_URLS.get((app_label, model_name))
+        if special_url:
+            url_name, section = special_url
+            url = reverse(url_name, args=[section] if section else None)
+        else:
+            url = reverse("dashboards:custom_data_records", args=[app_label, model_name])
+        links.append({"label": label, "url": url, "icon": icon})
+    return links
+
+
+def _redirect_custom_data_special_url(app_label, model_name):
+    special_url = CUSTOM_DATA_SPECIAL_URLS.get((app_label, model_name))
+    if not special_url:
+        return None
+    url_name, section = special_url
+    return redirect(url_name, section=section) if section else redirect(url_name)
+
+
+def _admin_data_links():
+    """Backward-compatible name for the custom data directory context."""
+    return _custom_data_links()
+
+
+def _get_custom_data_model(app_label, model_name):
+    if (app_label, model_name) not in {
+        (item[1], item[2]) for item in ADMIN_DATA_MODELS
+    }:
+        raise PermissionDenied
+    model = apps.get_model(app_label, model_name)
+    if model is None:
+        raise PermissionDenied
+    return model
+
+
+def _custom_model_form(model, *args, **kwargs):
+    field_names = []
+    for field in model._meta.get_fields():
+        if (
+            not getattr(field, "concrete", False)
+            or getattr(field, "auto_created", False)
+            or getattr(field, "many_to_many", False)
+            or getattr(field, "primary_key", False)
+            or not getattr(field, "editable", True)
+        ):
+            continue
+        field_names.append(field.name)
+    form_class = modelform_factory(model, fields=field_names)
+    form = form_class(*args, **kwargs)
+    for field in form.fields.values():
+        widget = field.widget
+        input_type = getattr(widget, "input_type", "")
+        if input_type == "checkbox":
+            widget.attrs.setdefault("class", "form-check-input")
+        elif widget.__class__.__name__ == "SelectMultiple":
+            widget.attrs.setdefault("class", "form-select")
+        elif widget.__class__.__name__ == "Select":
+            widget.attrs.setdefault("class", "form-select")
+        else:
+            widget.attrs.setdefault("class", "form-control")
+    return form
+
+
+def _can_manage_all_data(user):
+    profile = getattr(user, "profile", None)
+    return bool(
+        user.is_authenticated
+        and user.is_active
+        and (user.is_superuser or getattr(profile, "role", None) == UserProfile.Role.ADMIN)
+    )
 
 
 def management_section_allowed(user, section):
@@ -164,6 +364,124 @@ def admin_dashboard(request):
         created_at__month=today.month,
     )
     return _render_admin_dashboard(request, today, monthly_orders)
+
+
+@role_required(UserProfile.Role.ADMIN, UserProfile.Role.OPERATIONS_MANAGER, allow_staff=True)
+def checkout_settings(request):
+    settings_record = get_checkout_settings_record()
+    if request.method == "POST":
+        form = CheckoutSettingsForm(request.POST, instance=settings_record)
+        if form.is_valid():
+            settings_record = form.save(commit=False)
+            settings_record.pk = 1
+            settings_record.updated_by = request.user
+            settings_record.save()
+            record_audit(
+                request,
+                "checkout.settings_updated",
+                settings_record,
+                "Checkout fees and COD rules updated.",
+            )
+            messages.success(request, "Checkout fees and COD rules updated.")
+            return redirect("dashboards:checkout_settings")
+    else:
+        form = CheckoutSettingsForm(instance=settings_record)
+    return render(
+        request,
+        "dashboards/checkout_settings.html",
+        {"form": form, "settings_record": settings_record},
+    )
+
+
+@role_required(UserProfile.Role.ADMIN, allow_staff=True)
+def google_maps_health(request):
+    health = None
+    if request.method == "POST":
+        health = google_maps_healthcheck()
+        if health["ok"]:
+            messages.success(request, health["message"])
+        else:
+            messages.error(request, health["message"])
+    return render(
+        request,
+        "dashboards/google_maps_health.html",
+        {
+            "health": health,
+            "server_key_configured": bool(getattr(settings, "GOOGLE_MAPS_API_KEY", "")),
+            "browser_key_configured": bool(getattr(settings, "GOOGLE_MAPS_BROWSER_API_KEY", "")),
+        },
+    )
+
+
+@role_required(UserProfile.Role.ADMIN, UserProfile.Role.OPERATIONS_MANAGER, allow_staff=True)
+def finance_report(request):
+    """Show finance owners a test-mode-safe ledger and settlement summary."""
+    today = timezone.localdate()
+    try:
+        start = date.fromisoformat(request.GET.get("from", ""))
+    except ValueError:
+        start = today - timedelta(days=30)
+    try:
+        end = date.fromisoformat(request.GET.get("to", ""))
+    except ValueError:
+        end = today
+    if start > end:
+        start, end = end, start
+
+    ledger = FinanceLedgerEntry.objects.filter(
+        created_at__date__range=(start, end)
+    ).select_related("order", "payment")
+    totals = ledger.aggregate(
+        credits=Sum("amount", filter=Q(direction=FinanceLedgerEntry.Direction.CREDIT)),
+        debits=Sum("amount", filter=Q(direction=FinanceLedgerEntry.Direction.DEBIT)),
+        taxes=Sum("amount", filter=Q(entry_type=FinanceLedgerEntry.EntryType.TAX)),
+        fees=Sum("amount", filter=Q(entry_type=FinanceLedgerEntry.EntryType.FEE)),
+        commissions=Sum("amount", filter=Q(entry_type=FinanceLedgerEntry.EntryType.COMMISSION)),
+    )
+    totals = {key: value or 0 for key, value in totals.items()}
+    totals["net"] = totals["credits"] - totals["debits"]
+    settlements = PaymentSettlement.objects.filter(
+        settlement_date__range=(start, end)
+    ).order_by("-settlement_date")
+    refunds = Refund.objects.filter(
+        created_at__date__range=(start, end)
+    ).select_related("payment__order").order_by("-created_at")
+    chargebacks = Chargeback.objects.filter(
+        updated_at__date__range=(start, end)
+    ).order_by("-updated_at")
+    report_rows = list(ledger[:200])
+    if request.GET.get("format") == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="medimart-finance-{start}-{end}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Reference", "Type", "Direction", "Amount", "Currency", "Order", "Description", "Test mode", "Created"])
+        for entry in report_rows:
+            writer.writerow([
+                entry.entry_reference,
+                entry.get_entry_type_display(),
+                entry.get_direction_display(),
+                entry.amount,
+                entry.currency,
+                entry.order.order_number if entry.order else "",
+                entry.description,
+                "Yes" if entry.finance_test_mode else "No",
+                entry.created_at.isoformat(),
+            ])
+        return response
+    return render(
+        request,
+        "dashboards/finance_report.html",
+        {
+            "start": start,
+            "end": end,
+            "totals": totals,
+            "settlements": settlements[:50],
+            "refunds": refunds[:50],
+            "chargebacks": chargebacks[:50],
+            "ledger": report_rows,
+            "test_mode": getattr(get_checkout_settings_record(), "finance_test_mode", True),
+        },
+    )
 
 
 @role_required(*OPERATIONS_ROLES, allow_staff=True)
@@ -309,11 +627,17 @@ def management_records(request, section):
         create_url = reverse("dashboards:management_create", args=["notifications"])
         create_label = "notification"
     elif section == "notification_deliveries":
-        records = NotificationDelivery.objects.filter(channel=NotificationDelivery.Channel.EMAIL).select_related("notification", "notification__user").order_by("-created_at")
+        records = NotificationDelivery.objects.filter(channel=NotificationDelivery.Channel.WHATSAPP).select_related("notification", "notification__user").order_by("-created_at")
         if query:
             records = records.filter(Q(destination__icontains=query) | Q(notification__title__icontains=query))
-        title = "Email Delivery"
+        title = "WhatsApp Delivery"
         columns = ["Notification", "Destination", "Attempts", "Next attempt"]
+    elif section == "bulk_reviews":
+        records = BulkOrderReview.objects.select_related("order", "order__customer", "reviewed_by").order_by("-created_at")
+        if query:
+            records = records.filter(Q(order__order_number__icontains=query) | Q(order__customer__username__icontains=query))
+        title = "Bulk Order Verification"
+        columns = ["Order", "Customer", "Quantity", "Created"]
     elif section == "payments":
         records = Payment.objects.select_related("order", "order__customer").order_by("-created_at")
         if query:
@@ -397,6 +721,8 @@ def management_records(request, section):
             records = records.filter(Q(user__username__icontains=query) | Q(lab_test__name__icontains=query) | Q(accession_number__icontains=query))
         title = "Lab Bookings"
         columns = ["Booking", "Customer", "Test", "Slot"]
+        create_url = reverse("dashboards:management_create", args=["lab_bookings"])
+        create_label = "lab booking"
     elif section == "lab_slots":
         records = LabCollectionSlot.objects.select_related("partner").order_by("starts_at")
         if query:
@@ -411,6 +737,8 @@ def management_records(request, section):
             records = records.filter(Q(user__username__icontains=query) | Q(doctor__full_name__icontains=query) | Q(symptoms__icontains=query))
         title = "Doctor Consultations"
         columns = ["Customer", "Doctor", "Mode", "Scheduled"]
+        create_url = reverse("dashboards:management_create", args=["consultations"])
+        create_label = "consultation"
     elif section == "audit":
         records = AuditEvent.objects.select_related("actor").order_by("-created_at")
         if query:
@@ -481,6 +809,12 @@ def management_records(request, section):
         elif section == "notification_deliveries":
             actions = [("retry", "Retry", "outline-success")] if record.status == NotificationDelivery.Status.FAILED else []
             rows.append(management_row(record, [record.notification.title, record.destination, str(record.attempts), record.next_attempt_at.strftime("%d %b %Y, %H:%M")], record.get_status_display(), record.status, actions))
+        elif section == "bulk_reviews":
+            actions = []
+            if record.status == BulkOrderReview.Status.PENDING:
+                actions = [("approve", "Approve", "success"), ("clarification", "Ask customer", "outline-primary"), ("reject", "Reject", "outline-danger")]
+            total_quantity = record.order.items.aggregate(total=Sum("quantity"))["total"] or 0
+            rows.append(management_row(record, [record.order.order_number, record.order.customer.get_full_name() or record.order.customer.username, str(total_quantity), record.created_at.strftime("%d %b %Y")], record.get_status_display(), record.status, actions, view_url=record.order.get_absolute_url()))
         elif section == "payments":
             rows.append(management_row(record, [record.order.order_number, record.order.customer.get_full_name() or record.order.customer.username, f"₹{record.amount}", record.gateway_payment_id or record.gateway_order_id or "Not assigned"], record.get_status_display(), record.status, edit_url=reverse("dashboards:management_edit", args=["payments", record.pk])))
         elif section == "refunds":
@@ -548,7 +882,8 @@ def management_records(request, section):
             consultation_actions = {
                 "requested": [("confirm", "Confirm", "success"), ("cancel", "Cancel", "outline-danger")],
                 "confirmed": [("in_progress", "Start", "outline-primary"), ("cancel", "Cancel", "outline-danger")],
-                "in_progress": [("complete", "Complete", "success")],
+                "in_progress": [("complete", "Complete", "success"), ("no_show", "No-show", "outline-warning")],
+                "refund_pending": [("refund", "Process refund", "success")],
             }.get(record.status, [])
             rows.append(management_row(record, [record.user.get_full_name() or record.user.username, f"Dr. {record.doctor.full_name}", record.get_mode_display(), record.scheduled_at.strftime("%d %b %Y, %H:%M") if record.scheduled_at else "Schedule pending"], record.get_status_display(), record.status, consultation_actions, edit_url=reverse("dashboards:management_edit", args=["consultations", record.pk]), view_url=reverse("healthcare:consultation_detail", args=[record.pk]) if record.status != Consultation.Status.CANCELLED else ""))
         elif section == "audit":
@@ -559,6 +894,29 @@ def management_records(request, section):
             if not (section == "users" and row["pk"] == request.user.pk):
                 row["delete_url"] = reverse("dashboards:management_record_action", args=[section, row["pk"]])
     return render(request, "dashboards/management_records.html", {"section": section, "title": title, "description": description, "columns": columns, "rows": rows, "query": query, "page_obj": page_obj, "create_url": create_url, "create_label": create_label})
+
+
+@role_required(*OPERATIONS_ROLES, allow_staff=True)
+def approval_center(request):
+    approvals = ApprovalRequest.objects.filter(status=ApprovalRequest.Status.PENDING).select_related("requested_by", "content_type")
+    return render(request, "dashboards/approval_center.html", {"approvals": approvals})
+
+
+@role_required(*OPERATIONS_ROLES, allow_staff=True)
+@require_POST
+def approval_decision(request, pk):
+    approval = get_object_or_404(ApprovalRequest, pk=pk)
+    decision = request.POST.get("decision")
+    if decision not in {ApprovalRequest.Status.APPROVED, ApprovalRequest.Status.REJECTED}:
+        raise PermissionDenied
+    try:
+        target = apply_approval(approval, request.user, decision, request.POST.get("reason", ""))
+    except PermissionDenied as exc:
+        messages.error(request, str(exc))
+        return redirect("dashboards:approval_center")
+    record_audit(request, f"approval.{decision}", target, f"Maker-checker request {approval.action} was {decision}.", {"approval_id": approval.pk})
+    messages.success(request, f"Approval request {decision}.")
+    return redirect("dashboards:approval_center")
 
 
 @role_required(*OPERATIONS_ROLES, allow_staff=True)
@@ -628,9 +986,20 @@ def management_record_action(request, section, pk):
             if not record.valid_until or record.valid_until < timezone.localdate() or not record.items.exists():
                 messages.error(request, "Add a current validity date and at least one prescribed product before approval.")
                 return redirect("dashboards:management_records", section=section)
+            if settings.MAKER_CHECKER_REQUIRED:
+                approval = queue_approval(record, "prescription.review", request.user, json.dumps({"requested_status": "approved"}))
+                record_audit(request, "approval.requested", record, "Prescription approval submitted for second-person review.", {"approval_id": approval.pk})
+                messages.info(request, "The prescription approval is waiting for a second authorized reviewer.")
+                return redirect("dashboards:approval_center")
             record.mark_approved(request.user)
         elif action == "reject":
-            record.mark_rejected(request.user, request.POST.get("reason", "Rejected during clinical review."))
+            reason = request.POST.get("reason", "Rejected during clinical review.")
+            if settings.MAKER_CHECKER_REQUIRED:
+                approval = queue_approval(record, "prescription.review", request.user, json.dumps({"requested_status": "rejected", "notes": reason[:2000]}))
+                record_audit(request, "approval.requested", record, "Prescription rejection submitted for second-person review.", {"approval_id": approval.pk})
+                messages.info(request, "The prescription rejection is waiting for a second authorized reviewer.")
+                return redirect("dashboards:approval_center")
+            record.mark_rejected(request.user, reason)
     elif section == "doctors":
         record = get_object_or_404(DoctorProfile, pk=pk)
         if action == "verify" and not all(
@@ -669,17 +1038,37 @@ def management_record_action(request, section, pk):
         record.is_read = action == "read"
         record.save(update_fields=["is_read"])
     elif section == "notification_deliveries":
-        record = get_object_or_404(NotificationDelivery, pk=pk, channel=NotificationDelivery.Channel.EMAIL)
+        record = get_object_or_404(NotificationDelivery, pk=pk, channel=NotificationDelivery.Channel.WHATSAPP)
         if action != "retry" or record.status != NotificationDelivery.Status.FAILED:
             raise PermissionDenied
         record.status = NotificationDelivery.Status.PENDING
         record.next_attempt_at = timezone.now()
         record.last_error = ""
         record.save(update_fields=["status", "next_attempt_at", "last_error", "updated_at"])
+    elif section == "bulk_reviews":
+        record = get_object_or_404(BulkOrderReview.objects.select_related("order", "order__customer"), pk=pk)
+        if record.status != BulkOrderReview.Status.PENDING or action not in {"approve", "reject", "clarification"}:
+            raise PermissionDenied
+        record.status = {"approve": BulkOrderReview.Status.APPROVED, "reject": BulkOrderReview.Status.REJECTED, "clarification": BulkOrderReview.Status.CLARIFICATION}[action]
+        record.reviewed_by = request.user
+        record.review_notes = request.POST.get("notes", "").strip()[:2000]
+        record.reviewed_at = timezone.now()
+        record.save(update_fields=["status", "reviewed_by", "review_notes", "reviewed_at", "updated_at"])
+        if record.status == BulkOrderReview.Status.APPROVED and record.order.order_status == Order.OrderStatus.PENDING:
+            if record.order.payment_method == Order.PaymentMethod.COD or record.order.payment_status in {Order.PaymentStatus.PAID, Order.PaymentStatus.AUTHORIZED}:
+                record.order.order_status = Order.OrderStatus.CONFIRMED
+                record.order.save(update_fields=["order_status", "updated_at"])
+                OrderStatusHistory.objects.create(order=record.order, status=record.order.order_status, note=f"Bulk order verified by {request.user.username}.", actor=request.user)
+        create_notification(record.order.customer, "Bulk order review updated", f"Your bulk order {record.order.order_number} is now {record.get_status_display().lower()}.", Notification.NotificationType.ORDER, record.order.get_absolute_url())
     elif section == "refunds":
         record = get_object_or_404(Refund, pk=pk)
         if action != "retry" or record.status != Refund.Status.FAILED:
             raise PermissionDenied
+        if settings.MAKER_CHECKER_REQUIRED:
+            approval = queue_approval(record, "refund.retry", request.user, "Retry failed refund after finance review.")
+            record_audit(request, "approval.requested", record, "Refund retry submitted for second-person approval.", {"approval_id": approval.pk})
+            messages.info(request, "The refund retry is waiting for a second authorized finance reviewer.")
+            return redirect("dashboards:approval_center")
         record.status = Refund.Status.REQUESTED
         record.save(update_fields=["status", "updated_at"])
     elif section == "warehouses":
@@ -819,18 +1208,41 @@ def management_record_action(request, section, pk):
             "confirm": Consultation.Status.CONFIRMED,
             "in_progress": Consultation.Status.IN_PROGRESS,
             "complete": Consultation.Status.COMPLETED,
+            "no_show": Consultation.Status.NO_SHOW,
             "cancel": Consultation.Status.CANCELLED,
         }
+        if action == "refund" and record.status == Consultation.Status.REFUND_PENDING:
+            try:
+                refund_consultation_payment(record)
+            except (ValueError, RuntimeError) as exc:
+                messages.error(request, str(exc))
+                return redirect("dashboards:management_records", section=section)
+            record_audit(request, f"management.{section}.{action}", record, "Consultation refund processed.")
+            messages.success(request, "Consultation refund processed.")
+            return redirect("dashboards:management_records", section=section)
         next_status = transitions.get(action)
         allowed = {
             Consultation.Status.REQUESTED: {Consultation.Status.CONFIRMED, Consultation.Status.CANCELLED},
             Consultation.Status.CONFIRMED: {Consultation.Status.IN_PROGRESS, Consultation.Status.CANCELLED},
-            Consultation.Status.IN_PROGRESS: {Consultation.Status.COMPLETED},
+            Consultation.Status.IN_PROGRESS: {Consultation.Status.COMPLETED, Consultation.Status.NO_SHOW},
         }
         if next_status not in allowed.get(record.status, set()):
             raise PermissionDenied
         record.status = next_status
-        record.save(update_fields=["status", "updated_at"])
+        update_fields = ["status", "updated_at"]
+        if next_status == Consultation.Status.COMPLETED:
+            record.completed_at = timezone.now()
+            update_fields.append("completed_at")
+        elif next_status == Consultation.Status.NO_SHOW:
+            record.no_show_at = timezone.now()
+            update_fields.append("no_show_at")
+        elif next_status == Consultation.Status.CANCELLED:
+            record.cancelled_at = timezone.now()
+            update_fields.append("cancelled_at")
+        record.save(update_fields=update_fields)
+        if next_status in {Consultation.Status.CANCELLED, Consultation.Status.NO_SHOW} and hasattr(record, "payment") and record.payment.status == "paid":
+            record.payment.status = "refund_pending"
+            record.payment.save(update_fields=["status", "updated_at"])
         create_notification(
             record.user,
             "Consultation updated",
@@ -961,6 +1373,155 @@ def management_form(request, section, pk=None):
     return render(request, "dashboards/management_form.html", {"form": form, "section": section, "label": label, "is_edit": bool(instance)})
 
 
+CUSTOM_DATA_READ_ONLY = {
+    ("core", "auditevent"),
+    ("core", "approvalrequest"),
+    ("orders", "financeledgerentry"),
+}
+
+
+def _custom_data_label(app_label, model_name):
+    for label, item_app, item_model, _icon in ADMIN_DATA_MODELS:
+        if (app_label, model_name) == (item_app, item_model):
+            return label
+    return f"{app_label}.{model_name}"
+
+
+@role_required(UserProfile.Role.ADMIN, allow_staff=True)
+def custom_data_home(request):
+    return render(
+        request,
+        "dashboards/custom_data_home.html",
+        {"data_links": _custom_data_links()},
+    )
+
+
+@role_required(UserProfile.Role.ADMIN, allow_staff=True)
+def custom_data_records(request, app_label, model_name):
+    special_redirect = _redirect_custom_data_special_url(app_label, model_name)
+    if special_redirect:
+        return special_redirect
+    model = _get_custom_data_model(app_label, model_name)
+    query = request.GET.get("q", "").strip()
+    records = model.objects.all()
+    search_fields = [
+        field.name
+        for field in model._meta.get_fields()
+        if getattr(field, "concrete", False)
+        and not getattr(field, "auto_created", False)
+        and field.get_internal_type() in {"CharField", "TextField", "EmailField", "SlugField"}
+    ]
+    if query and search_fields:
+        search_query = Q()
+        for field in search_fields:
+            search_query |= Q(**{f"{field}__icontains": query})
+        records = records.filter(search_query)
+    display_fields = [
+        field
+        for field in model._meta.get_fields()
+        if getattr(field, "concrete", False)
+        and not getattr(field, "auto_created", False)
+        and not getattr(field, "many_to_many", False)
+    ][:6]
+    paginator = Paginator(records.order_by("-pk"), 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    rows = []
+    for record in page_obj.object_list:
+        values = []
+        for field in display_fields:
+            value = field.value_from_object(record)
+            if value in (None, ""):
+                value = "—"
+            value = str(value)
+            values.append(value if len(value) <= 100 else f"{value[:97]}...")
+        rows.append({
+            "pk": record.pk,
+            "values": values,
+            "edit_url": "" if (app_label, model_name) in CUSTOM_DATA_READ_ONLY else reverse("dashboards:custom_data_edit", args=[app_label, model_name, record.pk]),
+            "delete_url": "" if (app_label, model_name) in CUSTOM_DATA_READ_ONLY else reverse("dashboards:custom_data_delete", args=[app_label, model_name, record.pk]),
+        })
+    can_create = (app_label, model_name) not in CUSTOM_DATA_READ_ONLY
+    return render(
+        request,
+        "dashboards/custom_data_records.html",
+        {
+            "title": _custom_data_label(app_label, model_name),
+            "app_label": app_label,
+            "model_name": model_name,
+            "columns": [field.verbose_name.title() for field in display_fields],
+            "rows": rows,
+            "query": query,
+            "page_obj": page_obj,
+            "can_create": can_create,
+            "can_mutate": can_create,
+            "create_url": reverse("dashboards:custom_data_create", args=[app_label, model_name]) if can_create else "",
+        },
+    )
+
+
+@role_required(UserProfile.Role.ADMIN, allow_staff=True)
+def custom_data_form(request, app_label, model_name, pk=None):
+    special_redirect = _redirect_custom_data_special_url(app_label, model_name)
+    if special_redirect:
+        return special_redirect
+    model = _get_custom_data_model(app_label, model_name)
+    if (app_label, model_name) in CUSTOM_DATA_READ_ONLY:
+        raise PermissionDenied
+    instance = get_object_or_404(model, pk=pk) if pk else None
+    form = _custom_model_form(
+        model,
+        request.POST or None,
+        request.FILES or None,
+        instance=instance,
+    )
+    if request.method == "POST" and form.is_valid():
+        record = form.save()
+        record_audit(
+            request,
+            f"custom_data.{app_label}.{model_name}.{'updated' if instance else 'created'}",
+            record,
+            f"{_custom_data_label(app_label, model_name)} saved from the custom data manager.",
+        )
+        messages.success(request, f"{_custom_data_label(app_label, model_name)} saved successfully.")
+        return redirect("dashboards:custom_data_records", app_label=app_label, model_name=model_name)
+    return render(
+        request,
+        "dashboards/custom_data_form.html",
+        {
+            "form": form,
+            "title": _custom_data_label(app_label, model_name),
+            "app_label": app_label,
+            "model_name": model_name,
+            "is_edit": bool(instance),
+        },
+    )
+
+
+@role_required(UserProfile.Role.ADMIN, allow_staff=True)
+@require_POST
+def custom_data_delete(request, app_label, model_name, pk):
+    if (app_label, model_name) in CUSTOM_DATA_SPECIAL_URLS:
+        raise PermissionDenied
+    model = _get_custom_data_model(app_label, model_name)
+    if (app_label, model_name) in CUSTOM_DATA_READ_ONLY:
+        raise PermissionDenied
+    record = get_object_or_404(model, pk=pk)
+    label = str(record)
+    try:
+        record.delete()
+    except (ProtectedError, IntegrityError):
+        messages.error(request, "This record is referenced by other records and cannot be deleted. Deactivate it instead.")
+        return redirect("dashboards:custom_data_records", app_label=app_label, model_name=model_name)
+    record_audit(
+        request,
+        f"custom_data.{app_label}.{model_name}.deleted",
+        record,
+        f"Deleted {label} from the custom data manager.",
+    )
+    messages.success(request, f"{label} deleted successfully.")
+    return redirect("dashboards:custom_data_records", app_label=app_label, model_name=model_name)
+
+
 def _render_admin_dashboard(request, today, monthly_orders):
     todays_orders = Order.objects.filter(created_at__date=today)
     paid_orders = Order.objects.filter(payment_status=Order.PaymentStatus.PAID)
@@ -1035,6 +1596,7 @@ def _render_admin_dashboard(request, today, monthly_orders):
         status=SupportTicket.Status.CLOSED
     )[:8]
     management_sections = [
+        ("Approval Center", "__approvals__", "person-check"),
         ("Users", "users", "people"),
         ("Products", "products", "box-seam"),
         ("Categories", "categories", "diagram-3"),
@@ -1053,7 +1615,8 @@ def _render_admin_dashboard(request, today, monthly_orders):
         ("Guide Categories", "blog_categories", "collection"),
         ("Support", "support", "headset"),
         ("Notifications", "notifications", "bell"),
-        ("Email Delivery", "notification_deliveries", "send-check"),
+        ("WhatsApp Delivery", "notification_deliveries", "send-check"),
+        ("Bulk Order Verification", "bulk_reviews", "clipboard-check"),
         ("Payments", "payments", "credit-card"),
         ("Refunds", "refunds", "arrow-counterclockwise"),
         ("Warehouses", "warehouses", "building"),
@@ -1067,12 +1630,21 @@ def _render_admin_dashboard(request, today, monthly_orders):
         ("Lab Bookings", "lab_bookings", "calendar2-week"),
         ("Lab Collection Slots", "lab_slots", "clock-history"),
         ("Consultations", "consultations", "camera-video"),
+        ("Finance Report", "__finance_report__", "cash-stack"),
         ("Audit Trail", "audit", "activity"),
     ]
     admin_links = [
-        (label, reverse("dashboards:management_records", args=[section]), icon)
+        (
+            label,
+            reverse("dashboards:approval_center")
+            if section == "__approvals__"
+            else reverse("dashboards:finance_report")
+            if section == "__finance_report__"
+            else reverse("dashboards:management_records", args=[section]),
+            icon,
+        )
         for label, section, icon in management_sections
-        if management_section_allowed(request.user, section)
+        if section in {"__approvals__", "__finance_report__"} or management_section_allowed(request.user, section)
     ]
 
     return render(
@@ -1089,6 +1661,8 @@ def _render_admin_dashboard(request, today, monthly_orders):
             "delivery_staff": delivery_staff,
             "recent_support_tickets": recent_support_tickets,
             "admin_links": admin_links,
+            "admin_data_links": _admin_data_links() if _can_manage_all_data(request.user) else [],
+            "can_manage_all_data": _can_manage_all_data(request.user),
             "can_view_financials": has_capability(request.user, "finance.manage"),
             "can_review_licenses": has_capability(request.user, "compliance.review"),
             "can_manage_catalog": has_capability(request.user, "catalog.manage"),
@@ -1130,6 +1704,14 @@ def delivery_dashboard(request):
         active_orders = active_orders.filter(delivery_staff=request.user)
         delivered_orders = delivered_orders.filter(delivery_staff=request.user)
 
+    visible_active_orders = list(active_orders[:20])
+    for delivery_order in visible_active_orders:
+        delivery_order.original_prescription_required = any(
+            item.prescription_item_id
+            and item.prescription_item.prescription.original_required_on_delivery
+            for item in delivery_order.items.select_related("prescription_item__prescription").all()
+        )
+
     stats = {
         "assigned_orders": active_orders.count(),
         "out_for_delivery": active_orders.filter(
@@ -1144,7 +1726,7 @@ def delivery_dashboard(request):
         "dashboards/delivery_dashboard.html",
         {
             "stats": stats,
-            "active_orders": active_orders[:20],
+            "active_orders": visible_active_orders,
         },
     )
 
@@ -1178,13 +1760,34 @@ def update_delivery_order_status(request, pk):
                 return redirect("dashboards:delivery_dashboard")
         proof = request.FILES.get("delivery_proof")
         recipient_name = " ".join(str(request.POST.get("recipient_name", "")).split())
+        if any(
+            item.prescription_item_id
+            and item.prescription_item.prescription.original_required_on_delivery
+            for item in order.items.select_related("prescription_item__prescription").all()
+        ) and request.POST.get("original_prescription_checked") != "on":
+            messages.error(request, "Confirm that the original prescription was checked before completing this delivery.")
+            return redirect("dashboards:delivery_dashboard")
+        cod_reference = " ".join(str(request.POST.get("cod_cash_reference", "")).split())[:120]
+        if order.payment_method == Order.PaymentMethod.COD and not cod_reference:
+            messages.error(request, "Record the cash collection reference before completing a COD delivery.")
+            return redirect("dashboards:delivery_dashboard")
         if proof:
             shipment.delivery_proof = proof
         if recipient_name:
             shipment.delivery_recipient_name = recipient_name
+        if cod_reference:
+            shipment.cod_cash_reference = cod_reference
+            shipment.cod_collected_at = timezone.now()
         shipment.status = Shipment.Status.DELIVERED
         shipment.delivered_at = timezone.now()
-        shipment.save(update_fields=["status", "delivered_at", "delivery_proof", "delivery_recipient_name", "updated_at"])
+        shipment.save(update_fields=["status", "delivered_at", "delivery_proof", "delivery_recipient_name", "cod_cash_reference", "cod_collected_at", "updated_at"])
+        if order.payment_method == Order.PaymentMethod.COD:
+            order.payment_status = Order.PaymentStatus.PAID
+            payment = getattr(order, "payment", None)
+            if payment:
+                payment.status = Order.PaymentStatus.PAID
+                payment.verified_at = timezone.now()
+                payment.save(update_fields=["status", "verified_at", "updated_at"])
         ShipmentEvent.objects.create(
             shipment=shipment,
             status=Shipment.Status.DELIVERED,
@@ -1209,13 +1812,16 @@ def update_delivery_order_status(request, pk):
         create_notification(
             order.customer,
             "Delivery verification code",
-            f"Your MediMart delivery OTP for order {order.order_number} is {delivery_otp}. Share it only when your order arrives.",
+            f"Your MediMart delivery OTP for order {order.order_number} is:\n\n*{delivery_otp}*\n\nShare it only when your order arrives.",
             Notification.NotificationType.ORDER,
             order.get_absolute_url(),
         )
 
     order.order_status = next_status
-    order.save(update_fields=["order_status", "updated_at"])
+    order_update_fields = ["order_status", "updated_at"]
+    if next_status == Order.OrderStatus.DELIVERED and order.payment_method == Order.PaymentMethod.COD:
+        order_update_fields.append("payment_status")
+    order.save(update_fields=order_update_fields)
     OrderStatusHistory.objects.create(
         order=order,
         status=next_status,
@@ -1288,6 +1894,11 @@ def review_vendor(request, pk):
     else:
         messages.error(request, "Invalid seller review action.")
         return redirect("dashboards:admin_dashboard")
+    if settings.MAKER_CHECKER_REQUIRED:
+        approval = queue_approval(vendor, f"vendor.{decision}", request.user, message)
+        record_audit(request, "approval.requested", vendor, f"Maker-checker approval requested: {message}.", {"approval_id": approval.pk})
+        messages.info(request, "The decision was submitted for second-person approval.")
+        return redirect("dashboards:approval_center")
     vendor.save(update_fields=["is_approved", "is_active", "updated_at"])
     record_audit(request, f"seller.{decision}", vendor, message)
     messages.success(request, message)
@@ -1324,6 +1935,11 @@ def review_offer(request, pk):
     else:
         messages.error(request, "Invalid catalog review action.")
         return redirect("dashboards:admin_dashboard")
+    if settings.MAKER_CHECKER_REQUIRED:
+        approval = queue_approval(offer, f"offer.{decision}", request.user, message)
+        record_audit(request, "approval.requested", offer, f"Maker-checker approval requested: {message}.", {"approval_id": approval.pk})
+        messages.info(request, "The catalog decision was submitted for second-person approval.")
+        return redirect("dashboards:approval_center")
     offer.save(update_fields=["is_approved", "is_active", "updated_at"])
     record_audit(request, f"offer.{decision}", offer, message)
     messages.success(request, message)
@@ -1351,6 +1967,11 @@ def review_business_license(request, pk):
     else:
         messages.error(request, "Invalid licence review action.")
         return redirect("dashboards:admin_dashboard")
+    if settings.MAKER_CHECKER_REQUIRED:
+        approval = queue_approval(license_record, f"license.{decision}", request.user, notes)
+        record_audit(request, "approval.requested", license_record, f"Maker-checker licence decision requested: {decision}.", {"approval_id": approval.pk, "notes": notes})
+        messages.info(request, "The licence decision was submitted for second-person approval.")
+        return redirect("dashboards:approval_center")
     license_record.reviewed_by = request.user
     license_record.reviewed_at = timezone.now()
     license_record.review_notes = notes

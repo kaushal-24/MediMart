@@ -7,6 +7,9 @@
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="content-panel">
+                <div class="doctor-profile-image mb-3">
+                    <img src="{{ doctor.display_image_url }}" alt="{{ doctor.full_name }}" decoding="async">
+                </div>
                 <p class="eyebrow mb-2">Verified doctor</p>
                 <h1 class="h3 fw-bold mb-2">{{ doctor.full_name }}</h1>
                 <p class="text-secondary mb-3">{{ doctor.specialization }}</p>

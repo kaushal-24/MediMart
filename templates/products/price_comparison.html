@@ -68,7 +68,7 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
                         <div>
                             <h2 class="h4 fw-bold mb-1">Seller Comparison</h2>
-                            <p class="text-secondary mb-0">Lowest approved price is shown first.</p>
+                            <p class="text-secondary mb-0">{% if location_selected %}Offers near {{ site_location_label }} are shown first.{% else %}Lowest approved price is shown first.{% endif %}</p>
                         </div>
                         <span class="badge text-bg-success align-self-md-start">{{ seller_offers|length }} seller{{ seller_offers|length|pluralize }}</span>
                     </div>

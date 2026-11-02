@@ -4,9 +4,17 @@
 
 {% block content %}
 <section class="product-header operations-header">
-    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
-        <div><p class="eyebrow mb-2">MediMart operations</p><h1 class="h2 fw-bold mb-2">Operations Center</h1><p class="text-secondary mb-0">Approvals, fulfillment, inventory, revenue, prescriptions, and customer support in one place.</p></div>
-        <a class="btn btn-outline-success" href="#management-directory"><i class="bi bi-grid-1x2 me-2"></i>Management directory</a>
+    <div class="container operations-header-layout">
+        <div class="operations-header-top">
+        <div class="operations-header-copy"><p class="eyebrow mb-2">MediMart operations</p><h1 class="h2 fw-bold mb-0">Operations Center</h1></div>
+        <div class="operations-header-actions d-flex flex-wrap gap-2">
+            {% if can_view_financials %}<a class="btn btn-outline-success" href="{% url 'dashboards:checkout_settings' %}"><i class="bi bi-sliders me-2"></i>Checkout pricing</a>{% endif %}
+            {% if can_manage_all_data %}<a class="btn btn-outline-success" href="{% url 'dashboards:google_maps_health' %}"><i class="bi bi-geo-alt me-2"></i>Maps health</a>{% endif %}
+            {% if can_manage_all_data %}<a class="btn btn-outline-success" href="{% url 'dashboards:custom_data_home' %}"><i class="bi bi-database-gear me-2"></i>Custom data manager</a>{% endif %}
+            <a class="btn btn-outline-success" href="#management-directory"><i class="bi bi-grid-1x2 me-2"></i>Management directory</a>
+        </div>
+        </div>
+        <p class="operations-header-description text-secondary mb-0">Approvals, fulfillment, inventory, revenue, prescriptions, and customer support in one place.</p>
     </div>
 </section>
 
@@ -55,6 +63,18 @@
             {% for label, href, icon in admin_links %}<a class="admin-link" href="{{ href }}"><i class="bi bi-{{ icon }}"></i><span>{{ label }}</span></a>{% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    {% if can_manage_all_data %}
+    <details class="content-panel mb-4 admin-data-panel">
+        <summary class="panel-heading mb-0">
+            <div><p class="eyebrow mb-1">Administrator tools</p><h2>Full data administration</h2><p class="text-secondary mb-0">Create, edit, delete, and review every registered MediMart record.</p></div>
+            <span class="btn btn-outline-success btn-sm"><i class="bi bi-database-gear me-2"></i>Open model list</span>
+        </summary>
+        <div class="admin-link-grid mt-4">
+            {% for item in admin_data_links %}<a class="admin-link" href="{{ item.url }}"><i class="bi bi-{{ item.icon }}"></i><span>{{ item.label }}</span></a>{% endfor %}
+        </div>
+    </details>
     {% endif %}
 
     <div class="row g-4 mb-4">

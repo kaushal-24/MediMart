@@ -41,6 +41,7 @@
             </button>
 
             <form class="d-flex flex-grow-1 mx-xl-3 my-3 my-xl-0 search-form" role="search" data-ai-search-form data-ai-endpoint="{% url 'products:ai_search' %}" data-suggestion-endpoint="{% url 'products:search_suggestions' %}">
+                <input type="hidden" name="location" value="{{ site_location_label }}">
                 <div class="input-group">
                     <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
                     <input class="form-control border-start-0" id="siteSearchInput" name="q" type="search" placeholder="Ask MediMart AI about medicines, equipment, or care" aria-label="Ask MediMart AI" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false">
@@ -68,6 +69,8 @@
                         <li><a class="dropdown-item" href="{% url 'healthcare:labs' %}"><i class="bi bi-eyedropper me-2"></i>Lab tests</a></li>
                         <li><a class="dropdown-item" href="{% url 'healthcare:consultation_create' %}"><i class="bi bi-camera-video me-2"></i>Book consultation</a></li>
                         <li><a class="dropdown-item" href="{% url 'healthcare:dashboard' %}"><i class="bi bi-heart-pulse me-2"></i>Health workspace</a></li>
+                        <li><a class="dropdown-item" href="{% url 'core:nearby_pharmacies' %}"><i class="bi bi-geo-alt me-2"></i>MediMart pharmacies near you</a></li>
+                        <li><a class="dropdown-item" href="{% url 'core:nearby_pharmacies' %}#general-pharmacies"><i class="bi bi-buildings me-2"></i>All pharmacies near you</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:doctor_list' %}"><i class="bi bi-person-vcard me-2"></i>Doctors</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:blog_list' %}"><i class="bi bi-journal-medical me-2"></i>Health guides</a></li>
                         <li><a class="dropdown-item" href="{% url 'extras:support_ticket_list' %}"><i class="bi bi-headset me-2"></i>Support</a></li>

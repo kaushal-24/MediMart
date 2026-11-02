@@ -43,7 +43,11 @@
         <div class="summary-divider"></div>
         <div class="summary-row"><span>Subtotal</span><strong>₹{{ subtotal }}</strong></div>
         <div class="summary-row text-success"><span>Discount</span><strong>-₹{{ discount }}</strong></div>
+        <div class="summary-row"><span class="summary-label-stack"><span>Tax / GST</span><small class="summary-label-note">{% if gst_enabled %}{{ tax_rate_percent }}% on taxable amount{% else %}Not applicable{% endif %}</small></span><strong>₹{{ tax_amount }}</strong></div>
+        <div class="summary-row"><span>Handling</span><strong>₹{{ handling_charge }}</strong></div>
+        <div class="summary-row"><span>Platform fee</span><strong>₹{{ platform_fee }}</strong></div>
         <div class="summary-row"><span>Delivery fee</span><strong>{% if delivery_fee %}₹{{ delivery_fee }}{% else %}Free{% endif %}</strong></div>
+        <div class="summary-row"><span>Cold-chain fee</span><strong>{% if cold_chain_required %}₹{{ cold_chain_charge }}{% else %}<span class="text-secondary">Not applicable</span>{% endif %}</strong></div>
         <hr><div class="summary-row summary-total"><span>Payable total</span><strong>₹{{ final_total }}</strong></div>
         {% if checkout_form.address.field.queryset.exists %}<button class="btn btn-success btn-lg w-100 mt-3" type="submit" form="cartCheckoutForm"><i class="bi bi-lock-fill me-2"></i>Place order securely</button>{% else %}<a class="btn btn-success w-100 mt-3" href="{% url 'accounts:address_create' %}">Add delivery address</a>{% endif %}
         <p class="cart-payment-note"><i class="bi bi-credit-card"></i> Online payment details are handled by Razorpay and are never stored by MediMart.</p>

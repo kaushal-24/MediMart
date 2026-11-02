@@ -13,6 +13,7 @@
             <h1>Medicines, lab tests and healthcare essentials.</h1>
             <p class="marketplace-hero-lead">Compare approved sellers, upload prescriptions securely, book home diagnostics, and track every order from one account.</p>
             <form class="hero-search" data-ai-search-form data-ai-endpoint="{% url 'products:ai_search' %}" data-suggestion-endpoint="{% url 'products:search_suggestions' %}" role="search">
+                <input type="hidden" name="location" value="{{ site_location_label }}">
                 <i class="bi bi-search" aria-hidden="true"></i>
                 <input id="heroAiSearchInput" name="q" type="search" placeholder="Search medicines, tests, symptoms or devices" aria-label="Search medicines, tests, symptoms or devices" autocomplete="off" aria-controls="heroAiSearchResults" aria-expanded="false">
                 <button class="hero-search-button" type="submit"><i class="bi bi-stars me-2" aria-hidden="true"></i>AI search</button>
@@ -97,9 +98,7 @@
     <div class="category-rail">
         {% for category in featured_categories %}
             <a class="category-card" href="{{ category.get_absolute_url }}">
-                <span class="category-image">
-                    {% if category.image %}<img src="{{ category.image.url }}" alt="{{ category.name }}" loading="lazy" decoding="async" width="160" height="160">{% else %}<i class="bi bi-grid"></i>{% endif %}
-                </span>
+                <span class="category-image"><img src="{{ category.display_image_url }}" alt="{{ category.name }}" loading="lazy" decoding="async" width="320" height="220"></span>
                 <strong>{{ category.name }}</strong>
                 <small>Explore category</small>
             </a>
@@ -173,7 +172,7 @@
             <div class="col-lg-5">
                 <div class="section-heading compact"><div><p class="eyebrow mb-2">Care network</p><h2>Verified doctors</h2></div><a href="{% url 'extras:doctor_list' %}">View all</a></div>
                 <div class="care-list">
-                    {% for doctor in verified_doctors %}<div class="care-list-item"><span class="care-icon"><i class="bi bi-person-vcard"></i></span><span><strong>{{ doctor.full_name }}</strong><small>{{ doctor.specialization }}</small></span><i class="bi bi-patch-check-fill text-success ms-auto"></i></div>{% empty %}<div class="care-empty-state"><span class="care-empty-icon"><i class="bi bi-person-vcard"></i></span><strong>Verified doctors will appear here after approval.</strong><a href="{% url 'healthcare:consultation_create' %}">Explore consultations <i class="bi bi-arrow-right"></i></a></div>{% endfor %}
+                    {% for doctor in verified_doctors %}<div class="care-list-item"><span class="care-icon care-avatar"><img src="{{ doctor.display_image_url }}" alt="{{ doctor.full_name }}" loading="lazy" decoding="async"></span><span><strong>{{ doctor.full_name }}</strong><small>{{ doctor.specialization }}</small></span><i class="bi bi-patch-check-fill text-success ms-auto"></i></div>{% empty %}<div class="care-empty-state"><span class="care-empty-icon"><i class="bi bi-person-vcard"></i></span><strong>Verified doctors will appear here after approval.</strong><a href="{% url 'healthcare:consultation_create' %}">Explore consultations <i class="bi bi-arrow-right"></i></a></div>{% endfor %}
                 </div>
             </div>
             <div class="col-lg-7">

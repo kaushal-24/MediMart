@@ -7,10 +7,11 @@
     <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
         <div>
             <p class="eyebrow mb-2">{% if vendor.business_type == "manufacturer" %}Manufacturer workspace{% else %}Seller workspace{% endif %}</p>
-            <h1 class="h2 fw-bold mb-1">{{ vendor.business_name }}</h1>
+            <div class="vendor-dashboard-heading"><div class="vendor-logo vendor-logo-sm">{% if vendor.logo %}<img src="{{ vendor.logo.url }}" alt="{{ vendor.business_name }}" decoding="async">{% else %}<i class="bi bi-shop" aria-hidden="true"></i>{% endif %}</div><div><h1 class="h2 fw-bold mb-1">{{ vendor.business_name }}</h1>
             <p class="mb-0"><span class="status-pill {% if vendor.is_approved %}status-paid{% else %}status-pending{% endif %}">{% if vendor.is_approved %}Approved seller{% else %}Approval pending{% endif %}</span></p>
-        </div>
+            </div></div>
         <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-success" href="{% url 'vendors:vendor_profile' %}"><i class="bi bi-image me-2"></i>Edit business profile</a>
             <a class="btn btn-success" href="{% url 'vendors:vendor_catalog_product_create' %}"><i class="bi bi-box-seam me-2"></i>Add new product</a>
             <a class="btn btn-outline-success" href="{% url 'vendors:vendor_product_create' %}"><i class="bi bi-tag me-2"></i>Add offer</a>
             <a class="btn btn-outline-secondary" href="{% url 'vendors:vendor_product_list' %}"><i class="bi bi-list-check me-2"></i>Manage inventory</a>

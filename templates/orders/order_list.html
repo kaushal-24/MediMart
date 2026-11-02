@@ -38,8 +38,12 @@
                                 <td>{{ order.get_payment_status_display }}</td>
                                 <td>{{ order.get_order_status_display }}</td>
                                 <td>
-                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">View</a>
-                                    <a class="btn btn-sm btn-outline-success" href="{% url 'orders:invoice_detail' order.pk %}">Invoice</a>
+                                    {% if order.payment_method == 'razorpay' and order.payment_status != 'paid' %}
+                                        <a class="btn btn-sm btn-success" href="{% url 'orders:payment_start' order.pk %}">Complete payment</a>
+                                    {% else %}
+                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">View</a>
+                                        <a class="btn btn-sm btn-outline-success" href="{% url 'orders:invoice_detail' order.pk %}">Invoice</a>
+                                    {% endif %}
                                     <form class="d-inline" data-ajax-form="quick-reorder" method="post" action="{% url 'orders:quick_reorder' order.pk %}">
                                         {% csrf_token %}
                                         <button class="btn btn-sm btn-success" type="submit" title="Add available items from this order to your cart">

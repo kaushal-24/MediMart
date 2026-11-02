@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from core.storage import private_media_storage
 from core.validators import validate_private_document
@@ -108,7 +109,10 @@ class Prescription(models.Model):
         return reverse("prescriptions:prescription_detail", args=[self.pk])
 
     def mark_approved(self, reviewer=None):
+        if not self.is_ready_for_approval():
+            raise ValidationError("Prescription compliance checks must pass before approval.")
         self.status = self.Status.APPROVED
+        self.clinical_validation_status = "passed"
         self.reviewed_by = reviewer
         self.reviewed_at = timezone.now()
         self.rejection_reason = ""
@@ -116,6 +120,7 @@ class Prescription(models.Model):
         self.save(
             update_fields=[
                 "status",
+                "clinical_validation_status",
                 "reviewed_by",
                 "reviewed_at",
                 "rejection_reason",
@@ -191,6 +196,10 @@ class Prescription(models.Model):
             and self.valid_until
             and self.valid_until >= timezone.localdate()
             and self.fulfillment_count < self.max_fulfillments
+            and self.prescriber_verified
+            and self.patient_identity_verified
+            and self.clinical_validation_status == "passed"
+            and not self.validation_flags
         )
 
     def authorizes(self, product, quantity=1):

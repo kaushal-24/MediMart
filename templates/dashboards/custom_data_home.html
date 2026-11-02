@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Custom Data Manager | MediMart{% endblock %}
+
+{% block content %}
+<section class="product-header operations-header">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div>
+            <a class="management-back" href="{% url 'dashboards:admin_dashboard' %}"><i class="bi bi-arrow-left"></i> Operations Center</a>
+            <p class="eyebrow mb-2 mt-3">Administrator tools</p>
+            <h1 class="h2 fw-bold mb-2">Custom data manager</h1>
+            <p class="text-secondary mb-0">Manage MediMart data from one consistent workspace.</p>
+        </div>
+        <a class="btn btn-outline-success" href="{% url 'dashboards:admin_dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>Operations Center</a>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="content-panel mb-4">
+        <div class="panel-heading">
+            <div><p class="eyebrow mb-1">Custom CRUD</p><h2>Choose a data area</h2></div>
+            <span class="badge text-bg-success">Admin only</span>
+        </div>
+        <p class="text-secondary mb-0">Each area has its own search, pagination, add, edit, and delete controls. Workflow records remain subject to MediMart validation rules.</p>
+    </div>
+    <div class="admin-link-grid">
+        {% for item in data_links %}<a class="admin-link" href="{{ item.url }}"><i class="bi bi-{{ item.icon }}"></i><span>{{ item.label }}</span></a>{% endfor %}
+    </div>
+</section>
+{% endblock %}

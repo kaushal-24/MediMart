@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Pay Order {{ order.order_number }} | MediMart{% endblock %}
+{% block title %}Complete Checkout Payment {{ order.order_number }} | MediMart{% endblock %}
 
 {% block content %}
 <section class="container py-5">
@@ -11,12 +11,14 @@
         <div class="col-lg-7">
             <div class="content-panel text-center">
                 <p class="eyebrow mb-2">Secure payment</p>
-                <h1 class="h3 fw-bold mb-2">Complete Payment</h1>
-                <p class="text-secondary mb-4">Order {{ order.order_number }} · ₹{{ order.total_amount }}</p>
-                <button class="btn btn-success btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#razorpayPaymentModal">
-                    <i class="bi bi-credit-card me-2"></i>Open secure payment
-                </button>
-                <a class="btn btn-outline-secondary btn-lg ms-sm-2 mt-2 mt-sm-0" href="{% url 'orders:order_detail' order.pk %}">Back to Order</a>
+                <h1 class="h3 fw-bold mb-2">Complete payment to place your order</h1>
+                <p class="text-secondary mb-4">Checkout {{ order.order_number }} · ₹{{ order.total_amount }}</p>
+                <div class="payment-actions" aria-label="Payment actions">
+                    <button class="btn btn-success btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#razorpayPaymentModal">
+                        <i class="bi bi-credit-card me-2"></i>Open secure payment
+                    </button>
+                    <a class="btn btn-lg payment-back-link" href="{% url 'orders:order_detail' order.pk %}">Back to checkout details</a>
+                </div>
                 <p class="small text-secondary mt-3 mb-0">Your account email and phone will be prefilled. Missing contact details can be added before continuing.</p>
             </div>
         </div>

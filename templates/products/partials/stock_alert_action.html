@@ -1,0 +1,12 @@
+{% if user.is_authenticated %}
+    <form data-ajax-form="stock-alert" method="post" action="{% url 'products:stock_alert_create' product.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-outline-warning w-100 mt-3" type="submit">
+            <i class="bi bi-bell me-1"></i>Notify me when available
+        </button>
+    </form>
+{% else %}
+    <a class="btn btn-sm btn-outline-warning w-100 mt-3" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">
+        <i class="bi bi-bell me-1"></i>Sign in for stock alert
+    </a>
+{% endif %}
