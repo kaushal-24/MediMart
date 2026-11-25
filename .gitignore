@@ -24,3 +24,5 @@ ROLE_ACCOUNT_CREDENTIALS.md
 *.pdf
 *.md
 *.log
+# WhatsApp API
+/OPENWA/
